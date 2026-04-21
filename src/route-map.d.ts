@@ -17,7 +17,8 @@ import type {
 
 declare module 'vue-router' {
   interface TypesConfig {
-    ParamParsers: never
+    ParamParsers:
+      | never
   }
 }
 
@@ -29,6 +30,13 @@ declare module 'vue-router/auto-routes' {
     '/': RouteRecordInfo<
       '/',
       '/',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/install': RouteRecordInfo<
+      '/install',
+      '/install',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -49,6 +57,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/index.vue': {
       routes:
         | '/'
+      views:
+        | never
+    }
+    'src/pages/install.vue': {
+      routes:
+        | '/install'
       views:
         | never
     }
