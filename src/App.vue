@@ -23,11 +23,6 @@ onMounted(() => {
     <B24App>
       <!-- Сайдбар - как в первом коде, вынесен в отдельную колонку -->
       <div class="p-0 md:p-6">
-        <B24PageHeader
-            title="История посещений"
-            description="Иерархичное отображение статистики посещений страниц сотрудниками"
-        />
-
         <div class="mt-0 md:mt-2 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           <!-- Основной контент (колонка 2/3) -->
           <div class="lg:col-span-2">
