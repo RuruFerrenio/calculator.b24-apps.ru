@@ -4,10 +4,10 @@ import Sidebar from './components/Sidebar.vue'
 
 const tgLink = computed(() => {
   return (
-    typeof window !== 'undefined' && window.navigator?.language.includes('ru')
+      typeof window !== 'undefined' && window.navigator?.language.includes('ru')
   )
-    ? 'https://t.me/bitrix24apps'
-    : 'https://t.me/b24_dev'
+      ? 'https://t.me/bitrix24apps'
+      : 'https://t.me/b24_dev'
 })
 
 onMounted(() => {
@@ -21,64 +21,25 @@ onMounted(() => {
 <template>
   <Suspense>
     <B24App>
-      <!--<B24Header>
-        <template #left>
-          <RouterLink to="/">
-            <AppLogo class="w-auto h-[40px] shrink-0" />
-          </RouterLink>
+      <!-- Сайдбар - как в первом коде, вынесен в отдельную колонку -->
+      <div class="p-0 md:p-6">
+        <B24PageHeader
+            title="История посещений"
+            description="Иерархичное отображение статистики посещений страниц сотрудниками"
+        />
 
-          <TemplateMenu />
-        </template>
-
-        <template #right>
-          <B24ColorModeButton :content="{ align: 'end', side: 'bottom' }" />
-
-          <B24Button
-            :to="tgLink"
-            target="_blank"
-            aria-label="Telegram"
-            color="air-tertiary-no-accent"
-            :icon="TelegramIcon"
-            size="sm"
-          />
-          <B24Button
-            to="https://github.com/bitrix24/starter-b24ui-vue"
-            target="_blank"
-            aria-label="GitHub"
-            color="air-tertiary-no-accent"
-            :icon="GitHubIcon"
-            size="sm"
-          />
-        </template>
-      </B24Header>-->
-
-      <B24Main>
-        <div class="flex gap-6">
-          <!-- Сайдбар -->
-          <div class="w-80 flex-shrink-0">
-            <Sidebar />
-          </div>
-
-          <!-- Основной контент -->
-          <div class="flex-1 min-w-0">
+        <div class="mt-0 md:mt-2 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          <!-- Основной контент (колонка 2/3) -->
+          <div class="lg:col-span-2">
             <RouterView />
           </div>
+
+          <!-- Сайдбар (колонка 1/3) -->
+          <div class="lg:col-span-1">
+            <Sidebar />
+          </div>
         </div>
-      </B24Main>
-
-      <!--<B24Separator :icon="Bitrix24Icon" />
-
-      <B24Footer>
-        <template #left>
-          <ProseP
-            small
-            accent="less"
-            class="mb-0"
-          >
-            Built with Bitrix24 UI • &copy; {{ new Date().getFullYear() }}
-          </ProseP>
-        </template>
-      </B24Footer>-->
+      </div>
     </B24App>
   </Suspense>
 </template>
