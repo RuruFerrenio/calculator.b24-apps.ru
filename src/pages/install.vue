@@ -49,7 +49,7 @@ const configSettings = ref({
 
 // URL обработчиков
 const HANDLERS = {
-  pageBackgroundWorker: `${window.location.origin}/placements/page-background-worker`
+  pageBackgroundWorker: `${window.location.origin}/widgets/background-handler`
 }
 
 // Конфигурации встроек
@@ -58,7 +58,7 @@ const PLACEMENT_CONFIGS = {
     title: 'Фоновый счетчик',
     description: 'Подсчитывает время, проведенное пользователем на странице',
     options: {
-      errorHandlerUrl: `${window.location.origin}/placements/error-handler`
+      errorHandlerUrl: `${window.location.origin}/widgets/background-error-handler`
     }
   }
 }
@@ -320,7 +320,7 @@ onUnmounted(() => {
         <LoaderClockIcon class="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
       </div>
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3 px-2">
-        Установка системы контроля времени сотрудников
+        Установка приложения "Автоматическое начало и закрытие рабочего дня"
       </h1>
       <p class="text-base md:text-lg text-gray-600 mx-auto px-4">
         Настройка и активация системы мониторинга активности и рабочего времени
@@ -374,7 +374,7 @@ onUnmounted(() => {
             </div>
 
             <div class="flex justify-end">
-              <B24Button @click="nextStep" label="Начать настройку" color="primary" :icon="ArrowRightLIcon" icon-position="right" />
+              <B24Button @click="nextStep" label="Начать настройку" color="primary" :icon="ArrowRightLIcon" size="lg" icon-position="right" />
             </div>
           </div>
         </div>
@@ -415,6 +415,12 @@ onUnmounted(() => {
                       { label: 'Автоматический старт', value: 'auto' },
                       { label: 'Модальное окно с предупреждением', value: 'modal' }
                     ]"
+                      orientation="horizontal"
+                      variant="card"
+                      size="sm"
+                      default-value="modal"
+                      indicator="end"
+                      class="overflow-scroll md:overflow-auto"
                   />
                 </div>
               </B24PageCard>
@@ -432,17 +438,23 @@ onUnmounted(() => {
                   <B24RadioGroup
                       v-model="configSettings.workdayEnd.method"
                       :items="[
-                      { label: 'Автоматическое завершение', value: 'auto' },
-                      { label: 'Модальное окно с предупреждением', value: 'modal' }
-                    ]"
+                        { label: 'Автоматическое завершение', value: 'auto' },
+                        { label: 'Модальное окно с предупреждением', value: 'modal' }
+                      ]"
+                      orientation="horizontal"
+                      variant="card"
+                      size="sm"
+                      default-value="modal"
+                      indicator="end"
+                      class="overflow-scroll md:overflow-auto"
                   />
                 </div>
               </B24PageCard>
             </div>
 
             <div class="flex justify-between gap-3 pt-6 mt-6 border-t">
-              <B24Button @click="prevStep" label="Назад" variant="outline" :icon="ArrowLeftLIcon" />
-              <B24Button @click="nextStep" label="Продолжить" color="primary" :disabled="!hasSelectedFeatures" :icon="ArrowRightLIcon" icon-position="right" />
+              <B24Button @click="prevStep" label="Назад" variant="outline" size="lg" :icon="ArrowLeftLIcon" />
+              <B24Button @click="nextStep" label="Продолжить" color="primary" size="lg" :disabled="!hasSelectedFeatures" :icon="ArrowRightLIcon" icon-position="right" />
             </div>
           </div>
         </div>
@@ -517,8 +529,8 @@ onUnmounted(() => {
             </div>
 
             <div class="flex justify-end gap-3 pt-6 border-t">
-              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
-              <B24Button v-if="installationComplete" @click="nextStep" label="Продолжить" color="primary" :icon="ArrowRightLIcon" icon-position="right" />
+              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад"  size="lg" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
+              <B24Button v-if="installationComplete" @click="nextStep" label="Продолжить" size="lg" color="primary" :icon="ArrowRightLIcon" icon-position="right" />
             </div>
           </div>
         </div>
@@ -581,7 +593,7 @@ onUnmounted(() => {
               </B24PageCard>
 
               <div class="flex justify-end gap-3 pt-6 border-t">
-                <B24Button @click="finishInstallation" :label="`Завершить установку${isTimerActive ? ` (${secondsLeft}с)` : ''}`" color="primary" />
+                <B24Button @click="finishInstallation" size="lg" :label="`Завершить установку${isTimerActive ? ` (${secondsLeft}с)` : ''}`" color="primary" />
               </div>
             </div>
           </div>

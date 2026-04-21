@@ -41,6 +41,20 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/widgets/background-error-handler': RouteRecordInfo<
+      '/widgets/background-error-handler',
+      '/widgets/background-error-handler',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/widgets/background-handler': RouteRecordInfo<
+      '/widgets/background-handler',
+      '/widgets/background-handler',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -63,6 +77,18 @@ declare module 'vue-router/auto-routes' {
     'src/pages/install.vue': {
       routes:
         | '/install'
+      views:
+        | never
+    }
+    'src/pages/widgets/background-error-handler.vue': {
+      routes:
+        | '/widgets/background-error-handler'
+      views:
+        | never
+    }
+    'src/pages/widgets/background-handler.vue': {
+      routes:
+        | '/widgets/background-handler'
       views:
         | never
     }
