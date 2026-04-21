@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import GitHubIcon from '@bitrix24/b24icons-vue/social/GitHubIcon'
-import Bitrix24Icon from '@bitrix24/b24icons-vue/common-service/Bitrix24Icon'
-import TelegramIcon from '@bitrix24/b24icons-vue/outline/TelegramIcon'
+import Sidebar from './components/Sidebar.vue'
 
 const tgLink = computed(() => {
   return (
@@ -55,7 +53,17 @@ onMounted(() => {
       </B24Header>-->
 
       <B24Main>
-        <RouterView />
+        <div class="flex gap-6">
+          <!-- Сайдбар -->
+          <div class="w-80 flex-shrink-0">
+            <Sidebar />
+          </div>
+
+          <!-- Основной контент -->
+          <div class="flex-1 min-w-0">
+            <RouterView />
+          </div>
+        </div>
       </B24Main>
 
       <!--<B24Separator :icon="Bitrix24Icon" />
