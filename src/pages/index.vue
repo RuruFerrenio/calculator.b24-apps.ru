@@ -6,6 +6,10 @@ import AppsIcon from '@bitrix24/b24icons-vue/solid/AppsIcon'
 import CodeIcon from '@bitrix24/b24icons-vue/common-service/CodeIcon'
 import ShieldCheckedIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import ArrowRightLIcon from '@bitrix24/b24icons-vue/outline/ArrowRightLIcon'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const goToInstall = () => router.push('/install')
 </script>
 
 <template>
@@ -13,10 +17,10 @@ import ArrowRightLIcon from '@bitrix24/b24icons-vue/outline/ArrowRightLIcon'
     <PageHero />
 
     <B24PageSection
-      id="features"
-      title="A full-stack foundation for modern Vue apps"
-      description="Build on a robust starting point. This template provides everything you need to create production-ready applications with Bitrix24 UI's component system."
-      :features="[
+        id="features"
+        title="A full-stack foundation for modern Vue apps"
+        description="Build on a robust starting point. This template provides everything you need to create production-ready applications with Bitrix24 UI's component system."
+        :features="[
         {
           icon: RocketIcon,
           title: 'Production-ready from day one',
@@ -52,10 +56,10 @@ import ArrowRightLIcon from '@bitrix24/b24icons-vue/outline/ArrowRightLIcon'
 
     <B24PageSection>
       <B24PageCard
-        title="Starting a new Vue project?"
-        description="Join the community of developers building with Vue and Bitrix24 UI. Use the ready‑made starter template. Build and ship faster."
-        variant="tinted-alt"
-        :b24ui="{
+          title="Starting a new Vue project?"
+          description="Join the community of developers building with Vue and Bitrix24 UI. Use the ready‑made starter template. Build and ship faster."
+          variant="tinted-alt"
+          :b24ui="{
           title: 'sm:text-5xl',
           description: 'sm:text-2xl'
         }"
@@ -63,20 +67,25 @@ import ArrowRightLIcon from '@bitrix24/b24icons-vue/outline/ArrowRightLIcon'
         <template #footer>
           <div class="flex flex-wrap items-center gap-4 mt-2">
             <B24Button
-              label="Start building"
-              to="https://bitrix24.github.io/b24ui/docs/getting-started/installation/vue/"
-              target="_blank"
-              color="air-boost"
+                label="Start building"
+                to="https://bitrix24.github.io/b24ui/docs/getting-started/installation/vue/"
+                target="_blank"
+                color="air-boost"
             >
               <template #trailing>
                 <ArrowRightLIcon class="size-6" />
               </template>
             </B24Button>
 
+            <B24Button
+                label="Установщик"
+                @click="goToInstall"
+            />
+
             <B24Link
-              to="https://github.com/bitrix24/starter-b24ui-vue"
-              target="_blank"
-              is-action
+                to="https://github.com/bitrix24/starter-b24ui-vue"
+                target="_blank"
+                is-action
             >
               View on GitHub
             </B24Link>
