@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import GitHubIcon from '@bitrix24/b24icons-vue/social/GitHubIcon'
 import Bitrix24Icon from '@bitrix24/b24icons-vue/common-service/Bitrix24Icon'
 import TelegramIcon from '@bitrix24/b24icons-vue/outline/TelegramIcon'
@@ -10,6 +10,13 @@ const tgLink = computed(() => {
   )
     ? 'https://t.me/bitrix24apps'
     : 'https://t.me/b24_dev'
+})
+
+onMounted(() => {
+  const script = document.createElement('script')
+  script.src = '//api.bitrix24.com/api/v1/'
+  script.async = true
+  document.head.appendChild(script)
 })
 </script>
 
