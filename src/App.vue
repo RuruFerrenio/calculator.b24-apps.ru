@@ -16,7 +16,7 @@ const tgLink = computed(() => {
 <template>
   <Suspense>
     <B24App>
-      <B24Header>
+      <!--<B24Header>
         <template #left>
           <RouterLink to="/">
             <AppLogo class="w-auto h-[40px] shrink-0" />
@@ -45,13 +45,13 @@ const tgLink = computed(() => {
             size="sm"
           />
         </template>
-      </B24Header>
+      </B24Header>-->
 
       <B24Main>
         <RouterView />
       </B24Main>
 
-      <B24Separator :icon="Bitrix24Icon" />
+      <!--<B24Separator :icon="Bitrix24Icon" />
 
       <B24Footer>
         <template #left>
@@ -63,7 +63,7 @@ const tgLink = computed(() => {
             Built with Bitrix24 UI • &copy; {{ new Date().getFullYear() }}
           </ProseP>
         </template>
-      </B24Footer>
+      </B24Footer>-->
     </B24App>
   </Suspense>
 </template>
