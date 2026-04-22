@@ -3,6 +3,16 @@ import { ref, onMounted, watch } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import PlacementsManager from './PlacementsManager.vue'
 
+// Импортируем недостающие компоненты
+import {
+  B24PageHeader,
+  B24Card,
+  B24Switch,
+  B24Form,
+  B24FormField,
+  B24RadioGroup
+} from '@bitrix24/b24ui-nuxt'
+
 const toast = useToast()
 
 // Типы данных
