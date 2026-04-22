@@ -208,7 +208,7 @@ function checkWorkdayStatus(): void {
           }
 
           const workDayParams = result.data()
-          console.log('Информация о рабочем дне:', workDayParams.status)
+          console.log('Информация о рабочем дне:', workDayParams)
 
           console.log('Настройки')
           console.log(workdayStart.value.enabled)
