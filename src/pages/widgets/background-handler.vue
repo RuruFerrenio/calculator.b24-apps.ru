@@ -10,6 +10,7 @@ interface WorkdaySettings {
 // Состояние компонента
 const isBitrixLoaded = ref(false)
 const isProcessing = ref(false)
+const currentUserId = ref<number | null>(null)
 
 // Настройки рабочего дня
 const workdayStart = ref<WorkdaySettings>({
@@ -70,6 +71,23 @@ async function loadSettings(): Promise<void> {
   } catch (error) {
     console.error('Ошибка загрузки настроек:', error)
   }
+}
+
+// Получение ID текущего пользователя
+function getCurrentUserId(callback: (userId: number) => void): void {
+  BX24.callMethod(
+      'user.current',
+      {},
+      function(result: any) {
+        if (result.error()) {
+          console.error('Ошибка получения текущего пользователя:', result.error())
+          return
+        }
+
+        const user = result.data()
+        callback(user.ID)
+      }
+  )
 }
 
 // Проверка, является ли текущее время рабочим (переделываем на callback)
@@ -174,43 +192,48 @@ function onCancelEnd(): void {
 function checkWorkdayStatus(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
-  BX24.callMethod(
-      'timeman.status',
-      {
-        'USER_ID': 503
-      },
-      function(result: any) {
-        if (result.error()) {
-          console.error('Ошибка проверки статуса рабочего дня:', result.error())
-          return
-        }
+  // Сначала получаем ID текущего пользователя
+  getCurrentUserId(function(userId: number) {
+    currentUserId.value = userId
 
-        const status = result.data()
-        console.log('Информация о рабочем дне:', status)
+    BX24.callMethod(
+        'timeman.status',
+        {
+          'USER_ID': userId
+        },
+        function(result: any) {
+          if (result.error()) {
+            console.error('Ошибка проверки статуса рабочего дня:', result.error())
+            return
+          }
 
-        // Проверка для начала рабочего дня
-        if (workdayStart.value.enabled && status === 'closed') {
-          if (workdayStart.value.method === 'modal') {
-            showStartModal.value = true
-          } else if (workdayStart.value.method === 'auto') {
-            startWorkday()
+          const status = result.data()
+          console.log('Информация о рабочем дне:', status)
+
+          // Проверка для начала рабочего дня
+          if (workdayStart.value.enabled && status === 'closed') {
+            if (workdayStart.value.method === 'modal') {
+              showStartModal.value = true
+            } else if (workdayStart.value.method === 'auto') {
+              startWorkday()
+            }
+          }
+
+          // Проверка для завершения рабочего дня
+          if (workdayEnd.value.enabled && status === 'opened') {
+            checkIsWorkTime(function(isWorkTime: boolean) {
+              if (!isWorkTime) {
+                if (workdayEnd.value.method === 'modal') {
+                  showEndModal.value = true
+                } else if (workdayEnd.value.method === 'auto') {
+                  endWorkday()
+                }
+              }
+            })
           }
         }
-
-        // Проверка для завершения рабочего дня
-        if (workdayEnd.value.enabled && status === 'opened') {
-          checkIsWorkTime(function(isWorkTime: boolean) {
-            if (!isWorkTime) {
-              if (workdayEnd.value.method === 'modal') {
-                showEndModal.value = true
-              } else if (workdayEnd.value.method === 'auto') {
-                endWorkday()
-              }
-            }
-          })
-        }
-      }
-  )
+    )
+  })
 }
 
 // Жизненный цикл
