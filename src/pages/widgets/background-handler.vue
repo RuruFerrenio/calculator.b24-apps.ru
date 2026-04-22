@@ -7,6 +7,11 @@ interface WorkdaySettings {
   method: 'auto' | 'modal'
 }
 
+interface WorkdayStatus {
+  STATUS: 'OPENED' | 'CLOSED' | 'PAUSED' | 'EXPIRED'
+  [key: string]: any
+}
+
 // Состояние компонента
 const isBitrixLoaded = ref(false)
 const isProcessing = ref(false)
@@ -38,6 +43,38 @@ function normalizeMethod(value: unknown): 'auto' | 'modal' | null {
   return null
 }
 
+// Promise-обертка для BX24.callMethod
+function callBX24Method<T = any>(method: string, params: any = {}): Promise<T> {
+  return new Promise((resolve, reject) => {
+    if (typeof BX24 === 'undefined' || !BX24.callMethod) {
+      reject(new Error('BX24 не инициализирован'))
+      return
+    }
+
+    BX24.callMethod(method, params, (result: any) => {
+      if (result.error()) {
+        reject(result.error())
+      } else {
+        resolve(result.data())
+      }
+    })
+  })
+}
+
+// Promise-обертка для BX24.appOption.get
+function getAppOption<T = any>(key: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    if (typeof BX24 === 'undefined' || !BX24.appOption) {
+      reject(new Error('BX24 не инициализирован'))
+      return
+    }
+
+    BX24.appOption.get(key, (value: T) => {
+      resolve(value)
+    })
+  })
+}
+
 // Загрузка настроек
 async function loadSettings(): Promise<void> {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
@@ -49,10 +86,10 @@ async function loadSettings(): Promise<void> {
       workdayEndEnabled,
       workdayEndMethod
     ] = await Promise.all([
-      BX24.appOption.get('workday_start_enabled'),
-      BX24.appOption.get('workday_start_method'),
-      BX24.appOption.get('workday_end_enabled'),
-      BX24.appOption.get('workday_end_method')
+      getAppOption('workday_start_enabled'),
+      getAppOption('workday_start_method'),
+      getAppOption('workday_end_enabled'),
+      getAppOption('workday_end_method')
     ])
 
     workdayStart.value.enabled = normalizeBoolean(workdayStartEnabled)
@@ -67,22 +104,39 @@ async function loadSettings(): Promise<void> {
       workdayEnd.value.method = endMethod
     }
 
+    console.log('Настройки загружены:', {
+      workdayStart: workdayStart.value,
+      workdayEnd: workdayEnd.value
+    })
   } catch (error) {
     console.error('Ошибка загрузки настроек:', error)
+  }
+}
+
+// Получение расписания работы
+async function getWorkSchedule(): Promise<any> {
+  try {
+    const schedule = await callBX24Method('timeman.settings.get')
+    console.log('Расписание получено:', schedule)
+    return schedule
+  } catch (error) {
+    console.error('Ошибка получения расписания:', error)
+    return null
   }
 }
 
 // Проверка, является ли текущее время рабочим
 async function checkIsWorkTime(): Promise<boolean> {
   try {
-    const schedule = await BX24.callMethod('timeman.settings.get')
+    const schedule = await getWorkSchedule()
+
     if (schedule && schedule.data) {
       const now = new Date()
       const currentHour = now.getHours()
       const currentMinute = now.getMinutes()
       const currentTime = currentHour * 60 + currentMinute
 
-      const dayOfWeek = now.getDay()
+      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1 // Конвертация для Битрикс (пн=0, вс=6)
       const workTime = schedule.data[dayOfWeek]
 
       if (workTime && workTime.from && workTime.to) {
@@ -91,7 +145,9 @@ async function checkIsWorkTime(): Promise<boolean> {
         const startTime = startHours * 60 + startMinutes
         const endTime = endHours * 60 + endMinutes
 
-        return currentTime >= startTime && currentTime <= endTime
+        const isWorkTime = currentTime >= startTime && currentTime <= endTime
+        console.log(`Проверка рабочего времени: ${isWorkTime}, текущее: ${currentTime}, рабочее: ${startTime}-${endTime}`)
+        return isWorkTime
       }
     }
   } catch (error) {
@@ -101,16 +157,30 @@ async function checkIsWorkTime(): Promise<boolean> {
   return true
 }
 
+// Получение статуса рабочего дня (исправлено - использует колбек)
+async function getWorkdayStatus(): Promise<WorkdayStatus | null> {
+  try {
+    const status = await callBX24Method<WorkdayStatus>('timeman.status')
+    console.log('Статус рабочего дня получен:', status)
+    return status
+  } catch (error) {
+    console.error('Ошибка получения статуса рабочего дня:', error)
+    return null
+  }
+}
+
 // Начало рабочего дня
-async function startWorkday(): Promise<void> {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+async function startWorkday(): Promise<boolean> {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return false
 
   try {
     isProcessing.value = true
-    await BX24.callMethod('timeman.open')
-    console.log('Рабочий день успешно начат')
+    const result = await callBX24Method('timeman.open')
+    console.log('Рабочий день успешно начат:', result)
+    return true
   } catch (error) {
     console.error('Ошибка начала рабочего дня:', error)
+    return false
   } finally {
     isProcessing.value = false
     showStartModal.value = false
@@ -118,15 +188,17 @@ async function startWorkday(): Promise<void> {
 }
 
 // Завершение рабочего дня
-async function endWorkday(): Promise<void> {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+async function endWorkday(): Promise<boolean> {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return false
 
   try {
     isProcessing.value = true
-    await BX24.callMethod('timeman.close')
-    console.log('Рабочий день успешно завершен')
+    const result = await callBX24Method('timeman.close')
+    console.log('Рабочий день успешно завершен:', result)
+    return true
   } catch (error) {
     console.error('Ошибка завершения рабочего дня:', error)
+    return false
   } finally {
     isProcessing.value = false
     showEndModal.value = false
@@ -134,12 +206,12 @@ async function endWorkday(): Promise<void> {
 }
 
 // Обработчики для модальных окон
-function onConfirmStart(): void {
-  startWorkday()
+async function onConfirmStart(): Promise<void> {
+  await startWorkday()
 }
 
-function onConfirmEnd(): void {
-  endWorkday()
+async function onConfirmEnd(): Promise<void> {
+  await endWorkday()
 }
 
 function onCancelStart(): void {
@@ -155,33 +227,45 @@ async function checkWorkdayStatus(): Promise<void> {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
   try {
-    const currentDayStatus = await BX24.callMethod('timeman.status')
+    // Получаем статус рабочего дня через Promise-обертку
+    const statusData = await getWorkdayStatus()
 
-    console.log('Информация о рабочем дне:')
-    console.log(currentDayStatus)
+    if (!statusData) {
+      console.warn('Не удалось получить статус рабочего дня')
+      return
+    }
 
-    if (currentDayStatus && currentDayStatus.data) {
-      const status = currentDayStatus.data
+    const currentStatus = statusData.STATUS
+    console.log('Текущий статус рабочего дня:', currentStatus)
+    console.log('Настройки начала дня:', workdayStart.value)
+    console.log('Настройки завершения дня:', workdayEnd.value)
 
-      // Проверка для начала рабочего дня
-      if (workdayStart.value.enabled && status === 'closed') {
-        if (workdayStart.value.method === 'modal') {
-          showStartModal.value = true
-        } else if (workdayStart.value.method === 'auto') {
-          await startWorkday()
-        }
+    // Проверка для начала рабочего дня (статус CLOSED - день не начат)
+    if (workdayStart.value.enabled && currentStatus === 'CLOSED') {
+      console.log('Условие для начала дня выполнено')
+
+      if (workdayStart.value.method === 'modal') {
+        console.log('Показываем модальное окно начала дня')
+        showStartModal.value = true
+      } else if (workdayStart.value.method === 'auto') {
+        console.log('Автоматически начинаем день')
+        await startWorkday()
       }
+    }
 
-      // Проверка для завершения рабочего дня
-      if (workdayEnd.value.enabled && status === 'opened') {
-        const isWorkTime = await checkIsWorkTime()
+    // Проверка для завершения рабочего дня (статус OPENED - день активен)
+    if (workdayEnd.value.enabled && currentStatus === 'OPENED') {
+      console.log('Условие для завершения дня выполнено')
+      const isWorkTime = await checkIsWorkTime()
+      console.log('Рабочее время:', isWorkTime)
 
-        if (!isWorkTime) {
-          if (workdayEnd.value.method === 'modal') {
-            showEndModal.value = true
-          } else if (workdayEnd.value.method === 'auto') {
-            await endWorkday()
-          }
+      if (!isWorkTime) {
+        if (workdayEnd.value.method === 'modal') {
+          console.log('Показываем модальное окно завершения дня')
+          showEndModal.value = true
+        } else if (workdayEnd.value.method === 'auto') {
+          console.log('Автоматически завершаем день')
+          await endWorkday()
         }
       }
     }
@@ -192,14 +276,26 @@ async function checkWorkdayStatus(): Promise<void> {
 
 // Жизненный цикл
 onMounted(async () => {
-  console.log('Работает встройка!')
+  console.log('Компонент смонтирован, инициализация...')
+
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
-      console.log('Рест доступен')
+      console.log('BX24 инициализирован, REST API доступен')
       isBitrixLoaded.value = true
+
+      // Небольшая задержка для гарантии инициализации
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       await loadSettings()
       await checkWorkdayStatus()
+
+      // Для отладки - выводим доступные методы
+      if (typeof BX24.callMethod === 'function') {
+        console.log('BX24.callMethod доступен')
+      }
     })
+  } else {
+    console.error('BX24 не найден! Убедитесь, что подключен скрипт https://api.bitrix24.com/api/v1/')
   }
 })
 </script>
