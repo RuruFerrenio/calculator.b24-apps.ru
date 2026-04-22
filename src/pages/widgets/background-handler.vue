@@ -212,6 +212,7 @@ function checkWorkdayStatus(): void {
 
           // Проверка для начала рабочего дня
           if (workdayStart.value.enabled && status === 'closed') {
+            console.log('Открываем модалку начала рабочего дня')
             if (workdayStart.value.method === 'modal') {
               showStartModal.value = true
             } else if (workdayStart.value.method === 'auto') {
@@ -221,6 +222,7 @@ function checkWorkdayStatus(): void {
 
           // Проверка для завершения рабочего дня
           if (workdayEnd.value.enabled && status === 'opened') {
+            console.log('Открываем модалку завершения рабочего дня')
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (!isWorkTime) {
                 if (workdayEnd.value.method === 'modal') {
