@@ -2,7 +2,7 @@
 import MailIcon from '@bitrix24/b24icons-vue/main/MailIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
-import LoaderClockIcon from '@bitrix24/b24icons-vue/animated/LoaderClockIcon'
+import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 
 (function(w: Window, d: Document, u: string) {
   var s = d.createElement('script');
@@ -37,10 +37,10 @@ const handleReview = (): void => {
           <!-- Логотип и название -->
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <LoaderClockIcon class="w-6 h-6 text-blue-600" />
+              <PowerIcon class="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Автоматический старт и завершение рабочего дня</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Удобное начало и завершение рабочего дня</h3>
               <p class="text-sm text-gray-500">Версия 1.0.0</p>
             </div>
           </div>
