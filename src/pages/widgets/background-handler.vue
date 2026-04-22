@@ -34,6 +34,25 @@ const MODAL_CONFIG = {
   DYNAMIC_PAGE_PATH: '/dist/widgets/dynamic-page'
 }
 
+// Функции для работы с кукой
+function setCookie(name: string, value: string, minutes: number): void {
+  const date = new Date()
+  date.setTime(date.getTime() + minutes * 60 * 1000)
+  const expires = `expires=${date.toUTCString()}`
+  document.cookie = `${name}=${value};${expires};path=/`
+}
+
+function getCookie(name: string): string | null {
+  const nameEQ = `${name}=`
+  const ca = document.cookie.split(';')
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+  }
+  return null
+}
+
 // Функция для нормализации значений
 function normalizeBoolean(value: unknown): boolean {
   return value === 'Y' || value === true || value === 1
@@ -206,20 +225,20 @@ function endWorkday(): void {
   )
 }
 
-// Открытие модального окна через BX24.openApplication
+// Открытие модального окна через BX24.openApplication (обновленная версия)
 function openWorkdayModal(mode: 'start' | 'end'): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
   if (applicationOpened.value) return
 
   applicationOpened.value = true
 
-  // Записываем в userOption режим modal перед открытием
-  BX24.userOption.set('open_app_mode', 'modal')
-
   const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
   const bgColor = mode === 'start' ? 'green' : 'red'
   const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
+
+  // Устанавливаем куку перед открытием приложения
+  setCookie('open_app_mode', 'modal', 1)
 
   const modalSettings = {
     opened: true,
@@ -232,17 +251,17 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
     width: MODAL_CONFIG.WIDTH,
   }
 
-  BX24.openApplication({}, function() {
+  BX24.openApplication(null, function() {
     onModalClosed(mode)
   }, modalSettings)
 }
 
-// Обработчик закрытия модального окна
+// Обработчик закрытия модального окна (обновленная версия)
 function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
 
-  // Возвращаем режим default после закрытия
-  BX24.userOption.set('open_app_mode', 'default')
+  // Устанавливаем куку в default после закрытия
+  setCookie('open_app_mode', 'default', 1)
 
   if (mode === 'start') {
     showStartModal.value = false
@@ -337,6 +356,9 @@ function checkWorkdayStatus(): void {
 
 // Жизненный цикл
 onMounted(async () => {
+  // Устанавливаем куку в default при старте скрипта
+  setCookie('open_app_mode', 'default', 1)
+
   console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
