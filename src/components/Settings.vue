@@ -16,208 +16,204 @@ interface FormData {
   workdayEnd: WorkdaySettings
 }
 
-// Класс для работы с системой
-class SettingsSystem {
-  public isProcessing = ref(false)
-  public isBitrixLoaded = ref(false)
-  public formData = ref<FormData>({
-    workdayStart: {
-      enabled: false,
-      method: 'modal'
-    },
-    workdayEnd: {
-      enabled: false,
-      method: 'modal'
-    }
-  })
-
-  // Единая функция для уведомлений
-  private showNotification(type: 'success' | 'error' | 'warning' | 'info', message: string): void {
-    if (typeof toast !== 'undefined') {
-      toast.add({
-        description: message,
-        variant: type
-      })
-    }
+// Инициализируем formData как обычный объект, а не ref
+const formData = ref<FormData>({
+  workdayStart: {
+    enabled: false,
+    method: 'modal'
+  },
+  workdayEnd: {
+    enabled: false,
+    method: 'modal'
   }
+})
 
-  public getWorkdayStartMethodText(): string {
-    const methods: Record<'auto' | 'modal', string> = {
-      'auto': 'Автоматический старт',
-      'modal': 'Модальное окно с предупреждением'
-    }
-    return methods[this.formData.value.workdayStart.method] || 'модальное окно'
-  }
+const isProcessing = ref(false)
+const isBitrixLoaded = ref(false)
 
-  public getWorkdayEndMethodText(): string {
-    const methods: Record<'auto' | 'modal', string> = {
-      'auto': 'Автоматическое завершение',
-      'modal': 'Модальное окно с предупреждением'
-    }
-    return methods[this.formData.value.workdayEnd.method] || 'модальное окно'
-  }
-
-  public async toggleWorkdayStart(newValue: boolean): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_start_enabled', newValue ? 'Y' : 'N')
-      }
-      this.formData.value.workdayStart.enabled = newValue
-      this.showNotification('success', newValue ? 'Помощь в старте рабочего дня включена' : 'Помощь в старте рабочего дня выключена')
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения настройки')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  public async toggleWorkdayEnd(newValue: boolean): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_end_enabled', newValue ? 'Y' : 'N')
-      }
-      this.formData.value.workdayEnd.enabled = newValue
-      this.showNotification('success', newValue ? 'Помощь в завершении рабочего дня включена' : 'Помощь в завершении рабочего дня выключена')
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения настройки')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  public async updateWorkdayStartMethod(): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_start_method', this.formData.value.workdayStart.method)
-      }
-      const methodText = this.getWorkdayStartMethodText()
-      this.showNotification('success', `Способ старта рабочего дня: ${methodText}`)
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения способа старта')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  public async updateWorkdayEndMethod(): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_end_method', this.formData.value.workdayEnd.method)
-      }
-      const methodText = this.getWorkdayEndMethodText()
-      this.showNotification('success', `Способ завершения рабочего дня: ${methodText}`)
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения способа завершения')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  public async saveWorkdayStartSettings(): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_start_enabled', this.formData.value.workdayStart.enabled ? 'Y' : 'N')
-        await BX24.appOption.set('workday_start_method', this.formData.value.workdayStart.method)
-      }
-      this.showNotification('success', 'Настройки помощи в старте рабочего дня сохранены')
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения настроек')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  public async saveWorkdayEndSettings(): Promise<void> {
-    try {
-      this.isProcessing.value = true
-      if (this.isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-        await BX24.appOption.set('workday_end_enabled', this.formData.value.workdayEnd.enabled ? 'Y' : 'N')
-        await BX24.appOption.set('workday_end_method', this.formData.value.workdayEnd.method)
-      }
-      this.showNotification('success', 'Настройки помощи в завершении рабочего дня сохранены')
-    } catch {
-      this.showNotification('error', 'Ошибка сохранения настроек')
-    } finally {
-      this.isProcessing.value = false
-    }
-  }
-
-  private normalizeBoolean(value: unknown): boolean {
-    return value === 'Y' || value === true || value === 1
-  }
-
-  private normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | null {
-    if (typeof value === 'string' && validMethods.includes(value)) {
-      return value as 'auto' | 'modal'
-    }
-    return null
-  }
-
-  public async loadSettings(): Promise<void> {
-    if (!this.isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-    try {
-      const [
-        workdayStartEnabled,
-        workdayStartMethod,
-        workdayEndEnabled,
-        workdayEndMethod
-      ] = await Promise.all([
-        BX24.appOption.get('workday_start_enabled'),
-        BX24.appOption.get('workday_start_method'),
-        BX24.appOption.get('workday_end_enabled'),
-        BX24.appOption.get('workday_end_method')
-      ])
-
-      // Загрузка настроек старта рабочего дня
-      this.formData.value.workdayStart.enabled = this.normalizeBoolean(workdayStartEnabled)
-
-      const startMethod = this.normalizeMethod(workdayStartMethod, ['auto', 'modal'])
-      if (startMethod) {
-        this.formData.value.workdayStart.method = startMethod
-      }
-
-      // Загрузка настроек завершения рабочего дня
-      this.formData.value.workdayEnd.enabled = this.normalizeBoolean(workdayEndEnabled)
-
-      const endMethod = this.normalizeMethod(workdayEndMethod, ['auto', 'modal'])
-      if (endMethod) {
-        this.formData.value.workdayEnd.method = endMethod
-      }
-
-    } catch (error) {
-      console.error('Ошибка загрузки настроек:', error)
-    }
+// Функция для уведомлений
+function showNotification(type: 'success' | 'error' | 'warning' | 'info', message: string): void {
+  if (typeof toast !== 'undefined') {
+    toast.add({
+      description: message,
+      variant: type
+    })
   }
 }
 
-// Инициализация системы
-const settingsSystem = new SettingsSystem()
+function getWorkdayStartMethodText(): string {
+  const methods: Record<'auto' | 'modal', string> = {
+    'auto': 'Автоматический старт',
+    'modal': 'Модальное окно с предупреждением'
+  }
+  return methods[formData.value.workdayStart.method] || 'модальное окно'
+}
+
+function getWorkdayEndMethodText(): string {
+  const methods: Record<'auto' | 'modal', string> = {
+    'auto': 'Автоматическое завершение',
+    'modal': 'Модальное окно с предупреждением'
+  }
+  return methods[formData.value.workdayEnd.method] || 'модальное окно'
+}
+
+async function toggleWorkdayStart(newValue: boolean): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_start_enabled', newValue ? 'Y' : 'N')
+    }
+    formData.value.workdayStart.enabled = newValue
+    showNotification('success', newValue ? 'Помощь в старте рабочего дня включена' : 'Помощь в старте рабочего дня выключена')
+  } catch {
+    showNotification('error', 'Ошибка сохранения настройки')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+async function toggleWorkdayEnd(newValue: boolean): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_end_enabled', newValue ? 'Y' : 'N')
+    }
+    formData.value.workdayEnd.enabled = newValue
+    showNotification('success', newValue ? 'Помощь в завершении рабочего дня включена' : 'Помощь в завершении рабочего дня выключена')
+  } catch {
+    showNotification('error', 'Ошибка сохранения настройки')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+async function updateWorkdayStartMethod(): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_start_method', formData.value.workdayStart.method)
+    }
+    const methodText = getWorkdayStartMethodText()
+    showNotification('success', `Способ старта рабочего дня: ${methodText}`)
+  } catch {
+    showNotification('error', 'Ошибка сохранения способа старта')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+async function updateWorkdayEndMethod(): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_end_method', formData.value.workdayEnd.method)
+    }
+    const methodText = getWorkdayEndMethodText()
+    showNotification('success', `Способ завершения рабочего дня: ${methodText}`)
+  } catch {
+    showNotification('error', 'Ошибка сохранения способа завершения')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+async function saveWorkdayStartSettings(): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_start_enabled', formData.value.workdayStart.enabled ? 'Y' : 'N')
+      await BX24.appOption.set('workday_start_method', formData.value.workdayStart.method)
+    }
+    showNotification('success', 'Настройки помощи в старте рабочего дня сохранены')
+  } catch {
+    showNotification('error', 'Ошибка сохранения настроек')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+async function saveWorkdayEndSettings(): Promise<void> {
+  try {
+    isProcessing.value = true
+    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
+      await BX24.appOption.set('workday_end_enabled', formData.value.workdayEnd.enabled ? 'Y' : 'N')
+      await BX24.appOption.set('workday_end_method', formData.value.workdayEnd.method)
+    }
+    showNotification('success', 'Настройки помощи в завершении рабочего дня сохранены')
+  } catch {
+    showNotification('error', 'Ошибка сохранения настроек')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+function normalizeBoolean(value: unknown): boolean {
+  return value === 'Y' || value === true || value === 1
+}
+
+function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | null {
+  if (typeof value === 'string' && validMethods.includes(value)) {
+    return value as 'auto' | 'modal'
+  }
+  return null
+}
+
+async function loadSettings(): Promise<void> {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+
+  try {
+    const [
+      workdayStartEnabled,
+      workdayStartMethod,
+      workdayEndEnabled,
+      workdayEndMethod
+    ] = await Promise.all([
+      BX24.appOption.get('workday_start_enabled'),
+      BX24.appOption.get('workday_start_method'),
+      BX24.appOption.get('workday_end_enabled'),
+      BX24.appOption.get('workday_end_method')
+    ])
+
+    // Загрузка настроек старта рабочего дня
+    formData.value.workdayStart.enabled = normalizeBoolean(workdayStartEnabled)
+
+    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal'])
+    if (startMethod) {
+      formData.value.workdayStart.method = startMethod
+    }
+
+    // Загрузка настроек завершения рабочего дня
+    formData.value.workdayEnd.enabled = normalizeBoolean(workdayEndEnabled)
+
+    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal'])
+    if (endMethod) {
+      formData.value.workdayEnd.method = endMethod
+    }
+
+  } catch (error) {
+    console.error('Ошибка загрузки настроек:', error)
+  }
+}
 
 // Жизненный цикл
 onMounted(async () => {
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
-      settingsSystem.isBitrixLoaded.value = true
-      await settingsSystem.loadSettings()
+      isBitrixLoaded.value = true
+      await loadSettings()
     })
   }
 })
 
 // Наблюдатели
-watch(() => settingsSystem.formData.value.workdayStart.method, () => {
-  if (settingsSystem.isProcessing.value) return
-  settingsSystem.updateWorkdayStartMethod()
+watch(() => formData.value.workdayStart.method, () => {
+  if (isProcessing.value) return
+  updateWorkdayStartMethod()
 })
 
-watch(() => settingsSystem.formData.value.workdayEnd.method, () => {
-  if (settingsSystem.isProcessing.value) return
-  settingsSystem.updateWorkdayEndMethod()
+watch(() => formData.value.workdayEnd.method, () => {
+  if (isProcessing.value) return
+  updateWorkdayEndMethod()
 })
 </script>
 
@@ -243,32 +239,32 @@ watch(() => settingsSystem.formData.value.workdayEnd.method, () => {
             </div>
             <div class="ml-4 flex items-center space-x-4">
               <div class="w-2 h-2 rounded-full"
-                   :class="settingsSystem.formData.workdayStart.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                   :class="formData.workdayStart.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
               <B24Switch
-                  :model-value="settingsSystem.formData.workdayStart.enabled"
-                  @update:model-value="settingsSystem.toggleWorkdayStart"
-                  :disabled="settingsSystem.isProcessing"
+                  :model-value="formData.workdayStart.enabled"
+                  @update:model-value="toggleWorkdayStart"
+                  :disabled="isProcessing"
               />
             </div>
           </div>
 
           <!-- Настройки помощи -->
-          <div v-if="settingsSystem.formData.workdayStart.enabled" class="space-y-4 pt-4 border-t">
+          <div v-if="formData.workdayStart.enabled" class="space-y-4 pt-4 border-t">
             <B24Form
-                :state="settingsSystem.formData"
+                :state="formData"
                 class="space-y-4"
-                @submit="settingsSystem.saveWorkdayStartSettings"
+                @submit="saveWorkdayStartSettings"
             >
               <!-- Способ старта рабочего дня -->
               <B24FormField
                   label="Способ старта рабочего дня"
                   name="workdayStartMethod"
-                  :help-text="`Текущий способ: ${settingsSystem.getWorkdayStartMethodText()}`"
+                  :help-text="`Текущий способ: ${getWorkdayStartMethodText()}`"
               >
                 <B24RadioGroup
-                    :model-value="settingsSystem.formData.workdayStart.method"
-                    @update:model-value="(val) => settingsSystem.formData.workdayStart.method = val"
-                    :disabled="settingsSystem.isProcessing"
+                    :model-value="formData.workdayStart.method"
+                    @update:model-value="(val) => formData.workdayStart.method = val"
+                    :disabled="isProcessing"
                     :items="[
                         {
                             label: 'Автоматический старт',
@@ -367,32 +363,32 @@ watch(() => settingsSystem.formData.value.workdayEnd.method, () => {
             </div>
             <div class="ml-4 flex items-center space-x-4">
               <div class="w-2 h-2 rounded-full"
-                   :class="settingsSystem.formData.workdayEnd.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                   :class="formData.workdayEnd.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
               <B24Switch
-                  :model-value="settingsSystem.formData.workdayEnd.enabled"
-                  @update:model-value="settingsSystem.toggleWorkdayEnd"
-                  :disabled="settingsSystem.isProcessing"
+                  :model-value="formData.workdayEnd.enabled"
+                  @update:model-value="toggleWorkdayEnd"
+                  :disabled="isProcessing"
               />
             </div>
           </div>
 
           <!-- Настройки помощи в завершении -->
-          <div v-if="settingsSystem.formData.workdayEnd.enabled" class="space-y-4 pt-4 border-t">
+          <div v-if="formData.workdayEnd.enabled" class="space-y-4 pt-4 border-t">
             <B24Form
-                :state="settingsSystem.formData"
+                :state="formData"
                 class="space-y-4"
-                @submit="settingsSystem.saveWorkdayEndSettings"
+                @submit="saveWorkdayEndSettings"
             >
               <!-- Способ завершения рабочего дня -->
               <B24FormField
                   label="Способ завершения рабочего дня"
                   name="workdayEndMethod"
-                  :help-text="`Текущий способ: ${settingsSystem.getWorkdayEndMethodText()}`"
+                  :help-text="`Текущий способ: ${getWorkdayEndMethodText()}`"
               >
                 <B24RadioGroup
-                    :model-value="settingsSystem.formData.workdayEnd.method"
-                    @update:model-value="(val) => settingsSystem.formData.workdayEnd.method = val"
-                    :disabled="settingsSystem.isProcessing"
+                    :model-value="formData.workdayEnd.method"
+                    @update:model-value="(val) => formData.workdayEnd.method = val"
+                    :disabled="isProcessing"
                     :items="[
                         {
                             label: 'Автоматическое завершение',
