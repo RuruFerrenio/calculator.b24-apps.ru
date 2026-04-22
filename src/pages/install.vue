@@ -25,7 +25,8 @@ const isInstalling = ref(false)
 const installationComplete = ref(false)
 const installedCount = ref(0)
 const placementStatus = ref({
-  pageBackgroundWorker: null
+  pageBackgroundWorker: null,
+  restAppUri: null
 })
 const settingsStatus = ref(null)
 
@@ -49,7 +50,8 @@ const configSettings = ref({
 
 // URL обработчиков
 const HANDLERS = {
-  pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`
+  pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`,
+  restAppUri: `${window.location.origin}/dist/widgets/dynamic-page`
 }
 
 // Конфигурации встроек
@@ -60,6 +62,11 @@ const PLACEMENT_CONFIGS = {
     options: {
       errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
     }
+  },
+  REST_APP_URI: {
+    title: 'Форма для отчета',
+    description: 'Позволяет сотруднику заполнять запрошенные отчеты',
+    options: {}
   }
 }
 
@@ -103,17 +110,6 @@ const bitrixAPI = {
     } catch (error) {
       throw error
     }
-  }
-}
-
-// Менеджер встроек
-const placementManager = {
-  getConfig: (placementType) => {
-    const config = PLACEMENT_CONFIGS[placementType]
-    if (!config) {
-      throw new Error(`Неизвестный тип встройки: ${placementType}`)
-    }
-    return config
   },
 
   getPlacements: () => {
@@ -126,6 +122,17 @@ const placementManager = {
         }
       })
     })
+  }
+}
+
+// Менеджер встроек
+const placementManager = {
+  getConfig: (placementType) => {
+    const config = PLACEMENT_CONFIGS[placementType]
+    if (!config) {
+      throw new Error(`Неизвестный тип встройки: ${placementType}`)
+    }
+    return config
   },
 
   unbind: async (placementType, handler) => {
@@ -144,11 +151,40 @@ const placementManager = {
     try {
       const config = placementManager.getConfig(placementType)
 
-      const placementConfig = {
-        PLACEMENT: placementType,
-        HANDLER: handler,
-        OPTIONS: config.options
-      }
+      // Для PAGE_BACKGROUND_WORKER используем специальный формат конфигурации
+      const placementConfig = placementType === 'PAGE_BACKGROUND_WORKER'
+          ? {
+            PLACEMENT: placementType,
+            HANDLER: handler,
+            OPTIONS: config.options
+          }
+          : {
+            PLACEMENT: placementType,
+            HANDLER: handler,
+            LANG_ALL: {
+              ru: {
+                TITLE: config.title,
+                DESCRIPTION: config.description,
+                GROUP_NAME: 'Инструменты контроля времени'
+              },
+              en: {
+                TITLE: config.title,
+                DESCRIPTION: config.description,
+                GROUP_NAME: 'Time control tools'
+              },
+              be: {
+                TITLE: config.title,
+                DESCRIPTION: config.description,
+                GROUP_NAME: 'Інструменты кантролю часу'
+              },
+              kk: {
+                TITLE: config.title,
+                DESCRIPTION: config.description,
+                GROUP_NAME: 'Уақытты бақылау құралдары'
+              }
+            },
+            OPTIONS: config.options
+          }
 
       await bitrixAPI.call('placement.bind', placementConfig)
       return true
@@ -159,7 +195,7 @@ const placementManager = {
 
   reinstall: async (placementType, handler) => {
     try {
-      const placements = await placementManager.getPlacements()
+      const placements = await bitrixAPI.getPlacements()
 
       const existingPlacement = placements.find(p =>
           p.PLACEMENT === placementType && p.HANDLER === handler
@@ -215,6 +251,18 @@ const registerPageBackgroundWorker = async () => {
   }
 }
 
+// Регистрация встройки REST_APP_URI (Форма для отчета)
+const registerRestAppUri = async () => {
+  placementStatus.value.restAppUri = 'loading'
+  try {
+    await placementManager.reinstall('REST_APP_URI', HANDLERS.restAppUri)
+    placementStatus.value.restAppUri = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.restAppUri = 'error'
+  }
+}
+
 // Основная функция установки
 const startInstallation = async () => {
   if (currentStep.value === 2) {
@@ -225,12 +273,14 @@ const startInstallation = async () => {
   installedCount.value = 0
 
   placementStatus.value = {
-    pageBackgroundWorker: null
+    pageBackgroundWorker: null,
+    restAppUri: null
   }
   settingsStatus.value = null
 
   try {
     await registerPageBackgroundWorker()
+    await registerRestAppUri()
     await saveSettings()
     installationComplete.value = true
   } catch (error) {
@@ -270,7 +320,7 @@ const hasSelectedFeatures = computed(() => {
 })
 
 const installationsToProcess = computed(() => {
-  return 2
+  return 3 // Две встройки + настройки
 })
 
 const installationProgress = computed(() => {
@@ -365,6 +415,10 @@ onUnmounted(() => {
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
                   <span class="text-sm md:text-base text-gray-700">Помощь в старте и завершении рабочего дня</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Форма для заполнения отчетов</span>
                 </li>
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
@@ -485,6 +539,7 @@ onUnmounted(() => {
             </div>
 
             <div class="space-y-3 md:space-y-4 mb-6 md:mb-8">
+              <!-- Фоновый счетчик -->
               <div class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="placementStatus.pageBackgroundWorker === 'loading'">
@@ -506,6 +561,29 @@ onUnmounted(() => {
                 </div>
               </div>
 
+              <!-- Форма для отчета -->
+              <div class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.restAppUri === 'loading'">
+                    <LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                  </div>
+                  <div v-else-if="placementStatus.restAppUri === 'success'">
+                    <SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" />
+                  </div>
+                  <div v-else-if="placementStatus.restAppUri === 'error'">
+                    <ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+                  </div>
+                  <div v-else>
+                    <div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div>
+                  </div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Форма для отчета</p>
+                  <p class="text-xs text-gray-500">Позволяет сотруднику заполнять запрошенные отчеты</p>
+                </div>
+              </div>
+
+              <!-- Настройка параметров системы -->
               <div class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="settingsStatus === 'loading'">
@@ -564,6 +642,10 @@ onUnmounted(() => {
                   <div v-if="selectedFeatures.workdayEnd" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                     <span class="text-sm text-gray-700">Помощь в завершении рабочего дня</span>
+                  </div>
+                  <div class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-700">Форма для заполнения отчетов</span>
                   </div>
                 </div>
 
