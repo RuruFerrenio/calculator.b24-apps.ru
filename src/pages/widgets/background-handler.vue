@@ -213,19 +213,15 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
 
   applicationOpened.value = true
 
+  // Записываем в userOption режим modal перед открытием
+  BX24.userOption.set('open_app_mode', 'modal', function() {
+    console.log('Режим modal сохранен в userOption')
+  })
+
   const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
   const bgColor = mode === 'start' ? 'green' : 'red'
   const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
-
-  // Формируем параметры для передачи в модальное окно
-  const parameters = {
-    mode: mode === 'start' ? 'workdaystart' : 'workdayend',
-    source: mode === 'start' ? 'workday_start' : 'workday_end',
-    tracking_data: {
-      opened_at: new Date().toISOString()
-    }
-  }
 
   const modalSettings = {
     opened: true,
@@ -238,7 +234,7 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
     width: MODAL_CONFIG.WIDTH,
   }
 
-  BX24.openApplication(parameters, function() {
+  BX24.openApplication({}, function() {
     onModalClosed(mode)
   }, modalSettings)
 }
@@ -246,6 +242,11 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
 // Обработчик закрытия модального окна
 function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
+
+  // Возвращаем режим default после закрытия
+  BX24.userOption.set('open_app_mode', 'default', function() {
+    console.log('Режим default сохранен в userOption')
+  })
 
   if (mode === 'start') {
     showStartModal.value = false
