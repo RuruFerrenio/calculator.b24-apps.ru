@@ -225,7 +225,7 @@ function endWorkday(): void {
   )
 }
 
-// Открытие модального окна через BX24.openApplication (обновленная версия)
+// Открытие модального окна через BX24.openApplication
 function openWorkdayModal(mode: 'start' | 'end'): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
   if (applicationOpened.value) return
@@ -237,8 +237,9 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
   const bgColor = mode === 'start' ? 'green' : 'red'
   const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
 
-  // Устанавливаем куку перед открытием приложения
+  // Устанавливаем куки перед открытием приложения
   setCookie('open_app_mode', 'modal', 1)
+  setCookie('modal_type', mode, 1)
 
   const modalSettings = {
     opened: true,
@@ -256,12 +257,13 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
   }, modalSettings)
 }
 
-// Обработчик закрытия модального окна (обновленная версия)
+// Обработчик закрытия модального окна
 function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
 
-  // Устанавливаем куку в default после закрытия
+  // Устанавливаем куки в default после закрытия
   setCookie('open_app_mode', 'default', 1)
+  setCookie('modal_type', '', 1) // Очищаем modal_type
 
   if (mode === 'start') {
     showStartModal.value = false
@@ -356,8 +358,9 @@ function checkWorkdayStatus(): void {
 
 // Жизненный цикл
 onMounted(async () => {
-  // Устанавливаем куку в default при старте скрипта
+  // Устанавливаем куки в default при старте скрипта
   setCookie('open_app_mode', 'default', 1)
+  setCookie('modal_type', '', 1)
 
   console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {

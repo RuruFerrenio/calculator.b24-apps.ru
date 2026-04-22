@@ -15,6 +15,7 @@ function getCookie(name: string): string | null {
 }
 
 const openAppMode = ref<'default' | 'modal'>('default')
+const modalType = ref<'start' | 'end' | null>(null)
 const isLoading = ref(true)
 
 const tgLink = computed(() => {
@@ -26,12 +27,18 @@ const tgLink = computed(() => {
 })
 
 onMounted(() => {
-  // Читаем куку при загрузке
+  // Читаем куки при загрузке
   const mode = getCookie('open_app_mode')
-  console.log('Кука')
-  console.log(mode)
+  const type = getCookie('modal_type')
+
+  console.log('open_app_mode:', mode)
+  console.log('modal_type:', type)
+
   if (mode === 'modal') {
     openAppMode.value = 'modal'
+    if (type === 'start' || type === 'end') {
+      modalType.value = type
+    }
   } else {
     openAppMode.value = 'default'
   }
