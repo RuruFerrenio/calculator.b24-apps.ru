@@ -189,8 +189,10 @@ async function checkWorkdayStatus(): Promise<void> {
 
 // Жизненный цикл
 onMounted(async () => {
+  console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
+      console.log('Рест доступен')
       isBitrixLoaded.value = true
       await loadSettings()
       await checkWorkdayStatus()
