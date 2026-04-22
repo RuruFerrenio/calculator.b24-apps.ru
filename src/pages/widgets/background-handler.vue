@@ -321,19 +321,19 @@ function checkWorkdayStatus(): void {
           }
 
           // Проверка для завершения рабочего дня
-          if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
-            checkIsWorkTime(function(isWorkTime: boolean) {
-              if (!isWorkTime) {
-                if (workdayEnd.value.method === 'modal') {
-                  console.log('Открываем модальное окно завершения рабочего дня через BX24.openApplication')
-                  openWorkdayModal('end')
-                } else if (workdayEnd.value.method === 'auto') {
-                  console.log('Автоматически завершаем рабочий день')
-                  endWorkday()
-                }
-              }
-            })
-          }
+          // if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
+          //   checkIsWorkTime(function(isWorkTime: boolean) {
+          //     if (!isWorkTime) {
+          //       if (workdayEnd.value.method === 'modal') {
+          //         console.log('Открываем модальное окно завершения рабочего дня через BX24.openApplication')
+          //         openWorkdayModal('end')
+          //       } else if (workdayEnd.value.method === 'auto') {
+          //         console.log('Автоматически завершаем рабочий день')
+          //         endWorkday()
+          //       }
+          //     }
+          //   })
+          // }
         }
     )
   })
