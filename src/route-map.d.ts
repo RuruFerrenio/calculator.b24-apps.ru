@@ -55,6 +55,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/widgets/dynamic-page': RouteRecordInfo<
+      '/widgets/dynamic-page',
+      '/widgets/dynamic-page',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -89,6 +96,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/widgets/background-handler.vue': {
       routes:
         | '/widgets/background-handler'
+      views:
+        | never
+    }
+    'src/pages/widgets/dynamic-page.vue': {
+      routes:
+        | '/widgets/dynamic-page'
       views:
         | never
     }
