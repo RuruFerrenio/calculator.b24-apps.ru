@@ -219,11 +219,6 @@ watch(() => formData.value.workdayEnd.method, () => {
 
 <template>
   <div>
-    <B24PageHeader
-        title="Контроль времени сотрудников"
-        description="Система мониторинга активности и рабочего времени"
-    />
-
     <!-- Блок 1: Помощь в старте рабочего дня -->
     <B24Card class="mb-8">
       <div class="p-0 md:p-6">
