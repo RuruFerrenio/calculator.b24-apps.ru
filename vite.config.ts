@@ -16,7 +16,6 @@ export default defineConfig({
       colorModeInitialValue: 'light',
       colorModeTypeLight: 'light',
       colorModeStorageKey: 'bitrix24-starter-b24ui-vue'
-    }),
-
+    })
   ]
 })
