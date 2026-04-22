@@ -238,9 +238,7 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
     width: MODAL_CONFIG.WIDTH,
   }
 
-  BX24.openApplication({
-    opened: true
-  }, function() {
+  BX24.openApplication(parameters, function() {
     onModalClosed(mode)
   }, modalSettings)
 }
