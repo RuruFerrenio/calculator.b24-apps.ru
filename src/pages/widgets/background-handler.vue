@@ -11,6 +11,7 @@ interface WorkdaySettings {
 const isBitrixLoaded = ref(false)
 const isProcessing = ref(false)
 const currentUserId = ref<number | null>(null)
+const applicationOpened = ref(false)
 
 // Настройки рабочего дня
 const workdayStart = ref<WorkdaySettings>({
@@ -23,9 +24,15 @@ const workdayEnd = ref<WorkdaySettings>({
   method: 'modal'
 })
 
-// Состояние модальных окон
+// Состояние модальных окон (для внутреннего использования)
 const showStartModal = ref(false)
 const showEndModal = ref(false)
+
+// Конфигурация модальных окон
+const MODAL_CONFIG = {
+  WIDTH: 500,
+  DYNAMIC_PAGE_PATH: '/dist/widgets/dynamic-page'
+}
 
 // Функция для нормализации значений
 function normalizeBoolean(value: unknown): boolean {
@@ -39,7 +46,7 @@ function normalizeMethod(value: unknown): 'auto' | 'modal' | null {
   return null
 }
 
-// Загрузка настроек (оставляем как было с Promise)
+// Загрузка настроек
 async function loadSettings(): Promise<void> {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
@@ -75,6 +82,8 @@ async function loadSettings(): Promise<void> {
 
 // Получение ID текущего пользователя
 function getCurrentUserId(callback: (userId: number) => void): void {
+  if (typeof BX24 === 'undefined') return
+
   BX24.callMethod(
       'user.current',
       {},
@@ -90,8 +99,36 @@ function getCurrentUserId(callback: (userId: number) => void): void {
   )
 }
 
-// Проверка, является ли текущее время рабочим (переделываем на callback)
+// Получение полного имени пользователя
+function getUserFullName(callback: (fullName: string) => void): void {
+  if (typeof BX24 === 'undefined') return
+
+  BX24.callMethod(
+      'user.current',
+      {},
+      function(result: any) {
+        if (result.error()) {
+          console.error('Ошибка получения пользователя:', result.error())
+          callback('Пользователь')
+          return
+        }
+
+        const user = result.data()
+        const firstName = user.NAME || ''
+        const lastName = user.LAST_NAME || ''
+        const fullName = `${firstName} ${lastName}`.trim()
+        callback(fullName || user.EMAIL || 'Пользователь')
+      }
+  )
+}
+
+// Проверка, является ли текущее время рабочим
 function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
+  if (typeof BX24 === 'undefined') {
+    callback(true)
+    return
+  }
+
   BX24.callMethod(
       'timeman.settings.get',
       {},
@@ -129,7 +166,7 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
   )
 }
 
-// Начало рабочего дня (переделываем на callback)
+// Начало рабочего дня
 function startWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
@@ -139,7 +176,6 @@ function startWorkday(): void {
       {},
       function(result: any) {
         isProcessing.value = false
-        showStartModal.value = false
 
         if (result.error()) {
           console.error('Ошибка начала рабочего дня:', result.error())
@@ -150,7 +186,7 @@ function startWorkday(): void {
   )
 }
 
-// Завершение рабочего дня (переделываем на callback)
+// Завершение рабочего дня
 function endWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
@@ -160,7 +196,6 @@ function endWorkday(): void {
       {},
       function(result: any) {
         isProcessing.value = false
-        showEndModal.value = false
 
         if (result.error()) {
           console.error('Ошибка завершения рабочего дня:', result.error())
@@ -171,13 +206,71 @@ function endWorkday(): void {
   )
 }
 
-// Обработчики для модальных окон
+// Открытие модального окна через BX24.openApplication
+function openWorkdayModal(mode: 'start' | 'end'): void {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (applicationOpened.value) return
+
+  applicationOpened.value = true
+
+  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
+  const bgColor = mode === 'start' ? 'green' : 'red'
+  const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
+
+  // Формируем параметры для передачи в модальное окно
+  const parameters = {
+    mode: mode === 'start' ? 'workdaystart' : 'workdayend',
+    source: mode === 'start' ? 'workday_start' : 'workday_end',
+    tracking_data: {
+      opened_at: new Date().toISOString()
+    }
+  }
+
+  const openAppParams = {
+    opened: true,
+    bx24_title: modalTitle,
+    bx24_label: {
+      bgColor: bgColor,
+      text: labelText,
+      color: '#ffffff',
+    },
+    bx24_width: MODAL_CONFIG.WIDTH,
+    parameters: JSON.stringify(parameters)
+  }
+
+  BX24.openApplication(openAppParams, function() {
+    onModalClosed(mode)
+  })
+}
+
+// Обработчик закрытия модального окна
+function onModalClosed(mode: 'start' | 'end'): void {
+  applicationOpened.value = false
+
+  if (mode === 'start') {
+    showStartModal.value = false
+  } else {
+    showEndModal.value = false
+  }
+
+  // После закрытия модалки проверяем статус рабочего дня и выполняем действие если нужно
+  if (mode === 'start') {
+    startWorkday()
+  } else {
+    endWorkday()
+  }
+}
+
+// Обработчики для модальных окон (для обратной совместимости с шаблоном)
 function onConfirmStart(): void {
   startWorkday()
+  showStartModal.value = false
 }
 
 function onConfirmEnd(): void {
   endWorkday()
+  showEndModal.value = false
 }
 
 function onCancelStart(): void {
@@ -188,7 +281,7 @@ function onCancelEnd(): void {
   showEndModal.value = false
 }
 
-// Проверка необходимости показа модальных окон (переделываем на callback)
+// Проверка необходимости показа модальных окон
 function checkWorkdayStatus(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
@@ -209,31 +302,33 @@ function checkWorkdayStatus(): void {
 
           const workDayParams = result.data()
           console.log('Информация о рабочем дне:', workDayParams)
-
-          console.log('Настройки')
-          console.log(workdayStart.value.enabled)
-          console.log(workdayStart.value.method)
-          console.log(workdayEnd.value.enabled)
-          console.log(workdayEnd.value.method)
+          console.log('Статус:', workDayParams.STATUS)
+          console.log('Настройки:')
+          console.log('- Начало дня (включено):', workdayStart.value.enabled)
+          console.log('- Начало дня (метод):', workdayStart.value.method)
+          console.log('- Завершение дня (включено):', workdayEnd.value.enabled)
+          console.log('- Завершение дня (метод):', workdayEnd.value.method)
 
           // Проверка для начала рабочего дня
           if (workdayStart.value.enabled && workDayParams.STATUS === 'CLOSED') {
-            console.log('Открываем модалку начала рабочего дня')
             if (workdayStart.value.method === 'modal') {
-              showStartModal.value = true
+              console.log('Открываем модальное окно начала рабочего дня через BX24.openApplication')
+              openWorkdayModal('start')
             } else if (workdayStart.value.method === 'auto') {
+              console.log('Автоматически запускаем рабочий день')
               startWorkday()
             }
           }
 
           // Проверка для завершения рабочего дня
           if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
-            console.log('Открываем модалку завершения рабочего дня')
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (!isWorkTime) {
                 if (workdayEnd.value.method === 'modal') {
-                  showEndModal.value = true
+                  console.log('Открываем модальное окно завершения рабочего дня через BX24.openApplication')
+                  openWorkdayModal('end')
                 } else if (workdayEnd.value.method === 'auto') {
+                  console.log('Автоматически завершаем рабочий день')
                   endWorkday()
                 }
               }
@@ -249,7 +344,7 @@ onMounted(async () => {
   console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
-      console.log('Рест доступен')
+      console.log('REST API доступен')
       isBitrixLoaded.value = true
       await loadSettings()
       checkWorkdayStatus()
@@ -259,7 +354,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Пустой шаблон - модальные окна должны быть реализованы в родительском компоненте -->
-  <!-- Доступные reactive переменные: showStartModal, showEndModal -->
-  <!-- Доступные методы: onConfirmStart, onConfirmEnd, onCancelStart, onCancelEnd -->
+  <!-- Пустой шаблон - модальные окна открываются через BX24.openApplication -->
+  <!--
+    Доступные reactive переменные (для обратной совместимости):
+    - showStartModal
+    - showEndModal
+
+    Доступные методы:
+    - onConfirmStart
+    - onConfirmEnd
+    - onCancelStart
+    - onCancelEnd
+  -->
 </template>
