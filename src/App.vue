@@ -7,28 +7,9 @@ const appMode = ref<'default' | 'modal'>('default')
 
 // Проверяем режим из userOption
 const checkAppMode = () => {
-  if (typeof BX24 !== 'undefined' && BX24.userOption) {
-    BX24.userOption.get('open_app_mode', function(result: any) {
-      console.log('Текущий режим приложения:', result)
-      if (result === 'modal') {
-        appMode.value = 'modal'
-      } else {
-        appMode.value = 'default'
-      }
-    })
-  }
-}
-
-// Следим за изменениями режима через событие
-if (typeof BX24 !== 'undefined') {
-  BX24.callMethod('user.options.get', {}, function(result: any) {
-    if (!result.error()) {
-      const options = result.data()
-      if (options.open_app_mode === 'modal') {
-        appMode.value = 'modal'
-      }
-    }
-  })
+  console.log('Проверка режима')
+  appMode.value = BX24.userOption.get('open_app_mode')
+  console.log(appMode.value)
 }
 
 const tgLink = computed(() => {
@@ -49,11 +30,9 @@ onMounted(() => {
   checkAppMode()
 
   // Подписываемся на изменения userOption
-  if (typeof BX24 !== 'undefined') {
-    setInterval(() => {
-      checkAppMode()
-    }, 1000)
-  }
+  setInterval(() => {
+    checkAppMode()
+  }, 1000)
 })
 </script>
 
