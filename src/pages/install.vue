@@ -49,7 +49,7 @@ const configSettings = ref({
 
 // URL обработчиков
 const HANDLERS = {
-  pageBackgroundWorker: `${window.location.origin}/widgets/background-handler`
+  pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`
 }
 
 // Конфигурации встроек
@@ -58,7 +58,7 @@ const PLACEMENT_CONFIGS = {
     title: 'Фоновый счетчик',
     description: 'Подсчитывает время, проведенное пользователем на странице',
     options: {
-      errorHandlerUrl: `${window.location.origin}/widgets/background-error-handler`
+      errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
     }
   }
 }
