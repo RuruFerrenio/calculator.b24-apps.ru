@@ -4,7 +4,6 @@ import Settings from '../components/Settings.vue'
 
 <template>
   <div>
-    <PageHero />
     <!-- Компонент Setting -->
     <Settings />
   </div>
