@@ -239,12 +239,10 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
   }
 
   BX24.openApplication({
-        opened: true
-      },
-      function()
-      {
-        alert('Application closed!');
-  })
+    opened: true
+  }, function() {
+    onModalClosed(mode)
+  }, modalSettings)
 }
 
 // Обработчик закрытия модального окна
