@@ -67,8 +67,8 @@ interface ToastNotification {
 
 // Константы
 const HANDLERS: Record<PlacementType, string> = {
-  PAGE_BACKGROUND_WORKER: `${window.location.origin}/widgets/background-handler`,
-  REST_APP_URI: `${window.location.origin}/app`
+  PAGE_BACKGROUND_WORKER: `${window.location.origin}/dist/widgets/background-handler`,
+  REST_APP_URI: `${window.location.origin}/dist/widgets/dynamic-page`
 }
 
 const PLACEMENT_CONFIGS: Record<PlacementType, PlacementConfig> = {
@@ -76,7 +76,7 @@ const PLACEMENT_CONFIGS: Record<PlacementType, PlacementConfig> = {
     title: 'Фоновый счетчик',
     description: 'Подсчитывает время, проведенное пользователем на странице',
     options: {
-      errorHandlerUrl: `${window.location.origin}/widgets/background-error-handler`
+      errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
     }
   },
   REST_APP_URI: {
