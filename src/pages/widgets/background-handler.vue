@@ -210,8 +210,14 @@ function checkWorkdayStatus(): void {
           const status = result.data()
           console.log('Информация о рабочем дне:', status)
 
+          console.log('Настройки')
+          console.log(workdayStart.value.enabled)
+          console.log(workdayStart.value.method)
+          console.log(workdayEnd.value.enabled)
+          console.log(workdayEnd.value.method)
+
           // Проверка для начала рабочего дня
-          if (workdayStart.value.enabled && status === 'closed') {
+          if (workdayStart.value.enabled && status === 'CLOSED') {
             console.log('Открываем модалку начала рабочего дня')
             if (workdayStart.value.method === 'modal') {
               showStartModal.value = true
@@ -221,7 +227,7 @@ function checkWorkdayStatus(): void {
           }
 
           // Проверка для завершения рабочего дня
-          if (workdayEnd.value.enabled && status === 'opened') {
+          if (workdayEnd.value.enabled && status === 'OPENED') {
             console.log('Открываем модалку завершения рабочего дня')
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (!isWorkTime) {
