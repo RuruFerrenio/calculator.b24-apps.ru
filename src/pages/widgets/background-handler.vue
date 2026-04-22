@@ -157,6 +157,9 @@ async function checkWorkdayStatus(): Promise<void> {
   try {
     const currentDayStatus = await BX24.callMethod('timeman.status')
 
+    console.log('Информация о рабочем дне:')
+    console.log(currentDayStatus)
+
     if (currentDayStatus && currentDayStatus.data) {
       const status = currentDayStatus.data
 
