@@ -148,7 +148,6 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
     return
   }
 
-  // Сначала получаем ID текущего пользователя
   getCurrentUserId(function(userId: number) {
     if (!userId) {
       console.error('Не удалось получить ID пользователя')
@@ -156,51 +155,54 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
       return
     }
 
-    // Вызываем timeman.settings с USER_ID
     BX24.callMethod(
         'timeman.settings',
-        {
-          USER_ID: userId  // Обязательный параметр!
-        },
+        { USER_ID: userId },
         function(result: any) {
           if (result.error()) {
-            console.error('Ошибка получения расписания:', result.error())
+            console.error('Ошибка получения настроек:', result.error())
             callback(true)
             return
           }
 
-          const schedule = result.data()
-          console.log('Расписание:', schedule)
+          const settings = result.data()
+          console.log('Настройки:', settings)
 
-          if (schedule && schedule.SCHEDULE) {
-            const now = new Date()
-            const currentHour = now.getHours()
-            const currentMinute = now.getMinutes()
-            const currentTime = currentHour * 60 + currentMinute
-
-            const dayOfWeek = now.getDay() // 0 = воскресенье
-            const workTime = schedule.SCHEDULE[dayOfWeek]
-
-            if (workTime && workTime.FROM && workTime.TO) {
-              const [startHours, startMinutes] = workTime.FROM.split(':').map(Number)
-              const [endHours, endMinutes] = workTime.TO.split(':').map(Number)
-              const startTime = startHours * 60 + startMinutes
-              const endTime = endHours * 60 + endMinutes
-
-              const isWorkTime = currentTime >= startTime && currentTime <= endTime
-              console.log(`Текущее время: ${currentHour}:${currentMinute}, Рабочее время: ${workTime.FROM}-${workTime.TO}, Результат: ${isWorkTime}`)
-              callback(isWorkTime)
-            } else {
-              console.log('На сегодня расписание не установлено')
-              callback(true)
-            }
-          } else {
-            console.log('Расписание не найдено')
+          // Если свободный график - всегда рабочее время
+          if (settings.UF_TM_FREE === true) {
             callback(true)
+            return
           }
+
+          // Если учет времени отключен - всегда рабочее время
+          if (settings.UF_TIMEMAN !== true) {
+            callback(true)
+            return
+          }
+
+          const now = new Date()
+          const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+          // Парсим время
+          const maxStartMinutes = parseTimeToMinutes(settings.UF_TM_MAX_START)
+          const minFinishMinutes = parseTimeToMinutes(settings.UF_TM_MIN_FINISH)
+
+          // Рабочее время - между MAX_START и MIN_FINISH
+          const isWorkTime = currentMinutes >= maxStartMinutes &&
+              currentMinutes <= minFinishMinutes
+
+          console.log(`Текущее время: ${currentMinutes} мин, Рабочее: ${maxStartMinutes}-${minFinishMinutes}, Результат: ${isWorkTime}`)
+
+          callback(isWorkTime)
         }
     )
   })
+}
+
+function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
 }
 
 // Начало рабочего дня
