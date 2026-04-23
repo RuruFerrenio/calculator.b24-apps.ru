@@ -1,6 +1,8 @@
+<!-- app.vue (обновленный) -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
+import WorkdayManager from './components/WorkdayManager.vue'
 
 // Функция для получения куки
 function getCookie(name: string): string | null {
@@ -66,9 +68,16 @@ onMounted(() => {
             </div>
           </template>
 
-          <!-- Если кука modal - показываем только пустой div -->
+          <!-- Если кука modal - показываем WorkdayManager -->
           <div v-else-if="openAppMode === 'modal'" class="lg:col-span-3">
-            <!-- Пустой контейнер -->
+            <WorkdayManager
+                v-if="modalType"
+                :mode="modalType"
+                :auto-close-delay="2000"
+            />
+            <div v-else class="text-center py-12">
+              <p class="text-gray-500">Не указан тип операции</p>
+            </div>
           </div>
 
           <!-- Состояние загрузки -->
