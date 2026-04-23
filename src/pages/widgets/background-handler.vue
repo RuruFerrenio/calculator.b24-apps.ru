@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 // Типы данных
 interface WorkdaySettings {
@@ -28,10 +28,15 @@ const workdayEnd = ref<WorkdaySettings>({
 const showStartModal = ref(false)
 const showEndModal = ref(false)
 
+// Таймер для периодической проверки
+let periodicCheckInterval: ReturnType<typeof setInterval> | null = null
+let isPageVisible = true
+
 // Конфигурация модальных окон
 const MODAL_CONFIG = {
   WIDTH: 500,
-  DYNAMIC_PAGE_PATH: '/dist/widgets/dynamic-page'
+  DYNAMIC_PAGE_PATH: '/dist/widgets/dynamic-page',
+  CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
 }
 
 // Функции для работы с кукой
@@ -51,6 +56,19 @@ function getCookie(name: string): string | null {
     if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
   }
   return null
+}
+
+// Удаление куки
+function deleteCookie(name: string): void {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+  console.log(`Кука ${name} удалена`)
+}
+
+// Очистка всех кук, используемых приложением
+function clearAppCookies(): void {
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
+  console.log('Все куки приложения очищены')
 }
 
 // Функция для нормализации значений
@@ -281,48 +299,27 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
 function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
 
-  // Устанавливаем куки в default после закрытия
-  setCookie('open_app_mode', 'default', 1)
-  setCookie('modal_type', '', 1) // Очищаем modal_type
+  // Очищаем куки после закрытия
+  clearAppCookies()
 
   if (mode === 'start') {
     showStartModal.value = false
   } else {
     showEndModal.value = false
   }
-
-  // После закрытия модалки проверяем статус рабочего дня и выполняем действие если нужно
-  if (mode === 'start') {
-    //startWorkday()
-  } else {
-    //endWorkday()
-  }
 }
 
-// Обработчики для модальных окон (для обратной совместимости с шаблоном)
-function onConfirmStart(): void {
-  startWorkday()
-  showStartModal.value = false
-}
-
-function onConfirmEnd(): void {
-  endWorkday()
-  showEndModal.value = false
-}
-
-function onCancelStart(): void {
-  showStartModal.value = false
-}
-
-function onCancelEnd(): void {
-  showEndModal.value = false
-}
-
-// Проверка необходимости показа модальных окон
+// Проверка необходимости показа модальных окон (основная логика)
 function checkWorkdayStatus(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
-  // Сначала получаем ID текущего пользователя
+  // Проверяем видимость страницы - если страница скрыта, не выполняем проверку
+  if (!isPageVisible) {
+    console.log('Страница скрыта, пропускаем проверку рабочего дня')
+    return
+  }
+
+  // Получаем ID текущего пользователя
   getCurrentUserId(function(userId: number) {
     currentUserId.value = userId
 
@@ -350,6 +347,12 @@ function checkWorkdayStatus(): void {
                 return
               }
 
+              // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
+              if (applicationOpened.value) {
+                console.log('Модальное окно уже открыто, пропускаем')
+                return
+              }
+
               if (workdayStart.value.method === 'modal') {
                 console.log('Открываем модальное окно начала рабочего дня')
                 openWorkdayModal('start')
@@ -368,6 +371,12 @@ function checkWorkdayStatus(): void {
                 return
               }
 
+              // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
+              if (applicationOpened.value) {
+                console.log('Модальное окно уже открыто, пропускаем')
+                return
+              }
+
               if (workdayEnd.value.method === 'modal') {
                 console.log('Открываем модальное окно завершения рабочего дня')
                 openWorkdayModal('end')
@@ -382,11 +391,59 @@ function checkWorkdayStatus(): void {
   })
 }
 
+// Запуск периодической проверки
+function startPeriodicCheck(): void {
+  if (periodicCheckInterval) {
+    clearInterval(periodicCheckInterval)
+  }
+
+  // Запускаем интервал проверки
+  periodicCheckInterval = setInterval(() => {
+    console.log(`Периодическая проверка статуса рабочего дня (каждые ${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
+    checkWorkdayStatus()
+  }, MODAL_CONFIG.CHECK_INTERVAL_SECONDS * 1000)
+
+  console.log(`Запущен периодический таймер проверки (${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
+}
+
+// Остановка периодической проверки
+function stopPeriodicCheck(): void {
+  if (periodicCheckInterval) {
+    clearInterval(periodicCheckInterval)
+    periodicCheckInterval = null
+    console.log('Периодический таймер проверки остановлен')
+  }
+}
+
+// Обработчик видимости страницы
+function handleVisibilityChange(): void {
+  const wasVisible = isPageVisible
+  isPageVisible = !document.hidden
+
+  if (isPageVisible && !wasVisible) {
+    // Страница стала видимой - возобновляем проверки и очищаем куки
+    console.log('Страница стала видимой, возобновляем проверки и очищаем куки')
+    clearAppCookies() // Очищаем куки при возвращении на страницу
+    startPeriodicCheck()
+    // Выполняем немедленную проверку при возвращении
+    checkWorkdayStatus()
+  } else if (!isPageVisible && wasVisible) {
+    // Страница скрыта - останавливаем проверки и очищаем куки
+    console.log('Страница скрыта, останавливаем проверки и очищаем куки')
+    stopPeriodicCheck()
+    clearAppCookies() // Очищаем куки при уходе со страницы
+  }
+}
+
 // Жизненный цикл
 onMounted(async () => {
-  // Устанавливаем куки в default при старте скрипта
-  setCookie('open_app_mode', 'default', 1)
-  setCookie('modal_type', '', 1)
+  // Очищаем куки при загрузке страницы
+  clearAppCookies()
+
+  // Устанавливаем обработчик видимости страницы
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  // Инициализируем состояние видимости
+  isPageVisible = !document.hidden
 
   console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
@@ -394,23 +451,29 @@ onMounted(async () => {
       console.log('REST API доступен')
       isBitrixLoaded.value = true
       await loadSettings()
+
+      // Выполняем первую проверку
       checkWorkdayStatus()
+
+      // Запускаем периодическую проверку (только если страница видима)
+      if (isPageVisible) {
+        startPeriodicCheck()
+      }
     })
   }
+})
+
+// Очистка при размонтировании компонента
+onUnmounted(() => {
+  // Удаляем обработчик видимости
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  // Останавливаем периодический таймер
+  stopPeriodicCheck()
+  // Очищаем куки при размонтировании
+  clearAppCookies()
 })
 </script>
 
 <template>
   <!-- Пустой шаблон - модальные окна открываются через BX24.openApplication -->
-  <!--
-    Доступные reactive переменные (для обратной совместимости):
-    - showStartModal
-    - showEndModal
-
-    Доступные методы:
-    - onConfirmStart
-    - onConfirmEnd
-    - onCancelStart
-    - onCancelEnd
-  -->
 </template>
