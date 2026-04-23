@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MailIcon from '@bitrix24/b24icons-vue/main/MailIcon'
+import MailOutIcon from '@bitrix24/b24icons-vue/main/MailOutIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
@@ -162,7 +162,7 @@ onUnmounted(() => {
                   href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
               >
-                <MailIcon class="w-5 h-5 mr-3 text-gray-500" />
+                <MailOutIcon class="w-5 h-5 mr-3 text-gray-500" />
                 Техническая поддержка
               </a>
 
