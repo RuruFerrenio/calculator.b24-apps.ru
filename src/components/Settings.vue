@@ -8,7 +8,7 @@ const toast = useToast()
 // Типы данных
 interface WorkdaySettings {
   enabled: boolean
-  method: 'auto' | 'modal'
+  method: 'auto' | 'modal' | 'chat'
 }
 
 interface FormData {
@@ -42,17 +42,19 @@ function showNotification(type: 'success' | 'error' | 'warning' | 'info', messag
 }
 
 function getWorkdayStartMethodText(): string {
-  const methods: Record<'auto' | 'modal', string> = {
+  const methods: Record<'auto' | 'modal' | 'chat', string> = {
     'auto': 'Автоматический старт',
-    'modal': 'Модальное окно с предупреждением'
+    'modal': 'Модальное окно с предупреждением',
+    'chat': 'Сообщение в чате'
   }
   return methods[formData.value.workdayStart.method] || 'модальное окно'
 }
 
 function getWorkdayEndMethodText(): string {
-  const methods: Record<'auto' | 'modal', string> = {
+  const methods: Record<'auto' | 'modal' | 'chat', string> = {
     'auto': 'Автоматическое завершение',
-    'modal': 'Модальное окно с предупреждением'
+    'modal': 'Модальное окно с предупреждением',
+    'chat': 'Сообщение в чате'
   }
   return methods[formData.value.workdayEnd.method] || 'модальное окно'
 }
@@ -151,9 +153,9 @@ function normalizeBoolean(value: unknown): boolean {
   return value === 'Y' || value === true || value === 1
 }
 
-function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | null {
+function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | 'chat' | null {
   if (typeof value === 'string' && validMethods.includes(value)) {
-    return value as 'auto' | 'modal'
+    return value as 'auto' | 'modal' | 'chat'
   }
   return null
 }
@@ -177,7 +179,7 @@ async function loadSettings(): Promise<void> {
     // Загрузка настроек старта рабочего дня
     formData.value.workdayStart.enabled = normalizeBoolean(workdayStartEnabled)
 
-    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal'])
+    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal', 'chat'])
     if (startMethod) {
       formData.value.workdayStart.method = startMethod
     }
@@ -185,7 +187,7 @@ async function loadSettings(): Promise<void> {
     // Загрузка настроек завершения рабочего дня
     formData.value.workdayEnd.enabled = normalizeBoolean(workdayEndEnabled)
 
-    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal'])
+    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal', 'chat'])
     if (endMethod) {
       formData.value.workdayEnd.method = endMethod
     }
@@ -270,6 +272,11 @@ watch(() => formData.value.workdayEnd.method, () => {
                             label: 'Модальное окно с предупреждением',
                             value: 'modal',
                             description: 'Показывать окно с предложением начать рабочий день'
+                        },
+                        {
+                            label: 'Сообщение в чате',
+                            value: 'chat',
+                            description: 'Отправлять уведомление в чат Б24'
                         }
                     ]"
                     orientation="horizontal"
@@ -324,7 +331,7 @@ watch(() => formData.value.workdayEnd.method, () => {
                   </div>
                   <div>
                     <p class="text-sm text-gray-700">
-                      Данные о начале рабочего дня сохраняются и используются в статистике рабочего дня
+                      <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением начать рабочий день.
                     </p>
                   </div>
                 </div>
@@ -394,6 +401,11 @@ watch(() => formData.value.workdayEnd.method, () => {
                             label: 'Модальное окно с предупреждением',
                             value: 'modal',
                             description: 'Показывать окно с предложением завершить рабочий день'
+                        },
+                        {
+                            label: 'Сообщение в чате',
+                            value: 'chat',
+                            description: 'Отправлять уведомление в чат Б24'
                         }
                     ]"
                     orientation="horizontal"
@@ -439,6 +451,16 @@ watch(() => formData.value.workdayEnd.method, () => {
                   <div>
                     <p class="text-sm text-gray-700">
                       <span class="font-medium">Модальное окно:</span> при каждом открытии страницы портала показывается окно с кнопкой "Завершить рабочий день", пока сотрудник не завершит рабочий день.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                    <span class="text-xs font-medium text-blue-600">4</span>
+                  </div>
+                  <div>
+                    <p class="text-sm text-gray-700">
+                      <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением завершить рабочий день.
                     </p>
                   </div>
                 </div>
