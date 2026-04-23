@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
+import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 
 type WorkdayMode = 'start' | 'end'
 type WorkdayStatus = 'OPENED' | 'CLOSED' | 'PAUSED' | 'EXPIRED'
@@ -448,11 +449,7 @@ onMounted(() => {
       <div class="mb-8 flex justify-center">
         <div class="w-24 h-24 rounded-full flex items-center justify-center"
              :class="mode === 'start' ? 'bg-blue-50' : 'bg-orange-50'">
-          <svg class="w-12 h-12" :class="mode === 'start' ? 'text-blue-600' : 'text-orange-600'"
-               fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <PowerIcon class="w-12 h-12" :class="mode === 'start' ? 'text-blue-600' : 'text-orange-600'" />
         </div>
       </div>
 
