@@ -148,41 +148,59 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
     return
   }
 
-  BX24.callMethod(
-      'timeman.settings.get',
-      {},
-      function(result: any) {
-        if (result.error()) {
-          console.error('Ошибка получения расписания:', result.error())
-          callback(true)
-          return
-        }
+  // Сначала получаем ID текущего пользователя
+  getCurrentUserId(function(userId: number) {
+    if (!userId) {
+      console.error('Не удалось получить ID пользователя')
+      callback(true)
+      return
+    }
 
-        const schedule = result.data()
-        if (schedule) {
-          const now = new Date()
-          const currentHour = now.getHours()
-          const currentMinute = now.getMinutes()
-          const currentTime = currentHour * 60 + currentMinute
+    // Вызываем timeman.settings с USER_ID
+    BX24.callMethod(
+        'timeman.settings',
+        {
+          USER_ID: userId  // Обязательный параметр!
+        },
+        function(result: any) {
+          if (result.error()) {
+            console.error('Ошибка получения расписания:', result.error())
+            callback(true)
+            return
+          }
 
-          const dayOfWeek = now.getDay()
-          const workTime = schedule[dayOfWeek]
+          const schedule = result.data()
+          console.log('Расписание:', schedule)
 
-          if (workTime && workTime.from && workTime.to) {
-            const [startHours, startMinutes] = workTime.from.split(':').map(Number)
-            const [endHours, endMinutes] = workTime.to.split(':').map(Number)
-            const startTime = startHours * 60 + startMinutes
-            const endTime = endHours * 60 + endMinutes
+          if (schedule && schedule.SCHEDULE) {
+            const now = new Date()
+            const currentHour = now.getHours()
+            const currentMinute = now.getMinutes()
+            const currentTime = currentHour * 60 + currentMinute
 
-            callback(currentTime >= startTime && currentTime <= endTime)
+            const dayOfWeek = now.getDay() // 0 = воскресенье
+            const workTime = schedule.SCHEDULE[dayOfWeek]
+
+            if (workTime && workTime.FROM && workTime.TO) {
+              const [startHours, startMinutes] = workTime.FROM.split(':').map(Number)
+              const [endHours, endMinutes] = workTime.TO.split(':').map(Number)
+              const startTime = startHours * 60 + startMinutes
+              const endTime = endHours * 60 + endMinutes
+
+              const isWorkTime = currentTime >= startTime && currentTime <= endTime
+              console.log(`Текущее время: ${currentHour}:${currentMinute}, Рабочее время: ${workTime.FROM}-${workTime.TO}, Результат: ${isWorkTime}`)
+              callback(isWorkTime)
+            } else {
+              console.log('На сегодня расписание не установлено')
+              callback(true)
+            }
           } else {
+            console.log('Расписание не найдено')
             callback(true)
           }
-        } else {
-          callback(true)
         }
-      }
-  )
+    )
+  })
 }
 
 // Начало рабочего дня
