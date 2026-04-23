@@ -7,18 +7,9 @@ import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-(function(w: Window, d: Document, u: string) {
-  var s = d.createElement('script');
-  s.async = true;
-  s.src = u + '?' + (Date.now() / 60000 | 0);
-  var h = d.getElementsByTagName('script')[0];
-  h.parentNode.insertBefore(s, h);
-})(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
-
 const router = useRouter()
-
-// Состояние для проверки прав администратора
 const isAdmin = ref(false)
+const isBX24Ready = ref(false)
 
 const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
@@ -32,29 +23,51 @@ const handleReview = (): void => {
     });
   } else {
     console.warn('BX24 не доступен');
+    // Можно показать уведомление пользователю
   }
 };
 
-// Функция перехода на страницу настроек
 const goToSettings = (): void => {
   if (router && isAdmin.value) {
     router.push('/settings')
   }
 };
 
-// Простая проверка прав администратора
-const initialize = () => {
-  console.log('initialize')
-  if (typeof (window as any).BX24 !== 'undefined') {
-    console.log('step 1')
+// Функция ожидания загрузки BX24
+const waitForBX24 = (timeout = 5000): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+
+    const checkBX24 = () => {
+      if (typeof (window as any).BX24 !== 'undefined') {
+        resolve();
+      } else if (Date.now() - startTime > timeout) {
+        reject(new Error('BX24 initialization timeout'));
+      } else {
+        setTimeout(checkBX24, 100);
+      }
+    };
+
+    checkBX24();
+  });
+};
+
+const initialize = async () => {
+  console.log('Waiting for BX24...')
+  try {
+    await waitForBX24(10000); // Ждем до 10 секунд
+    console.log('BX24 is ready')
+
     (window as any).BX24.init(() => {
       console.log('Инициализация в сайдбаре')
       isAdmin.value = (window as any).BX24.isAdmin()
-      console.log(isAdmin.value)
+      isBX24Ready.value = true
+      console.log('isAdmin:', isAdmin.value)
     })
-  } else {
-    console.warn('BX24 не доступен')
+  } catch (error) {
+    console.warn('BX24 not available after timeout', error)
     isAdmin.value = false
+    isBX24Ready.value = false
   }
 }
 
@@ -65,7 +78,6 @@ onMounted(() => {
 
 <template>
   <div class="lg:sticky lg:top-6 space-y-6">
-    <!-- Карточка информации о приложении -->
     <B24Card>
       <div class="p-0 md:p-6">
         <div class="space-y-6">
@@ -82,9 +94,7 @@ onMounted(() => {
 
           <div class="space-y-3">
             <h4 class="text-sm font-medium text-gray-900">Меню</h4>
-            <!-- Панель навигации -->
             <nav class="space-y-2">
-              <!-- Техническая поддержка -->
               <a
                   href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
@@ -93,7 +103,6 @@ onMounted(() => {
                 Техническая поддержка
               </a>
 
-              <!-- Оставить отзыв -->
               <div
                   @click="handleReview"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
@@ -102,7 +111,6 @@ onMounted(() => {
                 Оставить отзыв
               </div>
 
-              <!-- Настройки - видно только администраторам -->
               <div
                   v-if="isAdmin"
                   @click="goToSettings"
@@ -112,7 +120,14 @@ onMounted(() => {
                 Настройки
               </div>
 
-              <!-- Заглушка для обычных пользователей -->
+              <div
+                  v-else-if="!isBX24Ready"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400"
+              >
+                <SettingsIcon class="w-5 h-5 mr-3 text-gray-400" />
+                Проверка прав...
+              </div>
+
               <div
                   v-else
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
@@ -124,7 +139,6 @@ onMounted(() => {
             </nav>
           </div>
 
-          <!-- Информация о безопасности -->
           <div class="pt-4 border-t">
             <div class="flex items-start">
               <ShieldCheckIcon class="w-5 h-5 text-green-500 mr-2 mt-0.5" />
@@ -142,7 +156,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Стили для неактивных ссылок */
 .cursor-pointer {
   cursor: pointer;
 }
@@ -151,7 +164,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 640px) {
   .text-3xl {
     font-size: 1.875rem;
