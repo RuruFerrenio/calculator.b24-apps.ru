@@ -7,7 +7,6 @@ import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-// Загрузка скрипта
 (function(w: Window, d: Document, u: string) {
   var s = d.createElement('script');
   s.async = true;
@@ -20,17 +19,20 @@ const router = useRouter()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
-const isLoading = ref(true)
 
 const handleReview = (): void => {
-  BX24.init(() => {
-    BX24.openPath(
-        '/marketplace/detail/tekhnogalera.chistoe_vremya/',
-        function(result: any) {
-          console.log(result);
-        }
-    );
-  });
+  if (typeof (window as any).BX24 !== 'undefined') {
+    (window as any).BX24.init(() => {
+      (window as any).BX24.openPath(
+          '/marketplace/detail/tekhnogalera.chistoe_vremya/',
+          function(result: any) {
+            console.log(result);
+          }
+      );
+    });
+  } else {
+    console.warn('BX24 не доступен');
+  }
 };
 
 // Функция перехода на страницу настроек
@@ -40,14 +42,16 @@ const goToSettings = (): void => {
   }
 };
 
-// Инициализация проверки прав администратора
+// Простая проверка прав администратора
 const initialize = () => {
-  isLoading.value = true
-
-  BX24.init(() => {
-    isAdmin.value = BX24.isAdmin()
-    isLoading.value = false
-  })
+  if (typeof (window as any).BX24 !== 'undefined') {
+    (window as any).BX24.init(() => {
+      isAdmin.value = (window as any).BX24.isAdmin()
+    })
+  } else {
+    console.warn('BX24 не доступен')
+    isAdmin.value = false
+  }
 }
 
 onMounted(() => {
@@ -96,7 +100,7 @@ onMounted(() => {
 
               <!-- Настройки - видно только администраторам -->
               <div
-                  v-if="isAdmin && !isLoading"
+                  v-if="isAdmin"
                   @click="goToSettings"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
               >
@@ -106,7 +110,7 @@ onMounted(() => {
 
               <!-- Заглушка для обычных пользователей -->
               <div
-                  v-else-if="!isAdmin && !isLoading"
+                  v-else
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
                   title="Доступно только администраторам"
               >
@@ -134,6 +138,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Стили для неактивных ссылок */
 .cursor-pointer {
   cursor: pointer;
 }
@@ -142,6 +147,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+/* Адаптивность для мобильных устройств */
 @media (max-width: 640px) {
   .text-3xl {
     font-size: 1.875rem;
