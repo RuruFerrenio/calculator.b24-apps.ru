@@ -72,8 +72,7 @@
                       <div>
                         <B24Button
                             :variant="solution.installed ? 'outline' : 'primary'"
-                            :href="solution.link"
-                            target="_blank"
+                            @click="handleReview"
                             class="w-full justify-center"
                         >
                           {{ solution.installed ? 'Открыть' : 'Подробнее' }}
@@ -115,9 +114,7 @@
                 :disabled="currentIndex === 0"
                 class="flex-1 justify-center"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
+              <ArrowToTheLeftIcon class="w-4 h-4 mr-1" />
               Назад
             </B24Button>
             <B24Button
@@ -128,9 +125,7 @@
                 class="flex-1 justify-center"
             >
               Далее
-              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
+              <ArrowToTheRightIcon class="w-4 h-4 ml-1" />
             </B24Button>
           </div>
         </div>
@@ -142,23 +137,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { markRaw } from 'vue'
-
-// Иконки для решений
-const ChartBarIcon = {
-  template: `
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-    </svg>
-  `
-}
-
-const CalendarIcon = {
-  template: `
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  `
-}
+import ClockIcon from '@bitrix24/b24icons-vue/outline/ClockIcon'
+import CalculatorIcon from '@bitrix24/b24icons-vue/main/CalculatorIcon'
+import ArrowToTheLeftIcon from '@bitrix24/b24icons-vue/actions/ArrowToTheLeftIcon'
+import ArrowToTheRightIcon from '@bitrix24/b24icons-vue/actions/ArrowToTheRightIcon'
 
 // Тип для решения
 interface Solution {
@@ -174,28 +156,44 @@ interface Solution {
   badgeClass: string
 }
 
+// Функция для открытия отзыва
+const handleReview = (): void => {
+  if (typeof (window as any).BX24 !== 'undefined') {
+    (window as any).BX24.init(() => {
+      (window as any).BX24.openPath(
+          '/marketplace/detail/tekhnogalera.chistoe_vremya/',
+          function(result: any) {
+            console.log(result);
+          }
+      );
+    });
+  } else {
+    console.warn('BX24 не доступен');
+  }
+};
+
 // Данные решений (2 элемента)
 const solutions: Solution[] = [
   {
     id: 1,
-    title: 'Smart Reports',
-    description: 'Автоматическая генерация отчетов и аналитика в реальном времени',
-    iconComponent: markRaw(ChartBarIcon),
-    color: 'bg-purple-500',
-    features: ['Автоматические отчёты', 'Аналитика в реальном времени', 'Интеграция с CRM'],
-    link: 'https://marketplace.bitrix24.ru/smart-reports',
+    title: 'Учет рабочего времени',
+    description: 'Удобное начало и завершение рабочего дня, отслеживание активности сотрудников',
+    iconComponent: markRaw(ClockIcon),
+    color: 'bg-blue-500',
+    features: ['Начало/завершение дня', 'Отслеживание активности', 'Статистика по сотрудникам'],
+    link: 'https://marketplace.bitrix24.ru/',
     installed: false,
-    badge: 'Новинка',
-    badgeClass: 'bg-purple-100 text-purple-800'
+    badge: 'Популярное',
+    badgeClass: 'bg-blue-100 text-blue-800'
   },
   {
     id: 2,
-    title: 'Task Planner',
-    description: 'Планирование задач и контроль сроков выполнения',
-    iconComponent: markRaw(CalendarIcon),
+    title: 'Калькулятор задач',
+    description: 'Расчет времени на выполнение задач и оптимизация рабочих процессов',
+    iconComponent: markRaw(CalculatorIcon),
     color: 'bg-green-500',
-    features: ['Автораспределение задач', 'Гант-диаграммы', 'Контроль сроков'],
-    link: 'https://marketplace.bitrix24.ru/task-planner',
+    features: ['Расчет трудозатрат', 'Оптимизация ресурсов', 'Анализ эффективности'],
+    link: 'https://marketplace.bitrix24.ru/',
     installed: false,
     badge: null,
     badgeClass: ''
