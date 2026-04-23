@@ -267,9 +267,6 @@ const endWorkday = async (): Promise<WorkdayInfo> => {
     params.REPORT = 'Завершение истекшего рабочего дня'
   }
 
-  console.log('Параметры при завершении')
-  console.log(params)
-
   const result = await new Promise<WorkdayInfo>((resolve, reject) => {
     BX24.callMethod('timeman.close', params, (result: any) => {
       if (result.error()) {
