@@ -4,38 +4,36 @@ import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-declare const BX24: any
+(function(w: Window, d: Document, u: string) {
+  var s = d.createElement('script');
+  s.async = true;
+  s.src = u + '?' + (Date.now() / 60000 | 0);
+  var h = d.getElementsByTagName('script')[0];
+  h.parentNode.insertBefore(s, h);
+})(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
 const router = useRouter()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
-const isBitrixLoaded = ref(false)
-
-    // Загрузка скрипта кнопки сайта
-    (function(w: Window, d: Document, u: string) {
-      var s = d.createElement('script');
-      s.async = true;
-      s.src = u + '?' + (Date.now() / 60000 | 0);
-      var h = d.getElementsByTagName('script')[0];
-      h.parentNode.insertBefore(s, h);
-    })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
+let intervalId: number | null = null
 
 const handleReview = (): void => {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
+  if (typeof (window as any).BX24 !== 'undefined') {
+    (window as any).BX24.init(() => {
+      (window as any).BX24.openPath(
+          '/marketplace/detail/tekhnogalera.chistoe_vremya/',
+          function(result: any) {
+            console.log(result);
+          }
+      );
+    });
+  } else {
     console.warn('BX24 не доступен');
-    return;
   }
-
-  BX24.openPath(
-      '/marketplace/detail/tekhnogalera.chistoe_vremya/',
-      function(result: any) {
-        console.log(result);
-      }
-  );
 };
 
 // Функция перехода на страницу настроек
@@ -45,97 +43,60 @@ const goToSettings = (): void => {
   }
 };
 
-// Получение информации о текущем пользователе
-function getCurrentUser(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
-      reject(new Error('BX24 не доступен'));
-      return;
-    }
+// Функция проверки прав администратора
+const checkAdminRights = () => {
+  console.log('Проверка прав администратора...')
+  if (typeof (window as any).BX24 !== 'undefined') {
+    (window as any).BX24.init(() => {
+      const adminStatus = (window as any).BX24.isAdmin()
+      console.log('Статус администратора:', adminStatus)
 
-    BX24.callMethod(
-        'user.current',
-        {},
-        function(result: any) {
-          if (result.error()) {
-            console.error('Ошибка получения текущего пользователя:', result.error());
-            reject(result.error());
-            return;
-          }
-          resolve(result.data());
-        }
-    );
-  });
-}
-
-// Проверка прав администратора через REST API
-async function checkAdminRights(): Promise<boolean> {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
-    return false;
-  }
-
-  try {
-    // Получаем текущего пользователя
-    const user = await getCurrentUser();
-
-    // Проверяем права администратора
-    if (user.ADMIN === 'Y') {
-      return true;
-    }
-
-    // Альтернативный способ: проверка через метод user.access
-    return new Promise((resolve) => {
-      BX24.callMethod(
-          'user.access',
-          {
-            'USER_ID': user.ID,
-            'TASK_NAME': 'edit_users'
-          },
-          function(result: any) {
-            if (result.error()) {
-              console.error('Ошибка проверки прав доступа:', result.error());
-              resolve(false);
-              return;
-            }
-            resolve(result.data() === true);
-          }
-      );
-    });
-  } catch (error) {
-    console.error('Ошибка при проверке прав администратора:', error);
-    return false;
-  }
-}
-
-// Инициализация приложения
-function initialize() {
-  console.log('Инициализация приложения');
-
-  if (typeof BX24 !== 'undefined') {
-    console.log('BX24 обнаружен, ожидаем инициализацию');
-
-    BX24.init(async () => {
-      console.log('REST API доступен');
-      isBitrixLoaded.value = true;
-
-      try {
-        isAdmin.value = await checkAdminRights();
-        console.log('Права администратора:', isAdmin.value);
-      } catch (error) {
-        console.error('Ошибка при инициализации:', error);
-        isAdmin.value = false;
+      // Обновляем состояние только если оно изменилось
+      if (isAdmin.value !== adminStatus) {
+        isAdmin.value = adminStatus
+        console.log('Статус администратора обновлен:', isAdmin.value)
       }
-    });
+    })
   } else {
-    console.warn('BX24 не доступен');
-    isBitrixLoaded.value = false;
-    isAdmin.value = false;
+    console.warn('BX24 не доступен')
+    if (isAdmin.value !== false) {
+      isAdmin.value = false
+    }
+  }
+}
+
+// Инициализация и запуск периодической проверки
+const initialize = () => {
+  console.log('Запуск инициализации')
+
+  // Первая проверка
+  checkAdminRights()
+
+  // Запускаем периодическую проверку каждые 5 секунд
+  if (intervalId === null) {
+    intervalId = window.setInterval(() => {
+      checkAdminRights()
+    }, 1000) // 5000 мс = 5 секунд
+    console.log('Запущена периодическая проверка прав (интервал 5 секунд)')
+  }
+}
+
+// Очистка интервала при размонтировании компонента
+const cleanup = () => {
+  if (intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
+    console.log('Остановлена периодическая проверка прав')
   }
 }
 
 onMounted(() => {
-  initialize();
-});
+  initialize()
+})
+
+onUnmounted(() => {
+  cleanup()
+})
 </script>
 
 <template>
