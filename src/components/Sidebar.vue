@@ -5,8 +5,8 @@ import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 (function(w: Window, d: Document, u: string) {
   var s = d.createElement('script');
@@ -17,10 +17,16 @@ import { useRouter } from 'vue-router'
 })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
 const router = useRouter()
+const route = useRoute() // Добавляем useRoute для получения текущего маршрута
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
 let intervalId: number | null = null
+
+// Функция проверки активного маршрута
+const isRouteActive = (path: string): boolean => {
+  return route.path === path
+}
 
 const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
@@ -46,7 +52,7 @@ const goToSettings = (): void => {
 
 // Функция перехода на главную
 const goToMain = (): void => {
-  if (router && isAdmin.value) {
+  if (router) {
     router.push('/')
   }
 };
@@ -128,12 +134,13 @@ onUnmounted(() => {
             <h4 class="text-sm font-medium text-gray-900">Меню</h4>
             <!-- Панель навигации -->
             <nav class="space-y-2">
-              <!-- Главная  -->
+              <!-- Главная -->
               <div
                   @click="goToMain"
-                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
+                  :class="isRouteActive('/') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
               >
-                <HomeIcon class="w-5 h-5 mr-3 text-gray-500" />
+                <HomeIcon :class="isRouteActive('/') ? 'w-5 h-5 mr-3 text-blue-600' : 'w-5 h-5 mr-3 text-gray-500'" />
                 Главная
               </div>
 
@@ -141,9 +148,10 @@ onUnmounted(() => {
               <div
                   v-if="isAdmin"
                   @click="goToSettings"
-                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
+                  :class="isRouteActive('/settings') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
               >
-                <SettingsIcon class="w-5 h-5 mr-3 text-gray-500" />
+                <SettingsIcon :class="isRouteActive('/settings') ? 'w-5 h-5 mr-3 text-blue-600' : 'w-5 h-5 mr-3 text-gray-500'" />
                 Настройки
               </div>
 
