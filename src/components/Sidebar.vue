@@ -3,8 +3,8 @@ import MailIcon from '@bitrix24/b24icons-vue/main/MailIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
-import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon' // Добавьте иконку настроек
-import { ref, onMounted, inject } from 'vue'
+import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 (function(w: Window, d: Document, u: string) {
@@ -15,8 +15,6 @@ import { useRouter } from 'vue-router'
   h.parentNode.insertBefore(s, h);
 })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
-// Получаем bitrixHelper из инжекта (как во втором коде)
-const bitrixHelper = inject('bitrixHelper')
 const router = useRouter()
 
 // Состояние для проверки прав администратора
@@ -45,21 +43,30 @@ const goToSettings = (): void => {
   }
 };
 
-// Инициализация проверки прав администратора
+// Инициализация проверки прав администратора через BX24
 const initialize = async () => {
   try {
     isLoading.value = true
 
-    if (bitrixHelper && bitrixHelper.isReady()) {
-      isAdmin.value = bitrixHelper.isUserAdmin()
-    } else if (bitrixHelper) {
-      await bitrixHelper.init()
-      isAdmin.value = bitrixHelper.isUserAdmin()
+    // Ждем инициализации BX24
+    if (typeof (window as any).BX24 !== 'undefined') {
+      await new Promise((resolve) => {
+        (window as any).BX24.init(resolve)
+      })
+
+          // Проверяем права администратора
+          (window as any).BX24.isAdmin((admin: boolean) => {
+            isAdmin.value = admin
+            isLoading.value = false
+          })
+    } else {
+      console.warn('BX24 не доступен')
+      isAdmin.value = false
+      isLoading.value = false
     }
   } catch (error) {
     console.error('Ошибка проверки прав администратора:', error)
     isAdmin.value = false
-  } finally {
     isLoading.value = false
   }
 }
