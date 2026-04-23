@@ -4,13 +4,22 @@ import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+(function(w: Window, d: Document, u: string) {
+  var s = d.createElement('script');
+  s.async = true;
+  s.src = u + '?' + (Date.now() / 60000 | 0);
+  var h = d.getElementsByTagName('script')[0];
+  h.parentNode.insertBefore(s, h);
+})(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
 const router = useRouter()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
+let intervalId: number | null = null
 
 const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
@@ -34,24 +43,59 @@ const goToSettings = (): void => {
   }
 };
 
-// Простая проверка прав администратора
-const initialize = () => {
-  console.log('initialize')
+// Функция проверки прав администратора
+const checkAdminRights = () => {
+  console.log('Проверка прав администратора...')
   if (typeof (window as any).BX24 !== 'undefined') {
-    console.log('step 1')
     (window as any).BX24.init(() => {
-      console.log('Инициализация в сайдбаре')
-      isAdmin.value = (window as any).BX24.isAdmin()
-      console.log(isAdmin.value)
+      const adminStatus = (window as any).BX24.isAdmin()
+      console.log('Статус администратора:', adminStatus)
+
+      // Обновляем состояние только если оно изменилось
+      if (isAdmin.value !== adminStatus) {
+        isAdmin.value = adminStatus
+        console.log('Статус администратора обновлен:', isAdmin.value)
+      }
     })
   } else {
     console.warn('BX24 не доступен')
-    isAdmin.value = false
+    if (isAdmin.value !== false) {
+      isAdmin.value = false
+    }
+  }
+}
+
+// Инициализация и запуск периодической проверки
+const initialize = () => {
+  console.log('Запуск инициализации')
+
+  // Первая проверка
+  checkAdminRights()
+
+  // Запускаем периодическую проверку каждые 5 секунд
+  if (intervalId === null) {
+    intervalId = window.setInterval(() => {
+      checkAdminRights()
+    }, 5000) // 5000 мс = 5 секунд
+    console.log('Запущена периодическая проверка прав (интервал 5 секунд)')
+  }
+}
+
+// Очистка интервала при размонтировании компонента
+const cleanup = () => {
+  if (intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
+    console.log('Остановлена периодическая проверка прав')
   }
 }
 
 onMounted(() => {
   initialize()
+})
+
+onUnmounted(() => {
+  cleanup()
 })
 </script>
 
