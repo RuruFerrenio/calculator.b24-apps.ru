@@ -293,9 +293,9 @@ function onModalClosed(mode: 'start' | 'end'): void {
 
   // После закрытия модалки проверяем статус рабочего дня и выполняем действие если нужно
   if (mode === 'start') {
-    startWorkday()
+    //startWorkday()
   } else {
-    endWorkday()
+    //endWorkday()
   }
 }
 
