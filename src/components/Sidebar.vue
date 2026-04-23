@@ -3,6 +3,9 @@ import MailIcon from '@bitrix24/b24icons-vue/main/MailIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
+import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon' // Добавьте иконку настроек
+import { ref, onMounted, inject } from 'vue'
+import { useRouter } from 'vue-router'
 
 (function(w: Window, d: Document, u: string) {
   var s = d.createElement('script');
@@ -11,6 +14,14 @@ import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
   var h = d.getElementsByTagName('script')[0];
   h.parentNode.insertBefore(s, h);
 })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
+
+// Получаем bitrixHelper из инжекта (как во втором коде)
+const bitrixHelper = inject('bitrixHelper')
+const router = useRouter()
+
+// Состояние для проверки прав администратора
+const isAdmin = ref(false)
+const isLoading = ref(true)
 
 const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
@@ -26,6 +37,36 @@ const handleReview = (): void => {
     console.warn('BX24 не доступен');
   }
 };
+
+// Функция перехода на страницу настроек
+const goToSettings = (): void => {
+  if (router && isAdmin.value) {
+    router.push('/settings')
+  }
+};
+
+// Инициализация проверки прав администратора
+const initialize = async () => {
+  try {
+    isLoading.value = true
+
+    if (bitrixHelper && bitrixHelper.isReady()) {
+      isAdmin.value = bitrixHelper.isUserAdmin()
+    } else if (bitrixHelper) {
+      await bitrixHelper.init()
+      isAdmin.value = bitrixHelper.isUserAdmin()
+    }
+  } catch (error) {
+    console.error('Ошибка проверки прав администратора:', error)
+    isAdmin.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  initialize()
+})
 </script>
 
 <template>
@@ -66,6 +107,26 @@ const handleReview = (): void => {
                 <StarIcon class="w-5 h-5 mr-3 text-gray-500" />
                 Оставить отзыв
               </div>
+
+              <!-- НАСТРОЙКИ - видно только администраторам -->
+              <div
+                  v-if="isAdmin && !isLoading"
+                  @click="goToSettings"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >
+                <SettingsIcon class="w-5 h-5 mr-3 text-gray-500" />
+                Настройки
+              </div>
+
+              <!-- Заглушка для обычных пользователей (опционально) -->
+              <div
+                  v-else-if="!isAdmin && !isLoading"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
+                  title="Доступно только администраторам"
+              >
+                <SettingsIcon class="w-5 h-5 mr-3 text-gray-400" />
+                Настройки
+              </div>
             </nav>
           </div>
 
@@ -90,6 +151,10 @@ const handleReview = (): void => {
 /* Стили для неактивных ссылок */
 .cursor-pointer {
   cursor: pointer;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
 }
 
 /* Адаптивность для мобильных устройств */
