@@ -46,7 +46,9 @@ const goToSettings = (): void => {
 const initialize = () => {
   if (typeof (window as any).BX24 !== 'undefined') {
     (window as any).BX24.init(() => {
+      console.log('Инициализация в сайдбаре')
       isAdmin.value = (window as any).BX24.isAdmin()
+      console.log(isAdmin.value)
     })
   } else {
     console.warn('BX24 не доступен')
