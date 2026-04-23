@@ -340,34 +340,40 @@ function checkWorkdayStatus(): void {
           const workDayParams = result.data()
           console.log('Информация о рабочем дне:', workDayParams)
           console.log('Статус:', workDayParams.STATUS)
-          console.log('Настройки:')
-          console.log('- Начало дня (включено):', workdayStart.value.enabled)
-          console.log('- Начало дня (метод):', workdayStart.value.method)
-          console.log('- Завершение дня (включено):', workdayEnd.value.enabled)
-          console.log('- Завершение дня (метод):', workdayEnd.value.method)
 
           // Проверка для начала рабочего дня
           if (workdayStart.value.enabled && workDayParams.STATUS === 'CLOSED') {
-            if (workdayStart.value.method === 'modal') {
-              console.log('Открываем модальное окно начала рабочего дня через BX24.openApplication')
-              openWorkdayModal('start')
-            } else if (workdayStart.value.method === 'auto') {
-              console.log('Автоматически запускаем рабочий день')
-              startWorkday()
-            }
+            // Проверяем, рабочее ли сейчас время для начала дня
+            checkIsWorkTime(function(isWorkTime: boolean) {
+              if (!isWorkTime) {
+                console.log('Сейчас не рабочее время, начало дня не требуется')
+                return
+              }
+
+              if (workdayStart.value.method === 'modal') {
+                console.log('Открываем модальное окно начала рабочего дня')
+                openWorkdayModal('start')
+              } else if (workdayStart.value.method === 'auto') {
+                console.log('Автоматически запускаем рабочий день')
+                startWorkday()
+              }
+            })
           }
 
           // Проверка для завершения рабочего дня
           if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
             checkIsWorkTime(function(isWorkTime: boolean) {
-              if (!isWorkTime) {
-                if (workdayEnd.value.method === 'modal') {
-                  console.log('Открываем модальное окно завершения рабочего дня через BX24.openApplication')
-                  openWorkdayModal('end')
-                } else if (workdayEnd.value.method === 'auto') {
-                  console.log('Автоматически завершаем рабочий день')
-                  endWorkday()
-                }
+              if (isWorkTime) {
+                console.log('Сейчас рабочее время, завершение дня не требуется')
+                return
+              }
+
+              if (workdayEnd.value.method === 'modal') {
+                console.log('Открываем модальное окно завершения рабочего дня')
+                openWorkdayModal('end')
+              } else if (workdayEnd.value.method === 'auto') {
+                console.log('Автоматически завершаем рабочий день')
+                endWorkday()
               }
             })
           }
