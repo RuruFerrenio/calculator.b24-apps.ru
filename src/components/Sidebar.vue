@@ -5,7 +5,8 @@ import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import SolutionsSlider from './SolutionsSlider.vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 (function(w: Window, d: Document, u: string) {
@@ -17,7 +18,7 @@ import { useRouter, useRoute } from 'vue-router'
 })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
 const router = useRouter()
-const route = useRoute() // Добавляем useRoute для получения текущего маршрута
+const route = useRoute()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
@@ -65,7 +66,6 @@ const checkAdminRights = () => {
       const adminStatus = (window as any).BX24.isAdmin()
       console.log('Статус администратора:', adminStatus)
 
-      // Обновляем состояние только если оно изменилось
       if (isAdmin.value !== adminStatus) {
         isAdmin.value = adminStatus
         console.log('Статус администратора обновлен:', isAdmin.value)
@@ -82,15 +82,12 @@ const checkAdminRights = () => {
 // Инициализация и запуск периодической проверки
 const initialize = () => {
   console.log('Запуск инициализации')
-
-  // Первая проверка
   checkAdminRights()
 
-  // Запускаем периодическую проверку каждые 5 секунд
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
       checkAdminRights()
-    }, 5000) // 5000 мс = 5 секунд
+    }, 5000)
     console.log('Запущена периодическая проверка прав (интервал 5 секунд)')
   }
 }
@@ -199,11 +196,13 @@ onUnmounted(() => {
         </div>
       </div>
     </B24Card>
+
+    <!-- Слайдер с другими решениями -->
+    <SolutionsSlider />
   </div>
 </template>
 
 <style scoped>
-/* Стили для неактивных ссылок */
 .cursor-pointer {
   cursor: pointer;
 }
@@ -212,7 +211,6 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 640px) {
   .text-3xl {
     font-size: 1.875rem;
