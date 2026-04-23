@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import MailIcon from '@bitrix24/b24icons-vue/main/MailIcon'
+import MailOutIcon from '@bitrix24/b24icons-vue/main/MailOutIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
 import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
+import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -43,6 +44,13 @@ const goToSettings = (): void => {
   }
 };
 
+// Функция перехода на главную
+const goToMain = (): void => {
+  if (router && isAdmin.value) {
+    router.push('/')
+  }
+};
+
 // Функция проверки прав администратора
 const checkAdminRights = () => {
   console.log('Проверка прав администратора...')
@@ -76,7 +84,7 @@ const initialize = () => {
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
       checkAdminRights()
-    }, 1000) // 5000 мс = 5 секунд
+    }, 5000) // 5000 мс = 5 секунд
     console.log('Запущена периодическая проверка прав (интервал 5 секунд)')
   }
 }
@@ -120,22 +128,13 @@ onUnmounted(() => {
             <h4 class="text-sm font-medium text-gray-900">Меню</h4>
             <!-- Панель навигации -->
             <nav class="space-y-2">
-              <!-- Техническая поддержка -->
-              <a
-                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время"
-                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                <MailIcon class="w-5 h-5 mr-3 text-gray-500" />
-                Техническая поддержка
-              </a>
-
-              <!-- Оставить отзыв -->
+              <!-- Главная  -->
               <div
-                  @click="handleReview"
+                  @click="goToMain"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
               >
-                <StarIcon class="w-5 h-5 mr-3 text-gray-500" />
-                Оставить отзыв
+                <HomeIcon class="w-5 h-5 mr-3 text-gray-500" />
+                Главная
               </div>
 
               <!-- Настройки - видно только администраторам -->
@@ -156,6 +155,24 @@ onUnmounted(() => {
               >
                 <SettingsIcon class="w-5 h-5 mr-3 text-gray-400" />
                 Настройки
+              </div>
+
+              <!-- Техническая поддержка -->
+              <a
+                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
+              >
+                <MailOutIcon class="w-5 h-5 mr-3 text-gray-500" />
+                Техническая поддержка
+              </a>
+
+              <!-- Оставить отзыв -->
+              <div
+                  @click="handleReview"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >
+                <StarIcon class="w-5 h-5 mr-3 text-gray-500" />
+                Оставить отзыв
               </div>
             </nav>
           </div>
