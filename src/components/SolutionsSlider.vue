@@ -5,7 +5,7 @@
         <div class="space-y-4">
           <!-- Заголовок слайдера -->
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-1">Другие решения</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">Другие наши решения</h3>
             <p class="text-sm text-gray-500">Расширьте возможности вашего портала</p>
           </div>
 
