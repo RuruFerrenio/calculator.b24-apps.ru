@@ -54,10 +54,11 @@
                         {{ solution.description }}
                       </p>
 
-                      <!-- Особенности -->
+                      <!-- Особенности с возможностью развернуть -->
                       <div class="space-y-1.5 mb-4">
+                        <!-- Отображаем видимые элементы -->
                         <div
-                            v-for="(feature, index) in solution.features"
+                            v-for="(feature, index) in getVisibleFeatures(solution.id)"
                             :key="index"
                             class="flex items-center text-sm text-gray-500"
                         >
@@ -65,6 +66,25 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                           </svg>
                           <span class="truncate">{{ feature }}</span>
+                        </div>
+
+                        <!-- Кнопка "Показать еще" -->
+                        <div v-if="solution.features.length > 3" class="mt-2">
+                          <button
+                              @click="toggleFeatures(solution.id)"
+                              class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+                          >
+                            <span>{{ isExpanded(solution.id) ? 'Свернуть' : 'Показать еще' }}</span>
+                            <svg
+                                class="w-3.5 h-3.5 transition-transform duration-200"
+                                :class="{ 'rotate-180': isExpanded(solution.id) }"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
 
@@ -156,6 +176,31 @@ interface Solution {
   badgeClass: string
 }
 
+// Состояние развернутых карточек
+const expandedFeatures = ref<Record<number, boolean>>({})
+
+// Функция для переключения состояния
+const toggleFeatures = (solutionId: number) => {
+  expandedFeatures.value[solutionId] = !expandedFeatures.value[solutionId]
+}
+
+// Проверка, развернута ли карточка
+const isExpanded = (solutionId: number) => {
+  return expandedFeatures.value[solutionId] || false
+}
+
+// Получение видимых элементов features
+const getVisibleFeatures = (solutionId: number) => {
+  const solution = solutions.find(s => s.id === solutionId)
+  if (!solution) return []
+
+  if (isExpanded(solutionId)) {
+    return solution.features
+  } else {
+    return solution.features.slice(0, 3)
+  }
+}
+
 // Функция для открытия отзыва
 const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
@@ -192,7 +237,7 @@ const solutions: Solution[] = [
     description: 'Удобный калькулятор, интегрированный во все ключевые места системы',
     iconComponent: markRaw(CalculatorIcon),
     color: 'bg-green-500',
-    features: ['Мгновенные расчеты', 'Экономия времени'],
+    features: ['Мгновенные расчеты', 'Экономия времени', 'Простой интерфейс', 'Быстрый доступ', 'История вычислений'],
     link: 'https://marketplace.bitrix24.ru/',
     installed: false,
     badge: null,
