@@ -11,13 +11,17 @@ import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
 import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
 import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
 import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
+import AlertCircleIcon from '@bitrix24/b24icons-vue/outline/AlertCircleIcon'
 
 // Иконки для методов
 import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
 import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
 import NotificationIcon from '@bitrix24/b24icons-vue/outline/NotificationIcon'
 
-const windowLocationOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+// Безопасное получение origin (работает и на сервере, и на клиенте)
+const windowLocationOrigin = typeof window !== 'undefined' && window.location
+    ? window.location.origin
+    : ''
 
 const selectedMethod = ref<string | null>(null)
 
@@ -145,6 +149,7 @@ function getMethodDetails(methodName: string) {
   return details[methodName] || details['Автоматический']
 }
 </script>
+
 <template>
   <div class="mx-auto mb-8">
     <!-- Часть 1: Настройка на стороне Битрикс24 -->
@@ -187,10 +192,10 @@ function getMethodDetails(methodName: string) {
           </div>
         </div>
 
-        <!-- Кнопка перехода к рабочим графикам -->
+        <!-- Кнопка перехода к рабочим графикам - ИСПРАВЛЕНО -->
         <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           <B24Button
-              :href="`${window.location.origin}/timeman/schedules/`"
+              :href="`${windowLocationOrigin}/timeman/schedules/`"
               target="_blank"
               color="air-primary"
           >
@@ -221,7 +226,6 @@ function getMethodDetails(methodName: string) {
         <B24TableWrapper
             class="overflow-x-auto w-full"
             size="md"
-            zebra
             row-hover
             rounded
             :b24ui="{
