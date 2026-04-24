@@ -205,8 +205,8 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
     return
   }
 
-  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
-  const title = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
+  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const title = mode === 'start' ? '[B]Начало рабочего дня[/B]' : '[B]Завершение рабочего дня[/B]'
   const message = mode === 'start'
       ? 'Время начать рабочий день!'
       : 'Время завершить рабочий день!'
@@ -219,7 +219,7 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
 
   // Используем im.notify для отправки push-уведомления с правильной структурой ATTACH
   BX24.callMethod(
-      'im.notify.personal.add',
+      'im.notify.system.add',
       {
         USER_ID: userId,
         MESSAGE: title,
@@ -231,7 +231,7 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
           COLOR_TOKEN: colorToken,
           BLOCKS: [
             {
-              MESSAGE: `[B]${title}[/B]\n${message}`
+              MESSAGE: ``
             },
             {
               LINK: {
