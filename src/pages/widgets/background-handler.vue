@@ -68,6 +68,8 @@ function deleteCookie(name: string): void {
 function clearAppCookies(): void {
   deleteCookie('open_app_mode')
   deleteCookie('modal_type')
+  deleteCookie('start_notification_sent')
+  deleteCookie('end_notification_sent')
   console.log('Все куки приложения очищены')
 }
 
@@ -159,16 +161,28 @@ function getUserFullName(callback: (fullName: string) => void): void {
   )
 }
 
-// Отправка сообщения в чат
+// Отправка сообщения в чат (с проверкой флага)
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}?page=instructions`
+  // Проверяем, было ли уже отправлено уведомление
+  const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
+  const notificationSent = getCookie(notificationKey)
+
+  if (notificationSent === 'true') {
+    console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
+    return
+  }
+
+  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const messageText = mode === 'start'
-      ? '🔔 Время начать рабочий день!\n\nНажмите на кнопку ниже для начала рабочего дня'
-      : '🔔 Время завершить рабочий день!\n\nНажмите на кнопку ниже для завершения рабочего дня'
+      ? '🔔 Время начать рабочий день!\n'
+      : '🔔 Время завершить рабочий день!\n'
 
   const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
+
+  // Устанавливаем флаг перед отправкой, чтобы предотвратить дублирование
+  setCookie(notificationKey, 'true', 30) // Кука на 30 минут
 
   BX24.callMethod(
       'im.message.add',
@@ -188,6 +202,8 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
       function(result: any) {
         if (result.error()) {
           console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
+          // При ошибке удаляем флаг, чтобы можно было повторить позже
+          deleteCookie(notificationKey)
         } else {
           console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
         }
@@ -274,6 +290,8 @@ function startWorkday(): void {
           console.error('Ошибка начала рабочего дня:', result.error())
         } else {
           console.log('Рабочий день успешно начат')
+          // После успешного начала очищаем флаги уведомлений
+          deleteCookie('start_notification_sent')
         }
       }
   )
@@ -294,6 +312,8 @@ function endWorkday(): void {
           console.error('Ошибка завершения рабочего дня:', result.error())
         } else {
           console.log('Рабочий день успешно завершен')
+          // После успешного завершения очищаем флаги уведомлений
+          deleteCookie('end_notification_sent')
         }
       }
   )
@@ -400,6 +420,9 @@ function checkWorkdayStatus(): void {
                 sendChatNotification(userId, 'start')
               }
             })
+          } else if (workdayStart.value.enabled && workDayParams.STATUS !== 'CLOSED') {
+            // Если статус изменился и не CLOSED, очищаем флаг уведомления
+            deleteCookie('start_notification_sent')
           }
 
           // Проверка для завершения рабочего дня
@@ -427,6 +450,9 @@ function checkWorkdayStatus(): void {
                 sendChatNotification(userId, 'end')
               }
             })
+          } else if (workdayEnd.value.enabled && workDayParams.STATUS !== 'OPENED') {
+            // Если статус изменился и не OPENED, очищаем флаг уведомления
+            deleteCookie('end_notification_sent')
           }
         }
     )
@@ -463,17 +489,15 @@ function handleVisibilityChange(): void {
   isPageVisible = !document.hidden
 
   if (isPageVisible && !wasVisible) {
-    // Страница стала видимой - возобновляем проверки и очищаем куки
-    console.log('Страница стала видимой, возобновляем проверки и очищаем куки')
-    clearAppCookies() // Очищаем куки при возвращении на страницу
+    // Страница стала видимой - возобновляем проверки
+    console.log('Страница стала видимой, возобновляем проверки')
     startPeriodicCheck()
     // Выполняем немедленную проверку при возвращении
     checkWorkdayStatus()
   } else if (!isPageVisible && wasVisible) {
-    // Страница скрыта - останавливаем проверки и очищаем куки
-    console.log('Страница скрыта, останавливаем проверки и очищаем куки')
+    // Страница скрыта - останавливаем проверки
+    console.log('Страница скрыта, останавливаем проверки')
     stopPeriodicCheck()
-    clearAppCookies() // Очищаем куки при уходе со страницы
   }
 }
 
