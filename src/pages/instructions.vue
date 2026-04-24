@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import PlacementsManager from './PlacementsManager.vue'
 
 // Состояния настроек
 const workdayStartEnabled = ref(false)
@@ -337,7 +336,6 @@ watch(workdayEndMethod, async (newMethod) => {
             title="Интеграция с встройками"
             description="Управление местами встройки приложения в интерфейс Битрикс24"
         >
-          <PlacementsManager />
         </B24Section>
 
         <!-- Документация API -->
