@@ -146,7 +146,7 @@ function getMethodDetails(methodName: string) {
 }
 </script>
 <template>
-  <div class="p-0 md:p-6 max-w-5xl mx-auto">
+  <div class="p-0 md:p-6 mx-auto">
     <!-- Заголовок статьи -->
     <div class="mb-8">
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
