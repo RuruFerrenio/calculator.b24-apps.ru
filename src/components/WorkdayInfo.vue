@@ -6,16 +6,14 @@ import CalendarIcon from '@bitrix24/b24icons-vue/outline/CalendarIcon'
 import ClockIcon from '@bitrix24/b24icons-vue/outline/ClockIcon'
 import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
 import InfoCircleIcon from '@bitrix24/b24icons-vue/main/InfoCircleIcon'
-import MinusInCircleIcon from '@bitrix24/b24icons-vue/actions/MinusInCircleIcon'
 import NoteCircleIcon from '@bitrix24/b24icons-vue/main/NoteCircleIcon'
 
-type WorkdayStatus = 'OPENED' | 'CLOSED' | 'PAUSED' | 'EXPIRED'
+type WorkdayStatus = 'OPENED' | 'CLOSED' | 'EXPIRED'
 
 interface WorkdayInfo {
   STATUS: WorkdayStatus
   TIME_START?: string
   TIME_FINISH?: string
-  TIME_PAUSED?: string
   DURATION?: string
   TIME_LEAKS?: string
   [key: string]: any
@@ -56,7 +54,6 @@ const statusText = computed(() => {
   const statusMap: Record<WorkdayStatus, string> = {
     'OPENED': 'Рабочий день активен',
     'CLOSED': 'Рабочий день не начат',
-    'PAUSED': 'Рабочий день на паузе',
     'EXPIRED': 'Рабочий день истек'
   }
   return statusMap[workdayInfo.value.STATUS] || workdayInfo.value.STATUS
@@ -68,7 +65,6 @@ const statusIcon = computed(() => {
   const iconMap: Record<WorkdayStatus, any> = {
     'OPENED': CircleCheckIcon,
     'CLOSED': InfoCircleIcon,
-    'PAUSED': MinusInCircleIcon,
     'EXPIRED': NoteCircleIcon
   }
   return iconMap[workdayInfo.value.STATUS] || InfoCircleIcon
@@ -80,7 +76,6 @@ const statusColor = computed(() => {
   const colorMap: Record<WorkdayStatus, string> = {
     'OPENED': 'text-green-600',
     'CLOSED': 'text-gray-500',
-    'PAUSED': 'text-yellow-600',
     'EXPIRED': 'text-red-600'
   }
   return colorMap[workdayInfo.value.STATUS] || 'text-gray-500'
@@ -92,7 +87,6 @@ const statusBgColor = computed(() => {
   const colorMap: Record<WorkdayStatus, string> = {
     'OPENED': 'bg-green-50 border-green-200',
     'CLOSED': 'bg-gray-50 border-gray-200',
-    'PAUSED': 'bg-yellow-50 border-yellow-200',
     'EXPIRED': 'bg-red-50 border-red-200'
   }
   return colorMap[workdayInfo.value.STATUS] || 'bg-gray-100 border-gray-200'
@@ -104,7 +98,6 @@ const statusChipColor = computed(() => {
   const colorMap: Record<WorkdayStatus, string> = {
     'OPENED': 'air-primary-success',
     'CLOSED': 'air-secondary-accent',
-    'PAUSED': 'air-primary-warning',
     'EXPIRED': 'air-primary-alert'
   }
   return colorMap[workdayInfo.value.STATUS] || 'air-secondary-accent'
@@ -115,15 +108,7 @@ const canStartWorkday = computed(() => {
 })
 
 const canEndWorkday = computed(() => {
-  return workdayInfo.value && (workdayInfo.value.STATUS === 'OPENED' || workdayInfo.value.STATUS === 'PAUSED')
-})
-
-const canPauseWorkday = computed(() => {
   return workdayInfo.value && workdayInfo.value.STATUS === 'OPENED'
-})
-
-const canResumeWorkday = computed(() => {
-  return workdayInfo.value && workdayInfo.value.STATUS === 'PAUSED'
 })
 
 const buttonText = computed(() => {
@@ -290,34 +275,6 @@ const endWorkdayAPI = async (): Promise<void> => {
   })
 }
 
-const pauseWorkdayAPI = async (): Promise<void> => {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-  return new Promise((resolve, reject) => {
-    BX24.callMethod('timeman.pause', {}, (result: any) => {
-      if (result.error()) {
-        reject(result.error())
-      } else {
-        resolve(result.data())
-      }
-    })
-  })
-}
-
-const resumeWorkdayAPI = async (): Promise<void> => {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-  return new Promise((resolve, reject) => {
-    BX24.callMethod('timeman.resume', {}, (result: any) => {
-      if (result.error()) {
-        reject(result.error())
-      } else {
-        resolve(result.data())
-      }
-    })
-  })
-}
-
 // Основные действия
 const refreshData = async () => {
   if (isRefreshing.value) return
@@ -395,58 +352,6 @@ const handleEndWorkday = async () => {
   }
 }
 
-const handlePauseWorkday = async () => {
-  if (isProcessing.value) return
-
-  isProcessing.value = true
-  error.value = null
-
-  try {
-    await pauseWorkdayAPI()
-    toast.add({
-      description: 'Рабочий день приостановлен',
-      variant: 'info'
-    })
-    await refreshData()
-  } catch (err: any) {
-    console.error('Ошибка приостановки рабочего дня:', err)
-    const errorMessage = err.error_description || err.message || 'Ошибка при приостановке рабочего дня'
-    error.value = errorMessage
-    toast.add({
-      description: errorMessage,
-      variant: 'error'
-    })
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-const handleResumeWorkday = async () => {
-  if (isProcessing.value) return
-
-  isProcessing.value = true
-  error.value = null
-
-  try {
-    await resumeWorkdayAPI()
-    toast.add({
-      description: 'Рабочий день возобновлен',
-      variant: 'success'
-    })
-    await refreshData()
-  } catch (err: any) {
-    console.error('Ошибка возобновления рабочего дня:', err)
-    const errorMessage = err.error_description || err.message || 'Ошибка при возобновлении рабочего дня'
-    error.value = errorMessage
-    toast.add({
-      description: errorMessage,
-      variant: 'error'
-    })
-  } finally {
-    isProcessing.value = false
-  }
-}
-
 const handleMainAction = () => {
   if (canStartWorkday.value) {
     handleStartWorkday()
@@ -504,7 +409,7 @@ onUnmounted(() => {
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <!-- Заголовок -->
-    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div class="px-6 py-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 bg-blue-100 rounded-lg">
@@ -588,8 +493,7 @@ onUnmounted(() => {
                 variant="soft"
             >
               {{ workdayInfo?.STATUS === 'OPENED' ? 'В работе' :
-                workdayInfo?.STATUS === 'PAUSED' ? 'Перерыв' :
-                    workdayInfo?.STATUS === 'EXPIRED' ? 'Просрочен' : 'Ожидание' }}
+                workdayInfo?.STATUS === 'EXPIRED' ? 'Просрочен' : 'Ожидание' }}
             </B24Badge>
           </div>
         </div>
@@ -622,18 +526,6 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Время паузы -->
-          <div v-if="workdayInfo?.TIME_PAUSED && workdayInfo.STATUS === 'PAUSED'" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-gray-500">
-              <MinusInCircleIcon class="w-4 h-4" />
-              <span>Начало перерыва:</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <ClockIcon class="w-4 h-4 text-gray-400" />
-              <span class="text-gray-700">{{ formatTime(workdayInfo.TIME_PAUSED) }}</span>
-            </div>
-          </div>
-
           <!-- Отработанное время -->
           <div v-if="workdayInfo?.DURATION" class="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
             <div class="flex items-center gap-2 text-gray-500">
@@ -648,7 +540,6 @@ onUnmounted(() => {
 
         <!-- Кнопки действий -->
         <div class="flex flex-col gap-2">
-          <!-- Основная кнопка -->
           <B24Button
               v-if="canStartWorkday || canEndWorkday"
               @click="handleMainAction"
@@ -665,40 +556,6 @@ onUnmounted(() => {
             </template>
             {{ isProcessing ? 'Обработка...' : buttonText }}
           </B24Button>
-
-          <!-- Дополнительные кнопки для паузы/возобновления -->
-          <div v-if="canPauseWorkday || canResumeWorkday" class="flex gap-2">
-            <B24Button
-                v-if="canPauseWorkday"
-                @click="handlePauseWorkday"
-                :disabled="isProcessing"
-                color="air-secondary-accent"
-                size="md"
-                class="flex-1"
-            >
-              <template #leading>
-                <MinusInCircleIcon class="w-4 h-4" />
-              </template>
-              Перерыв
-            </B24Button>
-
-            <B24Button
-                v-if="canResumeWorkday"
-                @click="handleResumeWorkday"
-                :disabled="isProcessing"
-                color="air-primary"
-                size="md"
-                class="flex-1"
-            >
-              <template #leading>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </template>
-              Возобновить
-            </B24Button>
-          </div>
         </div>
 
         <!-- Информация об автообновлении -->
