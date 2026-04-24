@@ -68,7 +68,7 @@ interface ToastNotification {
 // Константы
 const HANDLERS: Record<PlacementType, string> = {
   PAGE_BACKGROUND_WORKER: `${window.location.origin}/dist/widgets/background-handler`,
-  REST_APP_URI: `${window.location.origin}/dist/`
+  REST_APP_URI: `${window.location.origin}/dist/instructions`
 }
 
 const PLACEMENT_CONFIGS: Record<PlacementType, PlacementConfig> = {
@@ -181,7 +181,7 @@ const placementManager = {
             OPTIONS: config.options
           }
 
-      await bitrixAPI.call('placement.bind', placementConfig)
+      //await bitrixAPI.call('placement.bind', placementConfig)
       return true
     } catch (error) {
       console.error(`Ошибка регистрации встройки ${placementType}:`, error)
