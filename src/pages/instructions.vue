@@ -1,3 +1,150 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+// Импорт иконок
+import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
+import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
+import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
+import TableEditorIcon from '@bitrix24/b24icons-vue/editor/TableEditorIcon'
+import InfoCircleIcon from '@bitrix24/b24icons-vue/outline/InfoCircleIcon'
+import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
+import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
+import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
+import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
+
+// Иконки для методов
+import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
+import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
+import NotificationIcon from '@bitrix24/b24icons-vue/outline/NotificationIcon'
+
+const windowLocationOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+
+const selectedMethod = ref<string | null>(null)
+
+// Данные о методах
+const methods = [
+  {
+    name: 'Автоматический',
+    icon: PlayLIcon,
+    iconClass: 'text-green-500',
+    shortDescription: 'Действие выполняется автоматически без участия сотрудника',
+    pros: [
+      'Не отвлекает сотрудников',
+      'Полная автоматизация процесса',
+      'Идеально для формального учёта времени'
+    ],
+    cons: [
+      'Сотрудник не контролирует процесс',
+      'Возможны ошибки при синхронизации'
+    ]
+  },
+  {
+    name: 'Модальное окно',
+    icon: WindowScreenIcon,
+    iconClass: 'text-blue-500',
+    shortDescription: 'Всплывающее окно с кнопкой действия, пока не будет выполнено',
+    pros: [
+      'Действие нельзя пропустить',
+      'Максимальная вовлечённость сотрудника',
+      'Подходит для обязательного учёта времени'
+    ],
+    cons: [
+      'Может раздражать сотрудников',
+      'Требует ручного подтверждения'
+    ]
+  },
+  {
+    name: 'Сообщение в чате',
+    icon: ChatsWithCheckIcon,
+    iconClass: 'text-purple-500',
+    shortDescription: 'Уведомление отправляется в чат Битрикс24',
+    pros: [
+      'Удобно для команд, работающих в чатах',
+      'Действие можно выполнить прямо из чата',
+      'Остаётся история уведомлений'
+    ],
+    cons: [
+      'Может затеряться среди других сообщений',
+      'Требует внимания сотрудника'
+    ]
+  },
+  {
+    name: 'Push-уведомление',
+    icon: NotificationIcon,
+    iconClass: 'text-orange-500',
+    shortDescription: 'Мгновенное уведомление в мобильном приложении',
+    pros: [
+      'Мгновенное оповещение',
+      'Подходит для мобильных сотрудников',
+      'Высокий охват'
+    ],
+    cons: [
+      'Требует установленного мобильного приложения',
+      'Может быть заблокировано настройками телефона'
+    ]
+  }
+]
+
+// Детальные описания методов
+function getMethodDetails(methodName: string) {
+  const details: Record<string, any> = {
+    'Автоматический': {
+      title: 'Автоматический метод',
+      fullDescription: 'Система самостоятельно выполняет действие (начало или завершение рабочего дня) без какого-либо участия сотрудника. Не требует подтверждения или реакции от пользователя. Рабочий день начинается или завершается в заданное время автоматически.',
+      pros: [
+        'Не требует действий от сотрудника',
+        'Идеально для дисциплинированных команд',
+        'Нет риска забыть отметить начало/конец дня'
+      ],
+      cons: [
+        'Сотрудник может не заметить, что день начался/закончился',
+        'Не подходит для строгого контроля'
+      ]
+    },
+    'Модальное окно': {
+      title: 'Модальное окно с предупреждением',
+      fullDescription: 'При каждом открытии страницы портала показывается всплывающее окно с предложением выполнить действие. Окно будет появляться снова и снова, пока сотрудник его не выполнит. Самый надёжный способ уведомления.',
+      pros: [
+        'Действие невозможно пропустить',
+        'Высокая надёжность',
+        'Сотрудник точно выполнит действие'
+      ],
+      cons: [
+        'Может раздражать при частом появлении',
+        'Требует ручного подтверждения'
+      ]
+    },
+    'Сообщение в чате': {
+      title: 'Сообщение в чате',
+      fullDescription: 'В чат Битрикс24 (личный или общий) отправляется уведомление с предложением выполнить действие. Сотрудник может нажать на кнопку в сообщении, чтобы выполнить действие. Уведомление остается в истории чата.',
+      pros: [
+        'Удобно для команд, работающих в чатах',
+        'Действие выполняется прямо из чата',
+        'Остаётся история уведомлений'
+      ],
+      cons: [
+        'Сообщение может затеряться',
+        'Требует внимания сотрудника'
+      ]
+    },
+    'Push-уведомление': {
+      title: 'Push-уведомление',
+      fullDescription: 'Сотруднику отправляется push-уведомление в мобильное приложение Битрикс24. Нажатие на уведомление открывает портал с предложением выполнить действие. Мгновенный способ доставки.',
+      pros: [
+        'Мгновенная доставка',
+        'Подходит для мобильных сотрудников',
+        'Не требует открытого браузера'
+      ],
+      cons: [
+        'Требуется установленное мобильное приложение',
+        'Может быть отключено в настройках телефона',
+        'Ограничения на некоторых устройствах'
+      ]
+    }
+  }
+  return details[methodName] || details['Автоматический']
+}
+</script>
 <template>
   <div class="p-0 md:p-6 max-w-5xl mx-auto">
     <!-- Заголовок статьи -->
@@ -203,151 +350,3 @@
     </B24Card>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-
-// Импорт иконок
-import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
-import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
-import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
-import TableEditorIcon from '@bitrix24/b24icons-vue/editor/TableEditorIcon'
-import InfoCircleIcon from '@bitrix24/b24icons-vue/outline/InfoCircleIcon'
-import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
-import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
-import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
-import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
-
-// Иконки для методов
-import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
-import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
-import NotificationIcon from '@bitrix24/b24icons-vue/outline/NotificationIcon'
-
-const windowLocationOrigin = typeof window !== 'undefined' ? window.location.origin : ''
-
-const selectedMethod = ref<string | null>(null)
-
-// Данные о методах
-const methods = [
-  {
-    name: 'Автоматический',
-    icon: PlayLIcon,
-    iconClass: 'text-green-500',
-    shortDescription: 'Действие выполняется автоматически без участия сотрудника',
-    pros: [
-      'Не отвлекает сотрудников',
-      'Полная автоматизация процесса',
-      'Идеально для формального учёта времени'
-    ],
-    cons: [
-      'Сотрудник не контролирует процесс',
-      'Возможны ошибки при синхронизации'
-    ]
-  },
-  {
-    name: 'Модальное окно',
-    icon: WindowScreenIcon,
-    iconClass: 'text-blue-500',
-    shortDescription: 'Всплывающее окно с кнопкой действия, пока не будет выполнено',
-    pros: [
-      'Действие нельзя пропустить',
-      'Максимальная вовлечённость сотрудника',
-      'Подходит для обязательного учёта времени'
-    ],
-    cons: [
-      'Может раздражать сотрудников',
-      'Требует ручного подтверждения'
-    ]
-  },
-  {
-    name: 'Сообщение в чате',
-    icon: ChatsWithCheckIcon,
-    iconClass: 'text-purple-500',
-    shortDescription: 'Уведомление отправляется в чат Битрикс24',
-    pros: [
-      'Удобно для команд, работающих в чатах',
-      'Действие можно выполнить прямо из чата',
-      'Остаётся история уведомлений'
-    ],
-    cons: [
-      'Может затеряться среди других сообщений',
-      'Требует внимания сотрудника'
-    ]
-  },
-  {
-    name: 'Push-уведомление',
-    icon: NotificationIcon,
-    iconClass: 'text-orange-500',
-    shortDescription: 'Мгновенное уведомление в мобильном приложении',
-    pros: [
-      'Мгновенное оповещение',
-      'Подходит для мобильных сотрудников',
-      'Высокий охват'
-    ],
-    cons: [
-      'Требует установленного мобильного приложения',
-      'Может быть заблокировано настройками телефона'
-    ]
-  }
-]
-
-// Детальные описания методов
-function getMethodDetails(methodName: string) {
-  const details: Record<string, any> = {
-    'Автоматический': {
-      title: 'Автоматический метод',
-      fullDescription: 'Система самостоятельно выполняет действие (начало или завершение рабочего дня) без какого-либо участия сотрудника. Не требует подтверждения или реакции от пользователя. Рабочий день начинается или завершается в заданное время автоматически.',
-      pros: [
-        'Не требует действий от сотрудника',
-        'Идеально для дисциплинированных команд',
-        'Нет риска забыть отметить начало/конец дня'
-      ],
-      cons: [
-        'Сотрудник может не заметить, что день начался/закончился',
-        'Не подходит для строгого контроля'
-      ]
-    },
-    'Модальное окно': {
-      title: 'Модальное окно с предупреждением',
-      fullDescription: 'При каждом открытии страницы портала показывается всплывающее окно с предложением выполнить действие. Окно будет появляться снова и снова, пока сотрудник его не выполнит. Самый надёжный способ уведомления.',
-      pros: [
-        'Действие невозможно пропустить',
-        'Высокая надёжность',
-        'Сотрудник точно выполнит действие'
-      ],
-      cons: [
-        'Может раздражать при частом появлении',
-        'Требует ручного подтверждения'
-      ]
-    },
-    'Сообщение в чате': {
-      title: 'Сообщение в чате',
-      fullDescription: 'В чат Битрикс24 (личный или общий) отправляется уведомление с предложением выполнить действие. Сотрудник может нажать на кнопку в сообщении, чтобы выполнить действие. Уведомление остается в истории чата.',
-      pros: [
-        'Удобно для команд, работающих в чатах',
-        'Действие выполняется прямо из чата',
-        'Остаётся история уведомлений'
-      ],
-      cons: [
-        'Сообщение может затеряться',
-        'Требует внимания сотрудника'
-      ]
-    },
-    'Push-уведомление': {
-      title: 'Push-уведомление',
-      fullDescription: 'Сотруднику отправляется push-уведомление в мобильное приложение Битрикс24. Нажатие на уведомление открывает портал с предложением выполнить действие. Мгновенный способ доставки.',
-      pros: [
-        'Мгновенная доставка',
-        'Подходит для мобильных сотрудников',
-        'Не требует открытого браузера'
-      ],
-      cons: [
-        'Требуется установленное мобильное приложение',
-        'Может быть отключено в настройках телефона',
-        'Ограничения на некоторых устройствах'
-      ]
-    }
-  }
-  return details[methodName] || details['Автоматический']
-}
-</script>
