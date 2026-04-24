@@ -147,16 +147,6 @@ function getMethodDetails(methodName: string) {
 </script>
 <template>
   <div class="p-0 md:p-6 mx-auto">
-    <!-- Заголовок статьи -->
-    <div class="mb-8">
-      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-        Помощь в начале и завершении рабочего дня
-      </h1>
-      <p class="text-base text-gray-600 dark:text-gray-400">
-        Полное руководство по настройке автоматизации учёта рабочего времени сотрудников в Битрикс24
-      </p>
-    </div>
-
     <!-- Часть 1: Настройка на стороне Битрикс24 -->
     <B24Card class="mb-8">
       <div class="p-6">
