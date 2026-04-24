@@ -232,7 +232,6 @@
             title="Места встройки"
             description="Где и как приложение интегрируется в интерфейс Битрикс24"
         >
-          <PlacementsManager />
         </B24Section>
       </div>
     </div>
@@ -241,7 +240,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import PlacementsManager from './PlacementsManager.vue'
 
 // Иконки для сценариев
 import RocketIcon from '@bitrix24/b24icons-vue/main/RocketIcon'
