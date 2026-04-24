@@ -68,7 +68,7 @@ interface ToastNotification {
 // Константы
 const HANDLERS: Record<PlacementType, string> = {
   PAGE_BACKGROUND_WORKER: `${window.location.origin}/dist/widgets/background-handler`,
-  REST_APP_URI: `${window.location.origin}/dist/instructions`
+  REST_APP_URI: `${window.location.origin}/dist/`
 }
 
 const PLACEMENT_CONFIGS: Record<PlacementType, PlacementConfig> = {
