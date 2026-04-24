@@ -35,8 +35,8 @@ let isPageVisible = true
 // Конфигурация модальных окон
 const MODAL_CONFIG = {
   WIDTH: 500,
-  DYNAMIC_PAGE_PATH: `${window.location.origin}/marketplace/view/app.69e7a5997e44b3.48094201/`,
-  CHECK_INTERVAL_SECONDS: 10
+  DYNAMIC_PAGE_PATH: '/marketplace/view/app.69e7a5997e44b3.48094201/',
+  CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
 }
 
 // Функции для работы с кукой
@@ -163,10 +163,10 @@ function getUserFullName(callback: (fullName: string) => void): void {
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const messageText = mode === 'start'
-      ? `🔔 Время начать рабочий день!\n\nПерейдите по ссылке для начала рабочего дня:\n${modalUrl}`
-      : `🔔 Время завершить рабочий день!\n\nПерейдите по ссылке для завершения рабочего дня:\n${modalUrl}`
+      ? `🔔 Время начать рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для начала рабочего дня[/URL]`
+      : `🔔 Время завершить рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для завершения рабочего дня[/URL]`
 
   BX24.callMethod(
       'im.message.add',
