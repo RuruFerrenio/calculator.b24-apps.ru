@@ -8,7 +8,7 @@ const toast = useToast()
 // Типы данных
 interface WorkdaySettings {
   enabled: boolean
-  method: 'auto' | 'modal' | 'chat'
+  method: 'auto' | 'modal' | 'chat' | 'push'
 }
 
 interface FormData {
@@ -42,19 +42,21 @@ function showNotification(type: 'success' | 'error' | 'warning' | 'info', messag
 }
 
 function getWorkdayStartMethodText(): string {
-  const methods: Record<'auto' | 'modal' | 'chat', string> = {
+  const methods: Record<'auto' | 'modal' | 'chat' | 'push', string> = {
     'auto': 'Автоматический старт',
     'modal': 'Модальное окно с предупреждением',
-    'chat': 'Сообщение в чате'
+    'chat': 'Сообщение в чате',
+    'push': 'Push-уведомление'
   }
   return methods[formData.value.workdayStart.method] || 'модальное окно'
 }
 
 function getWorkdayEndMethodText(): string {
-  const methods: Record<'auto' | 'modal' | 'chat', string> = {
+  const methods: Record<'auto' | 'modal' | 'chat' | 'push', string> = {
     'auto': 'Автоматическое завершение',
     'modal': 'Модальное окно с предупреждением',
-    'chat': 'Сообщение в чате'
+    'chat': 'Сообщение в чате',
+    'push': 'Push-уведомление'
   }
   return methods[formData.value.workdayEnd.method] || 'модальное окно'
 }
@@ -153,9 +155,9 @@ function normalizeBoolean(value: unknown): boolean {
   return value === 'Y' || value === true || value === 1
 }
 
-function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | 'chat' | null {
+function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | 'chat' | 'push' | null {
   if (typeof value === 'string' && validMethods.includes(value)) {
-    return value as 'auto' | 'modal' | 'chat'
+    return value as 'auto' | 'modal' | 'chat' | 'push'
   }
   return null
 }
@@ -179,7 +181,7 @@ async function loadSettings(): Promise<void> {
     // Загрузка настроек старта рабочего дня
     formData.value.workdayStart.enabled = normalizeBoolean(workdayStartEnabled)
 
-    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal', 'chat'])
+    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal', 'chat', 'push'])
     if (startMethod) {
       formData.value.workdayStart.method = startMethod
     }
@@ -187,7 +189,7 @@ async function loadSettings(): Promise<void> {
     // Загрузка настроек завершения рабочего дня
     formData.value.workdayEnd.enabled = normalizeBoolean(workdayEndEnabled)
 
-    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal', 'chat'])
+    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal', 'chat', 'push'])
     if (endMethod) {
       formData.value.workdayEnd.method = endMethod
     }
@@ -277,6 +279,11 @@ watch(() => formData.value.workdayEnd.method, () => {
                             label: 'Сообщение в чате',
                             value: 'chat',
                             description: 'Отправлять уведомление в чат Б24'
+                        },
+                        {
+                            label: 'Push-уведомление',
+                            value: 'push',
+                            description: 'Отправлять push-уведомление в мобильное приложение'
                         }
                     ]"
                     orientation="horizontal"
@@ -332,6 +339,16 @@ watch(() => formData.value.workdayEnd.method, () => {
                   <div>
                     <p class="text-sm text-gray-700">
                       <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением начать рабочий день.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                    <span class="text-xs font-medium text-blue-600">5</span>
+                  </div>
+                  <div>
+                    <p class="text-sm text-gray-700">
+                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в мобильное приложение Битрикс24.
                     </p>
                   </div>
                 </div>
@@ -406,6 +423,11 @@ watch(() => formData.value.workdayEnd.method, () => {
                             label: 'Сообщение в чате',
                             value: 'chat',
                             description: 'Отправлять уведомление в чат Б24'
+                        },
+                        {
+                            label: 'Push-уведомление',
+                            value: 'push',
+                            description: 'Отправлять push-уведомление в мобильное приложение'
                         }
                     ]"
                     orientation="horizontal"
@@ -461,6 +483,16 @@ watch(() => formData.value.workdayEnd.method, () => {
                   <div>
                     <p class="text-sm text-gray-700">
                       <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением завершить рабочий день.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                    <span class="text-xs font-medium text-blue-600">5</span>
+                  </div>
+                  <div>
+                    <p class="text-sm text-gray-700">
+                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в мобильное приложение Битрикс24.
                     </p>
                   </div>
                 </div>
