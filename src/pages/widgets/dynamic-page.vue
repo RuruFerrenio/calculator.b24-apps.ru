@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import WorkdayManager from "../../components/WorkdayManager.vue";
 
+const route = useRoute()
 const modalType = ref<'start' | 'end' | null>(null)
 
 onMounted(() => {
-  // Получаем параметр mode из URL
-  const urlParams = new URLSearchParams(window.location.search)
-  const modeParam = urlParams.get('mode')
+  console.log('Содержимое запроса')
+  console.log(route.query)
+  const modeParam = route.query.mode
 
-  // Проверяем, что параметр имеет корректное значение
   if (modeParam === 'start' || modeParam === 'end') {
     modalType.value = modeParam
   } else {
