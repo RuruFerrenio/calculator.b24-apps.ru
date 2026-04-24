@@ -408,28 +408,29 @@ onUnmounted(() => {
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-    <!-- Заголовок -->
-    <div class="px-6 py-4 border-b border-gray-200">
+    <!-- B24User вместо иконки приложения -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
       <div class="flex items-center justify-between">
-        <!-- Информация о пользователе с использованием B24User -->
-        <div v-if="currentUser" class="mb-6 pb-4 border-b border-gray-100">
-          <B24User
-              :name="currentUser.FULL_NAME"
-              :description="currentUser.WORK_POSITION || 'Должность не указана'"
-              size="md"
-              :avatar="{
+        <B24User
+            v-if="currentUser"
+            :name="currentUser.FULL_NAME"
+            :description="currentUser.WORK_POSITION || 'Должность не указана'"
+            size="lg"
+            :avatar="{
               src: getUserPhoto(currentUser),
               initials: getUserInitials(currentUser)
             }"
-              :chip="{
+            :chip="{
               color: currentUser.IS_ONLINE === 'Y' ? 'air-primary-success' : 'air-secondary-accent',
               position: 'top-right'
             }"
-              class="truncate overflow-visible"
-          />
-          <div class="mt-2 text-xs text-gray-500 pl-12">
-            {{ currentUser.EMAIL }}
+            class="truncate overflow-visible"
+        />
+        <div v-else class="flex items-center gap-3">
+          <div class="p-2 bg-blue-100 rounded-full">
+            <PowerIcon class="w-5 h-5 text-blue-600" />
           </div>
+          <span class="font-medium text-gray-700">Загрузка...</span>
         </div>
 
         <B24Button
@@ -447,9 +448,12 @@ onUnmounted(() => {
           </svg>
         </B24Button>
       </div>
+      <div v-if="currentUser" class="mt-2 text-xs text-gray-500 pl-12">
+        {{ currentUser.EMAIL }}
+      </div>
     </div>
 
-    <!-- Контент -->
+    <!-- Информация о рабочем дне (перемещена наверх) -->
     <div class="p-6">
       <!-- Состояние загрузки -->
       <div v-if="isLoading" class="flex items-center justify-center py-8">
@@ -462,7 +466,7 @@ onUnmounted(() => {
         <B24Button size="sm" @click="refreshData">Попробовать снова</B24Button>
       </div>
 
-      <!-- Данные -->
+      <!-- Данные о рабочем дне -->
       <div v-else>
         <!-- Статус -->
         <div class="mb-6">
