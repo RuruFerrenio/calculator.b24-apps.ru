@@ -169,13 +169,7 @@ function getMethodDetails(methodName: string) {
                 </p>
                 <p>
                   В разделе
-                  <a
-                      :href="`${windowLocationOrigin}/timeman/schedules/`"
-                      target="_blank"
-                      class="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded"
-                  >
-                    {{ windowLocationOrigin }}/timeman/schedules/
-                  </a>
+                  <span class="font-semibold bg-yellow-100 dark:bg-yellow-900/50 px-1.5 py-0.5 rounded">Рабочие графики</span>
                   должен быть обязательно заведён <span class="font-semibold">хотя бы один график работы</span>.
                 </p>
               </div>
@@ -191,6 +185,20 @@ function getMethodDetails(methodName: string) {
             <CircleCheckIcon class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <p>Настройки находятся в подразделе <span class="font-semibold">«Начало и завершение дня»</span> внутри графика работы.</p>
           </div>
+        </div>
+
+        <!-- Кнопка перехода к рабочим графикам -->
+        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <B24Button
+              :href="`${windowLocationOrigin}/timeman/schedules/`"
+              target="_blank"
+              variant="primary"
+          >
+            <template #left-icon>
+              <SettingsIcon class="w-4 h-4" />
+            </template>
+            Перейти к рабочим графикам
+          </B24Button>
         </div>
       </div>
     </B24Card>
