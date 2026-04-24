@@ -12,6 +12,7 @@ import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
 import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
 import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
 
+
 // Иконки для методов
 import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
 import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
@@ -283,13 +284,19 @@ function getMethodDetails(methodName: string) {
               </p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                 <div>
-                  <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">✅ Плюсы:</p>
+                  <div class="flex items-center gap-2 mb-2">
+                    <CircleCheckIcon class="w-4 h-4 text-green-500" />
+                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Плюсы:</p>
+                  </div>
                   <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
                     <li v-for="pro in getMethodDetails(selectedMethod).pros" :key="pro">{{ pro }}</li>
                   </ul>
                 </div>
                 <div>
-                  <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">⚠️ Минусы:</p>
+                  <div class="flex items-center gap-2 mb-2">
+                    <AlertIcon class="w-4 h-4 text-yellow-500" />
+                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Минусы:</p>
+                  </div>
                   <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
                     <li v-for="con in getMethodDetails(selectedMethod).cons" :key="con">{{ con }}</li>
                   </ul>
