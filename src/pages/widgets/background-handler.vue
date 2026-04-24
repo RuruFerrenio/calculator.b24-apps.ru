@@ -4,7 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 // Типы данных
 interface WorkdaySettings {
   enabled: boolean
-  method: 'auto' | 'modal'
+  method: 'auto' | 'modal' | 'chat'
 }
 
 // Состояние компонента
@@ -76,8 +76,8 @@ function normalizeBoolean(value: unknown): boolean {
   return value === 'Y' || value === true || value === 1
 }
 
-function normalizeMethod(value: unknown): 'auto' | 'modal' | null {
-  if (value === 'auto' || value === 'modal') {
+function normalizeMethod(value: unknown): 'auto' | 'modal' | 'chat' | null {
+  if (value === 'auto' || value === 'modal' || value === 'chat') {
     return value
   }
   return null
@@ -155,6 +155,32 @@ function getUserFullName(callback: (fullName: string) => void): void {
         const lastName = user.LAST_NAME || ''
         const fullName = `${firstName} ${lastName}`.trim()
         callback(fullName || user.EMAIL || 'Пользователь')
+      }
+  )
+}
+
+// Отправка сообщения в чат
+function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
+  if (typeof BX24 === 'undefined') return
+
+  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const messageText = mode === 'start'
+      ? `🔔 Время начать рабочий день!\n\nПерейдите по ссылке для начала рабочего дня:\n${modalUrl}`
+      : `🔔 Время завершить рабочий день!\n\nПерейдите по ссылке для завершения рабочего дня:\n${modalUrl}`
+
+  BX24.callMethod(
+      'im.message.add',
+      {
+        DIALOG_ID: userId.toString(),
+        MESSAGE: messageText,
+        SYSTEM: 'N'
+      },
+      function(result: any) {
+        if (result.error()) {
+          console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
+        } else {
+          console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+        }
       }
   )
 }
@@ -359,6 +385,9 @@ function checkWorkdayStatus(): void {
               } else if (workdayStart.value.method === 'auto') {
                 console.log('Автоматически запускаем рабочий день')
                 startWorkday()
+              } else if (workdayStart.value.method === 'chat') {
+                console.log('Отправляем сообщение в чат для начала рабочего дня')
+                sendChatNotification(userId, 'start')
               }
             })
           }
@@ -383,6 +412,9 @@ function checkWorkdayStatus(): void {
               } else if (workdayEnd.value.method === 'auto') {
                 console.log('Автоматически завершаем рабочий день')
                 endWorkday()
+              } else if (workdayEnd.value.method === 'chat') {
+                console.log('Отправляем сообщение в чат для завершения рабочего дня')
+                sendChatNotification(userId, 'end')
               }
             })
           }
