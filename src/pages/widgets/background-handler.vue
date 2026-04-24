@@ -222,6 +222,7 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
       'im.notify.personal.add',
       {
         USER_ID: userId,
+        MESSAGE: title,
         MESSAGE_OUT: message,
         TAG: `workday_${mode}_${Date.now()}`,
         SUB_TAG: `workday_${mode}`,
