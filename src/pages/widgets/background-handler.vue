@@ -217,11 +217,11 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   // Определяем стили кнопки в зависимости от режима
   const buttonStyles = mode === 'start'
       ? {
-        BG_COLOR: '#22C55E',      // Зеленый для начала дня
+        BG_COLOR_TOKEN: 'primary',
         TEXT_COLOR: '#FFFFFF'
       }
       : {
-        BG_COLOR: '#F97316',      // Оранжевый для завершения дня
+        BG_COLOR_TOKEN: 'alert',
         TEXT_COLOR: '#FFFFFF'
       }
 
@@ -236,7 +236,7 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
             {
               TEXT: buttonText,
               LINK: modalUrl,
-              BG_COLOR: buttonStyles.BG_COLOR,
+              BG_COLOR_TOKEN: buttonStyles.BG_COLOR_TOKEN,
               TEXT_COLOR: buttonStyles.TEXT_COLOR,
             }
           ]
