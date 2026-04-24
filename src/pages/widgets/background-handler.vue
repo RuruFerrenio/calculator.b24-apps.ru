@@ -39,7 +39,37 @@ const MODAL_CONFIG = {
   CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
 }
 
-// Функции для работы с кукой
+// Функции для работы с localStorage
+function setStoredFlag(key: string, value: string, hours: number): void {
+  const data = {
+    value: value,
+    expires: Date.now() + (hours * 60 * 60 * 1000)
+  }
+  localStorage.setItem(key, JSON.stringify(data))
+}
+
+function getStoredFlag(key: string): string | null {
+  const item = localStorage.getItem(key)
+  if (!item) return null
+
+  try {
+    const data = JSON.parse(item)
+    if (Date.now() > data.expires) {
+      localStorage.removeItem(key)
+      return null
+    }
+    return data.value
+  } catch (e) {
+    localStorage.removeItem(key)
+    return null
+  }
+}
+
+function deleteStoredFlag(key: string): void {
+  localStorage.removeItem(key)
+}
+
+// Функции для работы с кукой (оставляем для других нужд)
 function setCookie(name: string, value: string, minutes: number): void {
   const date = new Date()
   date.setTime(date.getTime() + minutes * 60 * 1000)
@@ -58,19 +88,19 @@ function getCookie(name: string): string | null {
   return null
 }
 
-// Удаление куки
 function deleteCookie(name: string): void {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
   console.log(`Кука ${name} удалена`)
 }
 
-// Очистка всех кук, используемых приложением
-function clearAppCookies(): void {
+// Очистка всех данных, используемых приложением
+function clearAppData(): void {
   deleteCookie('open_app_mode')
   deleteCookie('modal_type')
-  deleteCookie('start_notification_sent')
-  deleteCookie('end_notification_sent')
-  console.log('Все куки приложения очищены')
+  // Очищаем флаги из localStorage
+  deleteStoredFlag('start_notification_sent')
+  deleteStoredFlag('end_notification_sent')
+  console.log('Все данные приложения очищены')
 }
 
 // Функция для нормализации значений
@@ -167,22 +197,22 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
 
   // Проверяем, было ли уже отправлено уведомление
   const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
-  const notificationSent = getCookie(notificationKey)
+  const notificationSent = getStoredFlag(notificationKey)
 
   if (notificationSent === 'true') {
     console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
     return
   }
 
-  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const messageText = mode === 'start'
       ? '🔔 Время начать рабочий день!\n'
       : '🔔 Время завершить рабочий день!\n'
 
   const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
 
-  // Устанавливаем флаг перед отправкой, чтобы предотвратить дублирование
-  setCookie(notificationKey, 'true', 30) // Кука на 30 минут
+  // Устанавливаем флаг перед отправкой (на 24 часа)
+  setStoredFlag(notificationKey, 'true', 24)
 
   BX24.callMethod(
       'im.message.add',
@@ -203,7 +233,7 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
         if (result.error()) {
           console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
           // При ошибке удаляем флаг, чтобы можно было повторить позже
-          deleteCookie(notificationKey)
+          deleteStoredFlag(notificationKey)
         } else {
           console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
         }
@@ -291,7 +321,7 @@ function startWorkday(): void {
         } else {
           console.log('Рабочий день успешно начат')
           // После успешного начала очищаем флаги уведомлений
-          deleteCookie('start_notification_sent')
+          deleteStoredFlag('start_notification_sent')
         }
       }
   )
@@ -313,7 +343,7 @@ function endWorkday(): void {
         } else {
           console.log('Рабочий день успешно завершен')
           // После успешного завершения очищаем флаги уведомлений
-          deleteCookie('end_notification_sent')
+          deleteStoredFlag('end_notification_sent')
         }
       }
   )
@@ -356,7 +386,8 @@ function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
 
   // Очищаем куки после закрытия
-  clearAppCookies()
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
 
   if (mode === 'start') {
     showStartModal.value = false
@@ -422,7 +453,7 @@ function checkWorkdayStatus(): void {
             })
           } else if (workdayStart.value.enabled && workDayParams.STATUS !== 'CLOSED') {
             // Если статус изменился и не CLOSED, очищаем флаг уведомления
-            deleteCookie('start_notification_sent')
+            deleteStoredFlag('start_notification_sent')
           }
 
           // Проверка для завершения рабочего дня
@@ -452,7 +483,7 @@ function checkWorkdayStatus(): void {
             })
           } else if (workdayEnd.value.enabled && workDayParams.STATUS !== 'OPENED') {
             // Если статус изменился и не OPENED, очищаем флаг уведомления
-            deleteCookie('end_notification_sent')
+            deleteStoredFlag('end_notification_sent')
           }
         }
     )
@@ -503,8 +534,12 @@ function handleVisibilityChange(): void {
 
 // Жизненный цикл
 onMounted(async () => {
-  // Очищаем куки при загрузке страницы
-  clearAppCookies()
+  // НЕ очищаем данные полностью при загрузке!
+  // Очищаем только временные куки для модальных окон
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
+
+  // Флаги уведомлений НЕ очищаем, чтобы предотвратить повторную отправку
 
   // Устанавливаем обработчик видимости страницы
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -535,8 +570,9 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   // Останавливаем периодический таймер
   stopPeriodicCheck()
-  // Очищаем куки при размонтировании
-  clearAppCookies()
+  // Очищаем только временные куки
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
 })
 </script>
 
