@@ -11,7 +11,6 @@ import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
 import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
 import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
 import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
-import AlertCircleIcon from '@bitrix24/b24icons-vue/outline/AlertCircleIcon'
 
 // Иконки для методов
 import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
@@ -327,7 +326,7 @@ function getMethodDetails(methodName: string) {
             </div>
           </div>
           <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <AlertCircleIcon class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <AlertIcon class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
             <div>
               <p class="font-medium text-gray-900 dark:text-gray-100">Для команд, нуждающихся в контроле</p>
               <p class="text-sm text-gray-600 dark:text-gray-400">Модальное окно — самый надёжный способ, так как его нельзя проигнорировать.</p>
