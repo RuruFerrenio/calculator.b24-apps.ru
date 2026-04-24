@@ -1,22 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import WorkdayManager from "../../components/WorkdayManager.vue";
 
 const route = useRoute()
-const modalType = ref<'start' | 'end' | null>(null)
 
-onMounted(() => {
-  console.log('Содержимое запроса')
-  console.log(route.query)
+const modalType = computed<'start' | 'end' | null>(() => {
   const modeParam = route.query.mode
-
   if (modeParam === 'start' || modeParam === 'end') {
-    modalType.value = modeParam
-  } else {
-    modalType.value = null
-    console.warn('Неверное значение параметра mode:', modeParam)
+    return modeParam
   }
+  return null
 })
 </script>
 
