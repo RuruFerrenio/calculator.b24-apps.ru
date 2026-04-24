@@ -5,6 +5,8 @@ import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
 import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
+import DocumentUpdateIcon from '@bitrix24/b24icons-vue/outline/DocumentUpdateIcon'
+
 import SolutionsSlider from './SolutionsSlider.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -55,6 +57,13 @@ const goToSettings = (): void => {
 const goToMain = (): void => {
   if (router) {
     router.push('/')
+  }
+};
+
+// Функция перехода на инструкции
+const goToInstructions = (): void => {
+  if (router) {
+    router.push('/instructions')
   }
 };
 
@@ -150,6 +159,16 @@ onUnmounted(() => {
               >
                 <SettingsIcon :class="isRouteActive('/settings') ? 'w-5 h-5 mr-3 text-blue-600' : 'w-5 h-5 mr-3 text-gray-500'" />
                 Настройки
+              </div>
+
+              <!-- Инструкция -->
+              <div
+                  @click="goToInstructions"
+                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
+                  :class="isRouteActive('/instructions') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
+              >
+                <DocumentUpdateIcon :class="isRouteActive('/instructions') ? 'w-5 h-5 mr-3 text-blue-600' : 'w-5 h-5 mr-3 text-gray-500'" />
+                Инструкция
               </div>
 
               <!-- Заглушка для обычных пользователей -->
