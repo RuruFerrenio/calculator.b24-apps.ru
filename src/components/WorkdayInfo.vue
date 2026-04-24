@@ -538,7 +538,7 @@ onUnmounted(() => {
               v-if="canStartWorkday || canEndWorkday"
               @click="handleMainAction"
               :disabled="isProcessing"
-              :color="canStartWorkday ? 'air-primary' : 'air-primary-warning'"
+              :color="canStartWorkday ? 'air-primary-success' : 'air-primary-alert'"
               size="lg"
               class="w-full"
           >
