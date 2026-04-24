@@ -192,6 +192,7 @@ function getUserFullName(callback: (fullName: string) => void): void {
 }
 
 // Отправка push-уведомления
+// Отправка push-уведомления
 function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
@@ -207,32 +208,38 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
   const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const title = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
   const message = mode === 'start'
-      ? '🔔 Время начать рабочий день! Нажмите для перехода в приложение.'
-      : '🔔 Время завершить рабочий день! Нажмите для перехода в приложение.'
+      ? 'Время начать рабочий день!'
+      : 'Время завершить рабочий день!'
+
+  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
+  const colorToken = mode === 'start' ? 'primary' : 'alert'
 
   // Устанавливаем флаг перед отправкой (на 24 часа)
   setStoredFlag(notificationKey, 'true', 24)
 
-  // Определяем стили кнопки в зависимости от режима
-  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
-  const bgColorToken = mode === 'start' ? 'primary' : 'alert'
-
-  // Используем im.notify для отправки push-уведомления
+  // Используем im.notify для отправки push-уведомления с правильной структурой ATTACH
   BX24.callMethod(
       'im.notify.personal.add',
       {
         USER_ID: userId,
-        MESSAGE: title,
         MESSAGE_OUT: message,
         TAG: `workday_${mode}_${Date.now()}`,
         SUB_TAG: `workday_${mode}`,
-        ATTACH: [
-          {
-            TEXT: buttonText,
-            LINK: modalUrl,
-            COLOR_TOKEN: bgColorToken
-          }
-        ]
+        ATTACH: {
+          ID: 1,
+          COLOR_TOKEN: colorToken,
+          BLOCKS: [
+            {
+              MESSAGE: `[B]${title}[/B]\n${message}`
+            },
+            {
+              LINK: {
+                NAME: buttonText,
+                LINK: modalUrl
+              }
+            }
+          ]
+        }
       },
       function(result: any) {
         if (result.error()) {
