@@ -243,9 +243,9 @@ import { ref, computed } from 'vue'
 
 // Иконки для сценариев
 import RocketIcon from '@bitrix24/b24icons-vue/main/RocketIcon'
-import BellIcon from '@bitrix24/b24icons-vue/outline/BellIcon'
-import ChatIcon from '@bitrix24/b24icons-vue/outline/ChatIcon'
-import DeviceMobileIcon from '@bitrix24/b24icons-vue/outline/DeviceMobileIcon'
+import Bell1Icon from '@bitrix24/b24icons-vue/main/Bell1Icon'
+import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/main/ChatsWithCheckIcon'
+import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
 
 // Состояния для интерактивной таблицы
 const hoveredMethod = ref<string | null>(null)
@@ -352,7 +352,7 @@ const scenarios = [
     description: 'Сотрудники самостоятельно следят за своим временем.',
     recommendedMethod: 'Автоматический',
     methodBadge: 'success',
-    icon: BellIcon,
+    icon: Bell1Icon,
     iconBgClass: 'bg-green-100 dark:bg-green-900',
     iconClass: 'text-green-600 dark:text-green-400'
   },
@@ -361,7 +361,7 @@ const scenarios = [
     description: 'Работают из дома, активно используют чаты для коммуникации.',
     recommendedMethod: 'Сообщение в чате',
     methodBadge: 'info',
-    icon: ChatIcon,
+    icon: ChatsWithCheckIcon,
     iconBgClass: 'bg-purple-100 dark:bg-purple-900',
     iconClass: 'text-purple-600 dark:text-purple-400'
   },
@@ -370,7 +370,7 @@ const scenarios = [
     description: 'Часто в разъездах, используют мобильное приложение.',
     recommendedMethod: 'Push-уведомление',
     methodBadge: 'warning',
-    icon: DeviceMobileIcon,
+    icon: MobileSelectedIcon,
     iconBgClass: 'bg-orange-100 dark:bg-orange-900',
     iconClass: 'text-orange-600 dark:text-orange-400'
   }
