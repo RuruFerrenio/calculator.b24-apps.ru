@@ -411,13 +411,24 @@ onUnmounted(() => {
     <!-- Заголовок -->
     <div class="px-6 py-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-blue-100 rounded-lg">
-            <PowerIcon class="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900">Рабочий день</h2>
-            <p class="text-sm text-gray-500">Информация о текущем рабочем дне</p>
+        <!-- Информация о пользователе с использованием B24User -->
+        <div v-if="currentUser" class="mb-6 pb-4 border-b border-gray-100">
+          <B24User
+              :name="currentUser.FULL_NAME"
+              :description="currentUser.WORK_POSITION || 'Должность не указана'"
+              size="md"
+              :avatar="{
+              src: getUserPhoto(currentUser),
+              initials: getUserInitials(currentUser)
+            }"
+              :chip="{
+              color: currentUser.IS_ONLINE === 'Y' ? 'air-primary-success' : 'air-secondary-accent',
+              position: 'top-right'
+            }"
+              class="truncate overflow-visible"
+          />
+          <div class="mt-2 text-xs text-gray-500 pl-12">
+            {{ currentUser.EMAIL }}
           </div>
         </div>
 
@@ -453,27 +464,6 @@ onUnmounted(() => {
 
       <!-- Данные -->
       <div v-else>
-        <!-- Информация о пользователе с использованием B24User -->
-        <div v-if="currentUser" class="mb-6 pb-4 border-b border-gray-100">
-          <B24User
-              :name="currentUser.FULL_NAME"
-              :description="currentUser.WORK_POSITION || 'Должность не указана'"
-              size="md"
-              :avatar="{
-              src: getUserPhoto(currentUser),
-              initials: getUserInitials(currentUser)
-            }"
-              :chip="{
-              color: currentUser.IS_ONLINE === 'Y' ? 'air-primary-success' : 'air-secondary-accent',
-              position: 'top-right'
-            }"
-              class="truncate overflow-visible"
-          />
-          <div class="mt-2 text-xs text-gray-500 pl-12">
-            {{ currentUser.EMAIL }}
-          </div>
-        </div>
-
         <!-- Статус -->
         <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
