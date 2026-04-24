@@ -214,6 +214,17 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   // Устанавливаем флаг перед отправкой (на 24 часа)
   setStoredFlag(notificationKey, 'true', 24)
 
+  // Определяем стили кнопки в зависимости от режима
+  const buttonStyles = mode === 'start'
+      ? {
+        BG_COLOR: '#22C55E',      // Зеленый для начала дня
+        TEXT_COLOR: '#FFFFFF'
+      }
+      : {
+        BG_COLOR: '#F97316',      // Оранжевый для завершения дня
+        TEXT_COLOR: '#FFFFFF'
+      }
+
   BX24.callMethod(
       'im.message.add',
       {
@@ -224,7 +235,9 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
           BUTTONS: [
             {
               TEXT: buttonText,
-              LINK: modalUrl
+              LINK: modalUrl,
+              BG_COLOR: buttonStyles.BG_COLOR,
+              TEXT_COLOR: buttonStyles.TEXT_COLOR,
             }
           ]
         }
