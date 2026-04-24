@@ -165,15 +165,25 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
 
   const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}?page=instructions`
   const messageText = mode === 'start'
-      ? `🔔 Время начать рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для начала рабочего дня[/URL]`
-      : `🔔 Время завершить рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для завершения рабочего дня[/URL]`
+      ? '🔔 Время начать рабочий день!\n\nНажмите на кнопку ниже для начала рабочего дня'
+      : '🔔 Время завершить рабочий день!\n\nНажмите на кнопку ниже для завершения рабочего дня'
+
+  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
 
   BX24.callMethod(
       'im.message.add',
       {
         DIALOG_ID: userId.toString(),
         MESSAGE: messageText,
-        SYSTEM: 'N'
+        SYSTEM: 'Y',
+        KEYBOARD: {
+          BUTTONS: [
+            {
+              TEXT: buttonText,
+              LINK: modalUrl
+            }
+          ]
+        }
       },
       function(result: any) {
         if (result.error()) {
