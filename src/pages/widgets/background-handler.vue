@@ -35,8 +35,8 @@ let isPageVisible = true
 // Конфигурация модальных окон
 const MODAL_CONFIG = {
   WIDTH: 500,
-  DYNAMIC_PAGE_PATH: '/marketplace/view/app.69e7a5997e44b3.48094201/',
-  CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
+  DYNAMIC_PAGE_PATH: `${window.location.origin}/marketplace/view/app.69e7a5997e44b3.48094201/`,
+  CHECK_INTERVAL_SECONDS: 10
 }
 
 // Функции для работы с кукой
