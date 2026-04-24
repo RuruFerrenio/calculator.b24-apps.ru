@@ -442,8 +442,8 @@ onUnmounted(() => {
             class="p-2 w-9 h-9"
             :class="{ 'animate-spin': isRefreshing }"
             title="Обновить данные"
+            :icon="RefreshIcon"
         >
-          <RefreshIcon class="w-5 h-5" />
         </B24Button>
       </div>
       <div v-if="currentUser" class="mt-2 text-xs text-gray-500 pl-12">
