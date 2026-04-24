@@ -146,7 +146,7 @@ function getMethodDetails(methodName: string) {
 }
 </script>
 <template>
-  <div class="p-0 md:p-6 mx-auto">
+  <div class="mx-auto mb-8">
     <!-- Часть 1: Настройка на стороне Битрикс24 -->
     <B24Card class="mb-8">
       <div class="p-6">
