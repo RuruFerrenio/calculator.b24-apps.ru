@@ -447,7 +447,7 @@ onMounted(() => {
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-white p-4">
     <!-- Основной контент -->
-    <div class="text-center w-full max-w-md">
+    <div class="text-center max-w-md">
       <!-- Заголовок -->
       <h1 class="text-2xl font-bold text-gray-900 mb-3">
         {{ title }}
@@ -471,7 +471,7 @@ onMounted(() => {
         <button
             @click="executeAction"
             :disabled="isProcessing || isActionCompleted"
-            class="w-full py-4 rounded-full text-lg font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+            class="py-4 rounded-full text-lg font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
             :class="buttonClass"
         >
           <div class="flex items-center justify-center">
