@@ -181,7 +181,7 @@ const placementManager = {
             OPTIONS: config.options
           }
 
-      await bitrixAPI.call('placement.bind', placementConfig)
+      //await bitrixAPI.call('placement.bind', placementConfig)
       return true
     } catch (error) {
       console.error(`Ошибка регистрации встройки ${placementType}:`, error)
