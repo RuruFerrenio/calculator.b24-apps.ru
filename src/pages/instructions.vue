@@ -190,9 +190,9 @@ function getMethodDetails(methodName: string) {
         <!-- Кнопка перехода к рабочим графикам -->
         <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           <B24Button
-              :href="`${windowLocationOrigin}/timeman/schedules/`"
+              :href="`${window.location.origin}/timeman/schedules/`"
               target="_blank"
-              variant="primary"
+              color="air-primary"
           >
             <template #left-icon>
               <SettingsIcon class="w-4 h-4" />
