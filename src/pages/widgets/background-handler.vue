@@ -163,10 +163,14 @@ function getUserFullName(callback: (fullName: string) => void): void {
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
+  // Устанавливаем куки перед отправкой в чат
+  setCookie('open_app_mode', 'chat', 5)
+  setCookie('modal_type', mode, 5)
+
   const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const messageText = mode === 'start'
-      ? `🔔 Время начать рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для начала рабочего дня[/URL]`
-      : `🔔 Время завершить рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для завершения рабочего дня[/URL]`
+      ? `🔔 Время начать рабочий день!\n\n[URL=${modalUrl}]Перейдите по ссылке для начала рабочего дня[/URL]`
+      : `🔔 Время завершить рабочий день!\n\n[URL=${modalUrl}]Перейдите по ссылке для завершения рабочего дня[/URL]`
 
   BX24.callMethod(
       'im.message.add',
@@ -264,6 +268,8 @@ function startWorkday(): void {
           console.error('Ошибка начала рабочего дня:', result.error())
         } else {
           console.log('Рабочий день успешно начат')
+          // Очищаем куки после успешного начала
+          clearAppCookies()
         }
       }
   )
@@ -284,6 +290,8 @@ function endWorkday(): void {
           console.error('Ошибка завершения рабочего дня:', result.error())
         } else {
           console.log('Рабочий день успешно завершен')
+          // Очищаем куки после успешного завершения
+          clearAppCookies()
         }
       }
   )
@@ -302,8 +310,8 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
   const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
 
   // Устанавливаем куки перед открытием приложения
-  setCookie('open_app_mode', 'modal', 1)
-  setCookie('modal_type', mode, 1)
+  setCookie('open_app_mode', 'modal', 5)
+  setCookie('modal_type', mode, 5)
 
   const modalSettings = {
     opened: true,
