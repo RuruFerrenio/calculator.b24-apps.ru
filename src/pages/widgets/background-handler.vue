@@ -4,7 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 // Типы данных
 interface WorkdaySettings {
   enabled: boolean
-  method: 'auto' | 'modal' | 'chat'
+  method: 'auto' | 'modal' | 'chat' | 'push'
 }
 
 // Состояние компонента
@@ -108,8 +108,8 @@ function normalizeBoolean(value: unknown): boolean {
   return value === 'Y' || value === true || value === 1
 }
 
-function normalizeMethod(value: unknown): 'auto' | 'modal' | 'chat' | null {
-  if (value === 'auto' || value === 'modal' || value === 'chat') {
+function normalizeMethod(value: unknown): 'auto' | 'modal' | 'chat' | 'push' | null {
+  if (value === 'auto' || value === 'modal' || value === 'chat' || value === 'push') {
     return value
   }
   return null
@@ -187,6 +187,61 @@ function getUserFullName(callback: (fullName: string) => void): void {
         const lastName = user.LAST_NAME || ''
         const fullName = `${firstName} ${lastName}`.trim()
         callback(fullName || user.EMAIL || 'Пользователь')
+      }
+  )
+}
+
+// Отправка push-уведомления
+function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
+  if (typeof BX24 === 'undefined') return
+
+  // Проверяем, было ли уже отправлено уведомление
+  const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
+  const notificationSent = getStoredFlag(notificationKey)
+
+  if (notificationSent === 'true') {
+    console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
+    return
+  }
+
+  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const title = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
+  const message = mode === 'start'
+      ? '🔔 Время начать рабочий день! Нажмите для перехода в приложение.'
+      : '🔔 Время завершить рабочий день! Нажмите для перехода в приложение.'
+
+  // Устанавливаем флаг перед отправкой (на 24 часа)
+  setStoredFlag(notificationKey, 'true', 24)
+
+  // Определяем стили кнопки в зависимости от режима
+  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
+  const bgColorToken = mode === 'start' ? 'primary' : 'alert'
+
+  // Используем im.notify для отправки push-уведомления
+  BX24.callMethod(
+      'im.notify.personal.add',
+      {
+        USER_ID: userId,
+        MESSAGE: title,
+        MESSAGE_OUT: message,
+        TAG: `workday_${mode}_${Date.now()}`,
+        SUB_TAG: `workday_${mode}`,
+        ATTACH: [
+          {
+            TEXT: buttonText,
+            LINK: modalUrl,
+            COLOR_TOKEN: bgColorToken
+          }
+        ]
+      },
+      function(result: any) {
+        if (result.error()) {
+          console.error(`Ошибка отправки push-уведомления для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
+          // При ошибке удаляем флаг, чтобы можно было повторить позже
+          deleteStoredFlag(notificationKey)
+        } else {
+          console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+        }
       }
   )
 }
@@ -462,6 +517,9 @@ function checkWorkdayStatus(): void {
               } else if (workdayStart.value.method === 'chat') {
                 console.log('Отправляем сообщение в чат для начала рабочего дня')
                 sendChatNotification(userId, 'start')
+              } else if (workdayStart.value.method === 'push') {
+                console.log('Отправляем push-уведомление для начала рабочего дня')
+                sendPushNotification(userId, 'start')
               }
             })
           } else if (workdayStart.value.enabled && workDayParams.STATUS !== 'CLOSED') {
@@ -492,6 +550,9 @@ function checkWorkdayStatus(): void {
               } else if (workdayEnd.value.method === 'chat') {
                 console.log('Отправляем сообщение в чат для завершения рабочего дня')
                 sendChatNotification(userId, 'end')
+              } else if (workdayEnd.value.method === 'push') {
+                console.log('Отправляем push-уведомление для завершения рабочего дня')
+                sendPushNotification(userId, 'end')
               }
             })
           } else if (workdayEnd.value.enabled && workDayParams.STATUS !== 'OPENED') {
