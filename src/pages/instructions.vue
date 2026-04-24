@@ -197,19 +197,19 @@ function getMethodDetails(methodName: string) {
 
     <!-- Часть 2: Сравнительная таблица методов -->
     <div class="mb-8">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-          <TableEditorIcon class="w-5 h-5 text-purple-600 dark:text-purple-400" />
-        </div>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Сравнение методов начала и завершения рабочего дня
-        </h2>
-      </div>
-      <p class="text-gray-600 dark:text-gray-400 mb-4">
-        Доступно 4 способа уведомления сотрудников. Нажмите на строку с методом для просмотра детального описания.
-      </p>
-
       <B24Card>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+            <TableEditorIcon class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Сравнение методов начала и завершения рабочего дня
+          </h2>
+        </div>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
+          Доступно 4 способа уведомления сотрудников. Нажмите на строку с методом для просмотра детального описания.
+        </p>
+
         <B24TableWrapper
             class="overflow-x-auto w-full"
             size="md"
