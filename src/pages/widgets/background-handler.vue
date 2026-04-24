@@ -163,7 +163,7 @@ function getUserFullName(callback: (fullName: string) => void): void {
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}?mode=${mode}`
+  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}?page=instructions`
   const messageText = mode === 'start'
       ? `🔔 Время начать рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для начала рабочего дня[/URL]`
       : `🔔 Время завершить рабочий день!\n\n[URL=${modalUrl}] Перейдите по ссылке для завершения рабочего дня[/URL]`
