@@ -249,7 +249,33 @@ watch(() => formData.value.workdayEnd.method, () => {
 
 <template>
   <div>
-    <!-- Блок 1: Помощь в старте рабочего дня -->
+    <!-- Блок 1: Активность в выходные -->
+    <B24Card class="mb-8">
+      <div class="p-0 md:p-6">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900">
+                Работа в выходные
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Разрешить работу приложения в выходные дни
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-4">
+              <div class="w-2 h-2 rounded-full"
+                   :class="formData.weekendActivity.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="formData.weekendActivity.enabled"
+                  @update:model-value="toggleWeekendActivity"
+                  :disabled="isProcessing"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+    <!-- Блок 2: Помощь в старте рабочего дня -->
     <B24Card class="mb-8">
       <div class="p-0 md:p-6">
         <div class="space-y-6">
@@ -392,8 +418,7 @@ watch(() => formData.value.workdayEnd.method, () => {
         </div>
       </div>
     </B24Card>
-
-    <!-- Блок 2: Помощь в завершении рабочего дня -->
+    <!-- Блок 3: Помощь в завершении рабочего дня -->
     <B24Card class="mb-8">
       <div class="p-0 md:p-6">
         <div class="space-y-6">
@@ -531,33 +556,6 @@ watch(() => formData.value.workdayEnd.method, () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </B24Card>
-
-    <!-- Блок 3: Активность в выходные -->
-    <B24Card class="mb-8">
-      <div class="p-0 md:p-6">
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">
-                Работа в выходные
-              </h3>
-              <p class="text-sm text-gray-500 mt-1">
-                Разрешить работу приложения в выходные дни
-              </p>
-            </div>
-            <div class="ml-4 flex items-center space-x-4">
-              <div class="w-2 h-2 rounded-full"
-                   :class="formData.weekendActivity.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
-              <B24Switch
-                  :model-value="formData.weekendActivity.enabled"
-                  @update:model-value="toggleWeekendActivity"
-                  :disabled="isProcessing"
-              />
             </div>
           </div>
         </div>
