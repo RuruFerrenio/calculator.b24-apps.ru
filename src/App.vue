@@ -7,12 +7,16 @@ import WorkdayManager from './components/WorkdayManager.vue'
 
 const route = useRoute()
 
-// Функция для получения данных из localStorage
-function getModalStorage(): { mode: string | null, type: string | null } {
-  return {
-    mode: localStorage.getItem('open_app_mode'),
-    type: localStorage.getItem('modal_type')
+// Функция для получения куки
+function getCookie(name: string): string | null {
+  const nameEQ = `${name}=`
+  const ca = document.cookie.split(';')
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
   }
+  return null
 }
 
 // Определяем, нужно ли показывать сайдбар
@@ -28,11 +32,12 @@ const modalType = ref<'start' | 'end' | null>(null)
 const isLoading = ref(true)
 
 onMounted(() => {
-  // Читаем localStorage при загрузке
-  const { mode, type } = getModalStorage()
+  // Читаем куки при загрузке
+  const mode = getCookie('open_app_mode')
+  const type = getCookie('modal_type')
 
-  console.log('open_app_mode (localStorage):', mode)
-  console.log('modal_type (localStorage):', type)
+  console.log('open_app_mode:', mode)
+  console.log('modal_type:', type)
 
   if (mode === 'modal') {
     openAppMode.value = 'modal'
@@ -56,7 +61,7 @@ onMounted(() => {
     <B24App>
       <div class="p-0 md:p-6">
         <div class="mt-0 md:mt-2 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <!-- Если режим default - показываем основной контент + сайдбар (только на нужных страницах) -->
+          <!-- Если кука default - показываем основной контент + сайдбар (только на нужных страницах) -->
           <template v-if="openAppMode === 'default'">
             <!-- Контент занимает всю ширину, если сайдбар не показывается -->
             <div :class="showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'">
@@ -68,7 +73,7 @@ onMounted(() => {
             </div>
           </template>
 
-          <!-- Если режим modal - показываем WorkdayManager -->
+          <!-- Если кука modal - показываем WorkdayManager -->
           <div v-else-if="openAppMode === 'modal'" class="lg:col-span-3">
             <WorkdayManager
                 v-if="modalType"
