@@ -16,6 +16,7 @@ const isBitrixLoaded = ref(false)
 const isProcessing = ref(false)
 const currentUserId = ref<number | null>(null)
 const applicationOpened = ref(false)
+const isTimemanAvailable = ref<boolean | null>(null) // null - не проверено, false - недоступен, true - доступен
 
 // Настройки рабочего дня
 const workdayStart = ref<WorkdaySettings>({
@@ -46,6 +47,45 @@ const MODAL_CONFIG = {
   WIDTH: 500,
   DYNAMIC_PAGE_PATH: '/marketplace/view/app.69e7a5997e44b3.48094201/',
   CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
+}
+
+// ==========================================================================
+// ФУНКЦИЯ ПРОВЕРКИ ДОСТУПНОСТИ МЕТОДА timeman.status
+// ==========================================================================
+
+/**
+ * Проверяет доступность метода timeman.status через API Битрикс24
+ * @returns Promise<boolean> - true если метод доступен, false если нет
+ */
+async function checkTimemanAvailability(): Promise<boolean> {
+  if (typeof BX24 === 'undefined') {
+    console.warn('⚠️ BX24 не загружен')
+    return false
+  }
+
+  return new Promise((resolve) => {
+    BX24.callMethod('method.get', {
+      name: 'timeman.status'
+    }, (result: any) => {
+      if (result.error()) {
+        console.warn('⚠️ Метод method.get вернул ошибку:', result.error())
+        resolve(false)
+        return
+      }
+
+      const methodData = result.data()
+      // Метод доступен только если он существует И доступен для вызова
+      const isAvailable = methodData.isExisting && methodData.isAvailable
+
+      if (isAvailable) {
+        console.log('✅ Метод timeman.status доступен')
+      } else {
+        console.warn('❌ Метод timeman.status НЕ доступен')
+      }
+
+      resolve(isAvailable)
+    })
+  })
 }
 
 // Функции для работы с localStorage
@@ -475,6 +515,10 @@ function parseTimeToMinutes(timeStr: string): number {
 // Начало рабочего дня
 function startWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (!isTimemanAvailable.value) {
+    console.warn('Метод timeman.status недоступен, пропускаем')
+    return
+  }
 
   // Проверяем, можно ли выполнять действия сегодня
   shouldAllowActivity(function(allow: boolean) {
@@ -502,6 +546,10 @@ function startWorkday(): void {
 // Завершение рабочего дня
 function endWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (!isTimemanAvailable.value) {
+    console.warn('Метод timeman.status недоступен, пропускаем')
+    return
+  }
 
   // Проверяем, можно ли выполнять действия сегодня
   shouldAllowActivity(function(allow: boolean) {
@@ -530,6 +578,10 @@ function endWorkday(): void {
 function openWorkdayModal(mode: 'start' | 'end'): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
   if (applicationOpened.value) return
+  if (!isTimemanAvailable.value) {
+    console.warn('Метод timeman.status недоступен, пропускаем')
+    return
+  }
 
   // Проверяем, можно ли выполнять действия сегодня
   shouldAllowActivity(function(allow: boolean) {
@@ -579,6 +631,12 @@ function onModalClosed(mode: 'start' | 'end'): void {
 
 // Проверка необходимости показа модальных окон (основная логика)
 function checkWorkdayStatus(): void {
+  // ГЛАВНАЯ ПРОВЕРКА: если метод timeman.status НЕ доступен, ничего не делаем
+  if (isTimemanAvailable.value === false) {
+    console.log('Метод timeman.status недоступен, пропускаем проверку рабочего дня')
+    return
+  }
+
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
   // Проверяем видимость страницы - если страница скрыта, не выполняем проверку
@@ -709,9 +767,11 @@ function handleVisibilityChange(): void {
   if (isPageVisible && !wasVisible) {
     // Страница стала видимой - возобновляем проверки
     console.log('Страница стала видимой, возобновляем проверки')
-    startPeriodicCheck()
-    // Выполняем немедленную проверку при возвращении
-    checkWorkdayStatus()
+    if (isTimemanAvailable.value === true) {
+      startPeriodicCheck()
+      // Выполняем немедленную проверку при возвращении
+      checkWorkdayStatus()
+    }
   } else if (!isPageVisible && wasVisible) {
     // Страница скрыта - останавливаем проверки
     console.log('Страница скрыта, останавливаем проверки')
@@ -738,6 +798,25 @@ onMounted(async () => {
     BX24.init(async () => {
       console.log('REST API доступен')
       isBitrixLoaded.value = true
+
+      // ======================================================================
+      // ГЛАВНАЯ ПРОВЕРКА ДОСТУПНОСТИ МЕТОДА timeman.status
+      // Если метод недоступен - приложение не выполняет никакой логики
+      // ======================================================================
+      isTimemanAvailable.value = await checkTimemanAvailability()
+
+      if (!isTimemanAvailable.value) {
+        console.warn('❌ Метод timeman.status НЕ ДОСТУПЕН. Приложение будет работать в режиме ожидания без выполнения активной логики.')
+        // Метод недоступен - загружаем настройки, НО не запускаем проверки
+        await loadSettings()
+        return
+      }
+
+      // ======================================================================
+      // ТОЛЬКО ЕСЛИ МЕТОД ДОСТУПЕН - выполняем всю остальную логику
+      // ======================================================================
+      console.log('✅ Метод timeman.status ДОСТУПЕН. Приложение работает в полном режиме.')
+
       await loadSettings()
 
       // Выполняем первую проверку

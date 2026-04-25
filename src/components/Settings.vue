@@ -544,10 +544,10 @@ watch(() => formData.value.workdayEnd.method, () => {
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <h3 class="text-lg font-semibold text-gray-900">
-                Активность в выходные
+                Работа в выходные
               </h3>
               <p class="text-sm text-gray-500 mt-1">
-                Разрешить уведомления и активность в выходные дни
+                Разрешить работу приложения в выходные дни
               </p>
             </div>
             <div class="ml-4 flex items-center space-x-4">
