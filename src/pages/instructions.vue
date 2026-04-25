@@ -8,9 +8,7 @@ import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
 import TableEditorIcon from '@bitrix24/b24icons-vue/editor/TableEditorIcon'
 import InfoCircleIcon from '@bitrix24/b24icons-vue/outline/InfoCircleIcon'
 import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
-import RocketIcon from '@bitrix24/b24icons-vue/outline/RocketIcon'
 import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
-import MobileSelectedIcon from '@bitrix24/b24icons-vue/outline/MobileSelectedIcon'
 
 // Иконки для методов
 import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
@@ -956,49 +954,5 @@ onUnmounted(() => {
         </div>
       </B24Card>
     </div>
-
-    <!-- Дополнительная информация о типах методов -->
-    <B24Card>
-      <div class="p-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-            <RocketIcon class="w-5 h-5 text-green-600 dark:text-green-400" />
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Как выбрать подходящий метод?
-          </h3>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <CircleCheckIcon class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="font-medium text-gray-900 dark:text-gray-100">Для дисциплинированных сотрудников</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Подойдёт автоматический метод — сотрудники не будут отвлекаться на уведомления.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <AlertIcon class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="font-medium text-gray-900 dark:text-gray-100">Для команд, нуждающихся в контроле</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Модальное окно — самый надёжный способ, так как его нельзя проигнорировать.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <ChatsWithCheckIcon class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="font-medium text-gray-900 dark:text-gray-100">Для удалённых команд</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Уведомление в чате — сотрудники активны в чатах и увидят уведомление.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <MobileSelectedIcon class="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="font-medium text-gray-900 dark:text-gray-100">Для мобильных сотрудников</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Push-уведомление — сотрудники получат оповещение даже в мобильном приложении.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </B24Card>
   </div>
 </template>
