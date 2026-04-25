@@ -11,13 +11,13 @@ import SolutionsSlider from './SolutionsSlider.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
-(function(w: Window, d: Document, u: string) {
-  var s = d.createElement('script');
-  s.async = true;
-  s.src = u + '?' + (Date.now() / 60000 | 0);
-  var h = d.getElementsByTagName('script')[0];
-  h.parentNode.insertBefore(s, h);
-})(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
+// (function(w: Window, d: Document, u: string) {
+//   var s = d.createElement('script');
+//   s.async = true;
+//   s.src = u + '?' + (Date.now() / 60000 | 0);
+//   var h = d.getElementsByTagName('script')[0];
+//   h.parentNode.insertBefore(s, h);
+// })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
 
 const router = useRouter()
 const route = useRoute()
