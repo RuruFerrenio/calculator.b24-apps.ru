@@ -35,7 +35,7 @@ const handleReview = (): void => {
   if (typeof (window as any).BX24 !== 'undefined') {
     (window as any).BX24.init(() => {
       (window as any).BX24.openPath(
-          '/marketplace/detail/tekhnogalera.chistoe_vremya/',
+          '/marketplace/detail/tekhnogalera.avtomaticheskoe_nachalo_i_zavershenie_rabochego_dnya/',
           function(result: any) {
             console.log(result);
           }
