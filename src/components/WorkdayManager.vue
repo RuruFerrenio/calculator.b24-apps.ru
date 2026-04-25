@@ -62,9 +62,11 @@ const title = computed(() => {
 
 const subtitle = computed(() => {
   if (isStartMode.value) {
-    return 'Начните рабочий день, чтобы фиксировать рабочее время'
+    return 'Начните рабочий день,' +
+        ' чтобы фиксировать рабочее время'
   }
-  return 'Завершите рабочий день, чтобы зафиксировать отработанное время'
+  return 'Завершите рабочий день,' +
+      ' чтобы зафиксировать отработанное время'
 })
 
 const completionMessage = computed(() => {
@@ -457,7 +459,7 @@ onMounted(() => {
       <!-- Иконка -->
       <div class="mb-8 flex justify-center">
         <div class="w-24 h-24 rounded-full flex items-center justify-center"
-             :class="mode === 'start' ? 'bg-blue-50' : 'bg-orange-50'">
+             :class="mode === 'start' ? 'bg-white' : 'bg-white'">
           <PowerIcon class="w-12 h-12" :class="mode === 'start' ? 'text-blue-600' : 'text-orange-600'" />
         </div>
       </div>
