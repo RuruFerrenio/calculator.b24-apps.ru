@@ -42,6 +42,9 @@ const currentUser = ref<UserProfile | null>(null)
 const error = ref<string | null>(null)
 const isRefreshing = ref(false)
 
+// Флаг доступности метода timeman.status
+const isTimemanAvailable = ref<boolean | null>(null) // null - не проверено, false - недоступен, true - доступен
+
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 let isPageVisible = true
 
@@ -118,6 +121,16 @@ const buttonText = computed(() => {
   return 'Рабочий день'
 })
 
+// Показывать ли основной контент (если метод доступен)
+const showMainContent = computed(() => {
+  return isTimemanAvailable.value === true && !error.value
+})
+
+// Показывать ли сообщение о недоступности (если метод не доступен)
+const showUnavailableMessage = computed(() => {
+  return isTimemanAvailable.value === false
+})
+
 // Вспомогательные функции
 const formatTime = (dateTimeStr?: string): string => {
   if (!dateTimeStr) return '—'
@@ -188,6 +201,45 @@ const getFullName = (userData: any): string => {
   return parts.join(' ') || `Пользователь ${userData.ID}`
 }
 
+// ==========================================================================
+// ПРОВЕРКА ДОСТУПНОСТИ МЕТОДА timeman.status
+// ==========================================================================
+
+/**
+ * Проверяет доступность метода timeman.status через API Битрикс24
+ * @returns Promise<boolean> - true если метод доступен, false если нет
+ */
+const checkTimemanAvailability = async (): Promise<boolean> => {
+  if (typeof BX24 === 'undefined') {
+    console.warn('⚠️ BX24 не загружен')
+    return false
+  }
+
+  return new Promise((resolve) => {
+    BX24.callMethod('method.get', {
+      name: 'timeman.status'
+    }, (result: any) => {
+      if (result.error()) {
+        console.warn('⚠️ Метод method.get вернул ошибку:', result.error())
+        resolve(false)
+        return
+      }
+
+      const methodData = result.data()
+      // Метод доступен только если он существует И доступен для вызова
+      const isAvailable = methodData.isExisting && methodData.isAvailable
+
+      if (isAvailable) {
+        console.log('✅ Метод timeman.status доступен')
+      } else {
+        console.warn('❌ Метод timeman.status НЕ доступен. Требуется тариф "Профессиональный"')
+      }
+
+      resolve(isAvailable)
+    })
+  })
+}
+
 // API вызовы
 const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
@@ -226,6 +278,11 @@ const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
 }
 
 const getWorkdayStatus = async (): Promise<WorkdayInfo | null> => {
+  // Если метод недоступен, сразу возвращаем null
+  if (!isTimemanAvailable.value) {
+    return null
+  }
+
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
     return null
   }
@@ -250,6 +307,9 @@ const getWorkdayStatus = async (): Promise<WorkdayInfo | null> => {
 
 const startWorkdayAPI = async (): Promise<void> => {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (!isTimemanAvailable.value) {
+    throw new Error('Метод timeman.status недоступен')
+  }
 
   return new Promise((resolve, reject) => {
     BX24.callMethod('timeman.open', {}, (result: any) => {
@@ -264,6 +324,9 @@ const startWorkdayAPI = async (): Promise<void> => {
 
 const endWorkdayAPI = async (): Promise<void> => {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (!isTimemanAvailable.value) {
+    throw new Error('Метод timeman.status недоступен')
+  }
 
   return new Promise((resolve, reject) => {
     BX24.callMethod('timeman.close', {}, (result: any) => {
@@ -279,6 +342,8 @@ const endWorkdayAPI = async (): Promise<void> => {
 // Основные действия
 const refreshData = async () => {
   if (isRefreshing.value) return
+  // Если метод недоступен, не пытаемся обновлять данные
+  if (isTimemanAvailable.value === false) return
 
   isRefreshing.value = true
 
@@ -303,6 +368,13 @@ const refreshData = async () => {
 
 const handleStartWorkday = async () => {
   if (isProcessing.value) return
+  if (isTimemanAvailable.value === false) {
+    toast.add({
+      description: 'Функция недоступна на вашем тарифе. Требуется тариф "Профессиональный"',
+      variant: 'error'
+    })
+    return
+  }
 
   isProcessing.value = true
   error.value = null
@@ -329,6 +401,13 @@ const handleStartWorkday = async () => {
 
 const handleEndWorkday = async () => {
   if (isProcessing.value) return
+  if (isTimemanAvailable.value === false) {
+    toast.add({
+      description: 'Функция недоступна на вашем тарифе. Требуется тариф "Профессиональный"',
+      variant: 'error'
+    })
+    return
+  }
 
   isProcessing.value = true
   error.value = null
@@ -366,7 +445,7 @@ const handleVisibilityChange = () => {
   const wasVisible = isPageVisible
   isPageVisible = !document.hidden
 
-  if (isPageVisible && !wasVisible) {
+  if (isPageVisible && !wasVisible && isTimemanAvailable.value === true) {
     refreshData()
   }
 }
@@ -374,7 +453,7 @@ const handleVisibilityChange = () => {
 const startAutoRefresh = () => {
   if (refreshInterval) clearInterval(refreshInterval)
   refreshInterval = setInterval(() => {
-    if (isPageVisible) {
+    if (isPageVisible && isTimemanAvailable.value === true) {
       refreshData()
     }
   }, 30000) // Обновляем каждые 30 секунд
@@ -385,13 +464,41 @@ onMounted(() => {
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
       isBitrixLoaded.value = true
+
+      // ======================================================================
+      // ГЛАВНАЯ ПРОВЕРКА ДОСТУПНОСТИ МЕТОДА timeman.status
+      // ======================================================================
+      isTimemanAvailable.value = await checkTimemanAvailability()
+
+      if (!isTimemanAvailable.value) {
+        console.warn('❌ Метод timeman.status НЕ ДОСТУПЕН. Требуется тариф "Профессиональный"')
+        isLoading.value = false
+        return
+      }
+
+      // ======================================================================
+      // ТОЛЬКО ЕСЛИ МЕТОД ДОСТУПЕН - выполняем всю остальную логику
+      // ======================================================================
+      console.log('✅ Метод timeman.status ДОСТУПЕН. Приложение работает в полном режиме.')
+
       await refreshData()
       startAutoRefresh()
     })
   } else if (typeof BX24 !== 'undefined') {
     isBitrixLoaded.value = true
-    refreshData()
-    startAutoRefresh()
+
+    // Асинхронная проверка доступности
+    checkTimemanAvailability().then((isAvailable) => {
+      isTimemanAvailable.value = isAvailable
+
+      if (!isAvailable) {
+        isLoading.value = false
+        return
+      }
+
+      refreshData()
+      startAutoRefresh()
+    })
   } else {
     isLoading.value = false
     error.value = 'API Битрикс24 не обнаружен. Убедитесь, что приложение запущено в среде Битрикс24.'
@@ -413,7 +520,7 @@ onUnmounted(() => {
     <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
       <div class="flex items-center justify-between">
         <B24User
-            v-if="currentUser"
+            v-if="currentUser && showMainContent"
             :name="currentUser.FULL_NAME"
             :description="currentUser.WORK_POSITION || 'Должность не указана'"
             size="lg"
@@ -427,14 +534,16 @@ onUnmounted(() => {
             }"
             class="truncate overflow-visible"
         />
-        <div v-else class="flex items-center gap-3">
+        <div v-else-if="!showUnavailableMessage" class="flex items-center gap-3">
           <div class="p-2 bg-blue-100 rounded-full">
             <PowerIcon class="w-5 h-5 text-blue-600" />
           </div>
           <span class="font-medium text-gray-700">Загрузка...</span>
         </div>
 
+        <!-- Кнопка обновления (только если метод доступен) -->
         <B24Button
+            v-if="showMainContent"
             @click="refreshData"
             :disabled="isRefreshing"
             variant="ghost"
@@ -446,31 +555,50 @@ onUnmounted(() => {
         >
         </B24Button>
       </div>
-      <div v-if="currentUser" class="mt-2 text-xs text-gray-500 pl-12">
+      <div v-if="currentUser && showMainContent" class="mt-2 text-xs text-gray-500 pl-12">
         {{ currentUser.EMAIL }}
       </div>
     </div>
 
-    <!-- Информация о рабочем дне (перемещена наверх) -->
+    <!-- Содержимое -->
     <div class="p-6">
-      <!-- Состояние загрузки -->
-      <div v-if="isLoading" class="flex items-center justify-center py-8">
+      <!-- Сообщение о недоступности метода (требуется Профессиональный тариф) -->
+      <div v-if="showUnavailableMessage" class="text-center py-8">
+        <div class="mb-4">
+          <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+          Функция недоступна
+        </h3>
+        <p class="text-gray-600 mb-2">
+          Для работы с учетом рабочего времени требуется тариф
+        </p>
+        <p class="text-lg font-bold text-blue-600 mb-4">
+          «Профессиональный»
+        </p>
+        <p class="text-sm text-gray-500">
+          Пожалуйста, обратитесь к администратору вашего Битрикс24<br>
+          для перехода на соответствующий тарифный план.
+        </p>
+      </div>
+
+      <!-- Состояние загрузки (только если метод доступен) -->
+      <div v-else-if="isLoading && showMainContent" class="flex items-center justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
 
-      <!-- Ошибка -->
-      <div v-else-if="error" class="text-center py-6">
+      <!-- Ошибка (только если метод доступен) -->
+      <div v-else-if="error && showMainContent" class="text-center py-6">
         <div class="text-red-600 mb-3 text-sm">{{ error }}</div>
         <B24Button size="sm" @click="refreshData">Попробовать снова</B24Button>
       </div>
 
-      <!-- Данные о рабочем дне -->
-      <div v-else>
+      <!-- Данные о рабочем дне (только если метод доступен) -->
+      <div v-else-if="showMainContent">
         <!-- Статус -->
         <div class="mb-6">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Статус на сегодня</span>
-          </div>
           <div
               class="flex items-center gap-3 p-3 rounded-lg border"
               :class="statusBgColor"
@@ -489,46 +617,6 @@ onUnmounted(() => {
               {{ workdayInfo?.STATUS === 'OPENED' ? 'В работе' :
                 workdayInfo?.STATUS === 'EXPIRED' ? 'Просрочен' : 'Ожидание' }}
             </B24Badge>
-          </div>
-        </div>
-
-        <!-- Детали рабочего дня -->
-        <div class="space-y-3 mb-6">
-          <!-- Время начала -->
-          <div v-if="workdayInfo?.TIME_START" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-gray-500">
-              <CalendarIcon class="w-4 h-4" />
-              <span>Начало дня:</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-900">{{ formatDate(workdayInfo.TIME_START) }}</span>
-              <ClockIcon class="w-4 h-4 text-gray-400" />
-              <span class="text-gray-700">{{ formatTime(workdayInfo.TIME_START) }}</span>
-            </div>
-          </div>
-
-          <!-- Время завершения -->
-          <div v-if="workdayInfo?.TIME_FINISH && workdayInfo.STATUS === 'CLOSED'" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-gray-500">
-              <CalendarIcon class="w-4 h-4" />
-              <span>Завершение дня:</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-900">{{ formatDate(workdayInfo.TIME_FINISH) }}</span>
-              <ClockIcon class="w-4 h-4 text-gray-400" />
-              <span class="text-gray-700">{{ formatTime(workdayInfo.TIME_FINISH) }}</span>
-            </div>
-          </div>
-
-          <!-- Отработанное время -->
-          <div v-if="workdayInfo?.DURATION" class="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
-            <div class="flex items-center gap-2 text-gray-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span>Отработано:</span>
-            </div>
-            <span class="font-semibold text-gray-900">{{ formatDuration(workdayInfo.DURATION) }}</span>
           </div>
         </div>
 
