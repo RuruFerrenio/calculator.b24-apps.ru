@@ -7,6 +7,10 @@ interface WorkdaySettings {
   method: 'auto' | 'modal' | 'chat' | 'push'
 }
 
+interface WeekendActivitySettings {
+  enabled: boolean
+}
+
 // Состояние компонента
 const isBitrixLoaded = ref(false)
 const isProcessing = ref(false)
@@ -22,6 +26,11 @@ const workdayStart = ref<WorkdaySettings>({
 const workdayEnd = ref<WorkdaySettings>({
   enabled: false,
   method: 'modal'
+})
+
+// Настройка активности в выходные
+const weekendActivity = ref<WeekendActivitySettings>({
+  enabled: false
 })
 
 // Состояние модальных окон (для внутреннего использования)
@@ -124,12 +133,14 @@ async function loadSettings(): Promise<void> {
       workdayStartEnabled,
       workdayStartMethod,
       workdayEndEnabled,
-      workdayEndMethod
+      workdayEndMethod,
+      weekendActivityEnabled
     ] = await Promise.all([
       BX24.appOption.get('workday_start_enabled'),
       BX24.appOption.get('workday_start_method'),
       BX24.appOption.get('workday_end_enabled'),
-      BX24.appOption.get('workday_end_method')
+      BX24.appOption.get('workday_end_method'),
+      BX24.appOption.get('weekend_activity_enabled')
     ])
 
     workdayStart.value.enabled = normalizeBoolean(workdayStartEnabled)
@@ -143,6 +154,8 @@ async function loadSettings(): Promise<void> {
     if (endMethod) {
       workdayEnd.value.method = endMethod
     }
+
+    weekendActivity.value.enabled = normalizeBoolean(weekendActivityEnabled)
 
   } catch (error) {
     console.error('Ошибка загрузки настроек:', error)
@@ -191,130 +204,208 @@ function getUserFullName(callback: (fullName: string) => void): void {
   )
 }
 
-// Отправка push-уведомления
+// Проверка, является ли текущий день выходным
+function checkIsWeekend(callback: (isWeekend: boolean) => void): void {
+  if (typeof BX24 === 'undefined') {
+    callback(false)
+    return
+  }
+
+  getCurrentUserId(function(userId: number) {
+    if (!userId) {
+      console.error('Не удалось получить ID пользователя')
+      callback(false)
+      return
+    }
+
+    BX24.callMethod(
+        'timeman.settings',
+        { USER_ID: userId },
+        function(result: any) {
+          if (result.error()) {
+            console.error('Ошибка получения настроек для проверки выходных:', result.error())
+            callback(false)
+            return
+          }
+
+          const settings = result.data()
+          const now = new Date()
+          const currentDayOfWeek = now.getDay() // 0 - воскресенье, 6 - суббота
+
+          // Определяем, является ли сегодня выходным
+          let isWeekend = false
+
+          // Если установлен свободный график - выходных нет
+          if (settings.UF_TM_FREE === true) {
+            callback(false)
+            return
+          }
+
+          // Проверяем по дням недели из настроек рабочего графика
+          // Обычно рабочие дни с понедельника по пятницу
+          if (currentDayOfWeek === 0 || currentDayOfWeek === 6) {
+            isWeekend = true
+          }
+
+          // Дополнительная проверка: если установлен сменный график
+          if (settings.SCHEDULE_ID) {
+            // Здесь можно добавить логику для сменного графика, если необходимо
+            // По умолчанию считаем субботу и воскресенье выходными
+            isWeekend = (currentDayOfWeek === 0 || currentDayOfWeek === 6)
+          }
+
+          console.log(`Текущий день недели: ${currentDayOfWeek}, Выходной: ${isWeekend}, Настройка активности в выходные: ${weekendActivity.value.enabled}`)
+          callback(isWeekend)
+        }
+    )
+  })
+}
+
+// Проверка, можно ли выполнять действия сегодня (учитывая настройку выходных)
+function shouldAllowActivity(callback: (allow: boolean) => void): void {
+  checkIsWeekend(function(isWeekend: boolean) {
+    if (isWeekend && !weekendActivity.value.enabled) {
+      console.log('Сегодня выходной, а активность в выходные отключена. Действия не будут выполняться.')
+      callback(false)
+    } else {
+      callback(true)
+    }
+  })
+}
+
 // Отправка push-уведомления
 function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  // Проверяем, было ли уже отправлено уведомление
-  const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
-  const notificationSent = getStoredFlag(notificationKey)
+  // Проверяем, можно ли выполнять действия сегодня
+  shouldAllowActivity(function(allow: boolean) {
+    if (!allow) return
 
-  if (notificationSent === 'true') {
-    console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
-    return
-  }
+    // Проверяем, было ли уже отправлено уведомление
+    const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
+    const notificationSent = getStoredFlag(notificationKey)
 
-  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
-  const title = mode === 'start' ? '[B]Начало рабочего дня[/B]' : '[B]Завершение рабочего дня[/B]'
-  const message = mode === 'start'
-      ? 'Время начать рабочий день!'
-      : 'Время завершить рабочий день!'
+    if (notificationSent === 'true') {
+      console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
+      return
+    }
 
-  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
-  const colorToken = mode === 'start' ? 'primary' : 'alert'
+    const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+    const title = mode === 'start' ? '[B]Начало рабочего дня[/B]' : '[B]Завершение рабочего дня[/B]'
+    const message = mode === 'start'
+        ? 'Время начать рабочий день!'
+        : 'Время завершить рабочий день!'
 
-  // Устанавливаем флаг перед отправкой (на 24 часа)
-  setStoredFlag(notificationKey, 'true', 24)
+    const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
+    const colorToken = mode === 'start' ? 'primary' : 'alert'
 
-  // Используем im.notify для отправки push-уведомления с правильной структурой ATTACH
-  BX24.callMethod(
-      'im.notify.system.add',
-      {
-        USER_ID: userId,
-        MESSAGE: title,
-        MESSAGE_OUT: message,
-        TAG: `workday_${mode}_${Date.now()}`,
-        SUB_TAG: `workday_${mode}`,
-        ATTACH: {
-          ID: 1,
-          COLOR_TOKEN: colorToken,
-          BLOCKS: [
-            {
-              MESSAGE: ``
-            },
-            {
-              LINK: {
-                NAME: buttonText,
-                LINK: modalUrl
+    // Устанавливаем флаг перед отправкой (на 24 часа)
+    setStoredFlag(notificationKey, 'true', 24)
+
+    // Используем im.notify для отправки push-уведомления с правильной структурой ATTACH
+    BX24.callMethod(
+        'im.notify.system.add',
+        {
+          USER_ID: userId,
+          MESSAGE: title,
+          MESSAGE_OUT: message,
+          TAG: `workday_${mode}_${Date.now()}`,
+          SUB_TAG: `workday_${mode}`,
+          ATTACH: {
+            ID: 1,
+            COLOR_TOKEN: colorToken,
+            BLOCKS: [
+              {
+                MESSAGE: ``
+              },
+              {
+                LINK: {
+                  NAME: buttonText,
+                  LINK: modalUrl
+                }
               }
-            }
-          ]
+            ]
+          }
+        },
+        function(result: any) {
+          if (result.error()) {
+            console.error(`Ошибка отправки push-уведомления для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
+            // При ошибке удаляем флаг, чтобы можно было повторить позже
+            deleteStoredFlag(notificationKey)
+          } else {
+            console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+          }
         }
-      },
-      function(result: any) {
-        if (result.error()) {
-          console.error(`Ошибка отправки push-уведомления для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
-          // При ошибке удаляем флаг, чтобы можно было повторить позже
-          deleteStoredFlag(notificationKey)
-        } else {
-          console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
-        }
-      }
-  )
+    )
+  })
 }
 
 // Отправка сообщения в чат (с проверкой флага)
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  // Проверяем, было ли уже отправлено уведомление
-  const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
-  const notificationSent = getStoredFlag(notificationKey)
+  // Проверяем, можно ли выполнять действия сегодня
+  shouldAllowActivity(function(allow: boolean) {
+    if (!allow) return
 
-  if (notificationSent === 'true') {
-    console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
-    return
-  }
+    // Проверяем, было ли уже отправлено уведомление
+    const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
+    const notificationSent = getStoredFlag(notificationKey)
 
-  const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
-  const messageText = mode === 'start'
-      ? '🔔 Время начать рабочий день!\n'
-      : '🔔 Время завершить рабочий день!\n'
+    if (notificationSent === 'true') {
+      console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
+      return
+    }
 
-  const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
+    const modalUrl = `${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+    const messageText = mode === 'start'
+        ? '🔔 Время начать рабочий день!\n'
+        : '🔔 Время завершить рабочий день!\n'
 
-  // Устанавливаем флаг перед отправкой (на 24 часа)
-  setStoredFlag(notificationKey, 'true', 24)
+    const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
 
-  // Определяем стили кнопки в зависимости от режима
-  const buttonStyles = mode === 'start'
-      ? {
-        BG_COLOR_TOKEN: 'primary',
-        TEXT_COLOR: '#FFFFFF'
-      }
-      : {
-        BG_COLOR_TOKEN: 'alert',
-        TEXT_COLOR: '#FFFFFF'
-      }
+    // Устанавливаем флаг перед отправкой (на 24 часа)
+    setStoredFlag(notificationKey, 'true', 24)
 
-  BX24.callMethod(
-      'im.message.add',
-      {
-        DIALOG_ID: userId.toString(),
-        MESSAGE: messageText,
-        SYSTEM: 'Y',
-        KEYBOARD: {
-          BUTTONS: [
-            {
-              TEXT: buttonText,
-              LINK: modalUrl,
-              BG_COLOR_TOKEN: buttonStyles.BG_COLOR_TOKEN,
-              TEXT_COLOR: buttonStyles.TEXT_COLOR,
-            }
-          ]
+    // Определяем стили кнопки в зависимости от режима
+    const buttonStyles = mode === 'start'
+        ? {
+          BG_COLOR_TOKEN: 'primary',
+          TEXT_COLOR: '#FFFFFF'
         }
-      },
-      function(result: any) {
-        if (result.error()) {
-          console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
-          // При ошибке удаляем флаг, чтобы можно было повторить позже
-          deleteStoredFlag(notificationKey)
-        } else {
-          console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+        : {
+          BG_COLOR_TOKEN: 'alert',
+          TEXT_COLOR: '#FFFFFF'
         }
-      }
-  )
+
+    BX24.callMethod(
+        'im.message.add',
+        {
+          DIALOG_ID: userId.toString(),
+          MESSAGE: messageText,
+          SYSTEM: 'Y',
+          KEYBOARD: {
+            BUTTONS: [
+              {
+                TEXT: buttonText,
+                LINK: modalUrl,
+                BG_COLOR_TOKEN: buttonStyles.BG_COLOR_TOKEN,
+                TEXT_COLOR: buttonStyles.TEXT_COLOR,
+              }
+            ]
+          }
+        },
+        function(result: any) {
+          if (result.error()) {
+            console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
+            // При ошибке удаляем флаг, чтобы можно было повторить позже
+            deleteStoredFlag(notificationKey)
+          } else {
+            console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+          }
+        }
+    )
+  })
 }
 
 // Проверка, является ли текущее время рабочим
@@ -385,44 +476,54 @@ function parseTimeToMinutes(timeStr: string): number {
 function startWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
-  isProcessing.value = true
-  BX24.callMethod(
-      'timeman.open',
-      {},
-      function(result: any) {
-        isProcessing.value = false
+  // Проверяем, можно ли выполнять действия сегодня
+  shouldAllowActivity(function(allow: boolean) {
+    if (!allow) return
 
-        if (result.error()) {
-          console.error('Ошибка начала рабочего дня:', result.error())
-        } else {
-          console.log('Рабочий день успешно начат')
-          // После успешного начала очищаем флаги уведомлений
-          deleteStoredFlag('start_notification_sent')
+    isProcessing.value = true
+    BX24.callMethod(
+        'timeman.open',
+        {},
+        function(result: any) {
+          isProcessing.value = false
+
+          if (result.error()) {
+            console.error('Ошибка начала рабочего дня:', result.error())
+          } else {
+            console.log('Рабочий день успешно начат')
+            // После успешного начала очищаем флаги уведомлений
+            deleteStoredFlag('start_notification_sent')
+          }
         }
-      }
-  )
+    )
+  })
 }
 
 // Завершение рабочего дня
 function endWorkday(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
-  isProcessing.value = true
-  BX24.callMethod(
-      'timeman.close',
-      {},
-      function(result: any) {
-        isProcessing.value = false
+  // Проверяем, можно ли выполнять действия сегодня
+  shouldAllowActivity(function(allow: boolean) {
+    if (!allow) return
 
-        if (result.error()) {
-          console.error('Ошибка завершения рабочего дня:', result.error())
-        } else {
-          console.log('Рабочий день успешно завершен')
-          // После успешного завершения очищаем флаги уведомлений
-          deleteStoredFlag('end_notification_sent')
+    isProcessing.value = true
+    BX24.callMethod(
+        'timeman.close',
+        {},
+        function(result: any) {
+          isProcessing.value = false
+
+          if (result.error()) {
+            console.error('Ошибка завершения рабочего дня:', result.error())
+          } else {
+            console.log('Рабочий день успешно завершен')
+            // После успешного завершения очищаем флаги уведомлений
+            deleteStoredFlag('end_notification_sent')
+          }
         }
-      }
-  )
+    )
+  })
 }
 
 // Открытие модального окна через BX24.openApplication
@@ -430,30 +531,35 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
   if (applicationOpened.value) return
 
-  applicationOpened.value = true
+  // Проверяем, можно ли выполнять действия сегодня
+  shouldAllowActivity(function(allow: boolean) {
+    if (!allow) return
 
-  const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
-  const bgColor = mode === 'start' ? 'green' : 'red'
-  const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
+    applicationOpened.value = true
 
-  // Устанавливаем куки перед открытием приложения
-  setCookie('open_app_mode', 'modal', 1)
-  setCookie('modal_type', mode, 1)
+    const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
+    const bgColor = mode === 'start' ? 'green' : 'red'
+    const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
 
-  const modalSettings = {
-    opened: true,
-    title: modalTitle,
-    label: {
-      bgColor: bgColor,
-      text: labelText,
-      color: '#ffffff',
-    },
-    width: MODAL_CONFIG.WIDTH,
-  }
+    // Устанавливаем куки перед открытием приложения
+    setCookie('open_app_mode', 'modal', 1)
+    setCookie('modal_type', mode, 1)
 
-  BX24.openApplication({}, function() {
-    onModalClosed(mode)
-  }, modalSettings)
+    const modalSettings = {
+      opened: true,
+      title: modalTitle,
+      label: {
+        bgColor: bgColor,
+        text: labelText,
+        color: '#ffffff',
+      },
+      width: MODAL_CONFIG.WIDTH,
+    }
+
+    BX24.openApplication({}, function() {
+      onModalClosed(mode)
+    }, modalSettings)
+  })
 }
 
 // Обработчик закрытия модального окна
