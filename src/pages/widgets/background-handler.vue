@@ -118,31 +118,33 @@ function deleteStoredFlag(key: string): void {
   localStorage.removeItem(key)
 }
 
-// Функции для работы с localStorage для модальных окон
-function setModalStorage(mode: 'modal' | 'default', type?: 'start' | 'end'): void {
-  localStorage.setItem('open_app_mode', mode)
-  if (type) {
-    localStorage.setItem('modal_type', type)
-  } else {
-    localStorage.removeItem('modal_type')
-  }
+// Функции для работы с кукой (оставляем для других нужд)
+function setCookie(name: string, value: string, minutes: number): void {
+  const date = new Date()
+  date.setTime(date.getTime() + minutes * 60 * 1000)
+  const expires = `expires=${date.toUTCString()}`
+  document.cookie = `${name}=${value};${expires};path=/`
 }
 
-function getModalStorage(): { mode: string | null, type: string | null } {
-  return {
-    mode: localStorage.getItem('open_app_mode'),
-    type: localStorage.getItem('modal_type')
+function getCookie(name: string): string | null {
+  const nameEQ = `${name}=`
+  const ca = document.cookie.split(';')
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
   }
+  return null
 }
 
-function clearModalStorage(): void {
-  localStorage.removeItem('open_app_mode')
-  localStorage.removeItem('modal_type')
+function deleteCookie(name: string): void {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
 }
 
 // Очистка всех данных, используемых приложением
 function clearAppData(): void {
-  clearModalStorage()
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
   // Очищаем флаги из localStorage
   deleteStoredFlag('start_notification_sent')
   deleteStoredFlag('end_notification_sent')
@@ -576,8 +578,9 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
     const bgColor = mode === 'start' ? 'green' : 'red'
     const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
 
-    // Устанавливаем localStorage перед открытием приложения
-    setModalStorage('modal', mode)
+    // Устанавливаем куки перед открытием приложения
+    setCookie('open_app_mode', 'modal', 1)
+    setCookie('modal_type', mode, 1)
 
     const modalSettings = {
       opened: true,
@@ -600,8 +603,9 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
 function onModalClosed(mode: 'start' | 'end'): void {
   applicationOpened.value = false
 
-  // Очищаем localStorage после закрытия
-  clearModalStorage()
+  // Очищаем куки после закрытия
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
 
   if (mode === 'start') {
     showStartModal.value = false
@@ -742,8 +746,9 @@ function handleVisibilityChange(): void {
 // Жизненный цикл
 onMounted(async () => {
   // НЕ очищаем данные полностью при загрузке!
-  // Очищаем только временные localStorage для модальных окон
-  clearModalStorage()
+  // Очищаем только временные куки для модальных окон
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
 
   // Флаги уведомлений НЕ очищаем, чтобы предотвратить повторную отправку
 
@@ -792,8 +797,9 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   // Останавливаем периодический таймер
   stopPeriodicCheck()
-  // Очищаем только временные localStorage
-  clearModalStorage()
+  // Очищаем только временные куки
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
 })
 </script>
 

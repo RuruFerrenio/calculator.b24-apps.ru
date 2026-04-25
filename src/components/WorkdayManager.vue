@@ -318,10 +318,6 @@ const resumeWorkday = async (): Promise<boolean> => {
 }
 
 const closeApplication = (): void => {
-  // Очищаем localStorage перед закрытием
-  localStorage.removeItem('open_app_mode')
-  localStorage.removeItem('modal_type')
-
   if (typeof BX24 !== 'undefined' && typeof BX24.closeApplication === 'function') {
     BX24.closeApplication()
   } else {
@@ -431,15 +427,16 @@ const initializeComponent = async (): Promise<void> => {
   }
 }
 
-// Очистка localStorage
-const clearModalStorage = () => {
-  localStorage.removeItem('open_app_mode')
-  localStorage.removeItem('modal_type')
-}
+// Очистка всех кук
+const clearCookies = () => {
+  document.cookie.split(';').forEach(cookie => {
+    const [name] = cookie.split('=');
+    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
+};
 
 onMounted(() => {
-  clearModalStorage()
-
+  clearCookies();
   if (typeof BX24 !== 'undefined') {
     if (BX24.init) {
       BX24.init(async () => {
@@ -453,7 +450,6 @@ onMounted(() => {
   }
 })
 </script>
-
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-white p-4">
     <!-- Основной контент -->
