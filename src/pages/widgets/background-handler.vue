@@ -123,7 +123,26 @@ function setCookie(name: string, value: string, minutes: number): void {
   const date = new Date()
   date.setTime(date.getTime() + minutes * 60 * 1000)
   const expires = `expires=${date.toUTCString()}`
-  document.cookie = `${name}=${value};${expires};path=/`
+
+  // Базовые атрибуты для кросс-браузерной совместимости
+  let cookieString = `${name}=${value};${expires};path=/`
+
+  // Добавляем SameSite и Secure для Chrome (если сайт по HTTPS)
+  // Для localhost можно использовать SameSite=Lax
+  if (window.location.protocol === 'https:') {
+    cookieString += ';Secure'
+  }
+
+  // Для Chrome важно указать SameSite
+  // Lax - хороший баланс между безопасностью и функциональностью
+  cookieString += ';SameSite=Lax'
+
+  document.cookie = cookieString
+
+  // Для отладки
+  console.log(`Cookie set: ${name}=${value}, expires in ${minutes} minutes`)
+  console.log(`Full cookie string: ${cookieString}`)
+  console.log(`All cookies after set: ${document.cookie}`)
 }
 
 function getCookie(name: string): string | null {
@@ -132,8 +151,13 @@ function getCookie(name: string): string | null {
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i]
     while (c.charAt(0) === ' ') c = c.substring(1, c.length)
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+    if (c.indexOf(nameEQ) === 0) {
+      const value = c.substring(nameEQ.length, c.length)
+      console.log(`Cookie found: ${name}=${value}`)
+      return value
+    }
   }
+  console.log(`Cookie not found: ${name}`)
   return null
 }
 
