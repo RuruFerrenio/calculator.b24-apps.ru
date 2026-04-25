@@ -144,7 +144,7 @@ const methods = [
         </p>
 
         <B24TableWrapper
-            class="overflow-x-auto w-full"
+            class="overflow-x-auto w-full p-6"
             size="md"
             row-hover
             rounded
