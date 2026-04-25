@@ -1,8 +1,11 @@
 <!-- app.vue (обновленный) -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import WorkdayManager from './components/WorkdayManager.vue'
+
+const route = useRoute()
 
 // Функция для получения куки
 function getCookie(name: string): string | null {
@@ -16,17 +19,17 @@ function getCookie(name: string): string | null {
   return null
 }
 
+// Определяем, нужно ли показывать сайдбар
+// Сайдбар показывается на страницах /, /settings и /instructions
+const showSidebar = computed(() => {
+  return route.path === '/' ||
+      route.path === '/settings' ||
+      route.path === '/instructions'
+})
+
 const openAppMode = ref<'default' | 'modal'>('default')
 const modalType = ref<'start' | 'end' | null>(null)
 const isLoading = ref(true)
-
-const tgLink = computed(() => {
-  return (
-      typeof window !== 'undefined' && window.navigator?.language.includes('ru')
-  )
-      ? 'https://t.me/bitrix24apps'
-      : 'https://t.me/b24_dev'
-})
 
 onMounted(() => {
   // Читаем куки при загрузке
@@ -58,12 +61,14 @@ onMounted(() => {
     <B24App>
       <div class="p-0 md:p-6">
         <div class="mt-0 md:mt-2 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <!-- Если кука default - показываем основной контент + сайдбар -->
+          <!-- Если кука default - показываем основной контент + сайдбар (только на нужных страницах) -->
           <template v-if="openAppMode === 'default'">
-            <div class="lg:col-span-2">
+            <!-- Контент занимает всю ширину, если сайдбар не показывается -->
+            <div :class="showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'">
               <RouterView />
             </div>
-            <div class="lg:col-span-1">
+            <!-- Сайдбар - показываем только на указанных страницах -->
+            <div v-if="showSidebar" class="lg:col-span-1">
               <Sidebar />
             </div>
           </template>

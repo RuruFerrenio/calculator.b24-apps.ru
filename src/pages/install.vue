@@ -32,19 +32,23 @@ const settingsStatus = ref(null)
 
 // Выбранные функции
 const selectedFeatures = ref({
-  workdayStart: true,
-  workdayEnd: true
+  workdayStart: true,    // Помощь в старте - по умолчанию включена
+  workdayEnd: true,      // Помощь в завершении - по умолчанию включена
+  weekendActivity: false // Активность в выходные - по умолчанию выключена
 })
 
-// Настройки по умолчанию
+// Расширенные настройки (методы)
 const configSettings = ref({
   workdayStart: {
     enabled: true,
-    method: 'modal'
+    method: 'modal'  // По умолчанию модальное окно
   },
   workdayEnd: {
     enabled: true,
-    method: 'modal'
+    method: 'modal'  // По умолчанию модальное окно
+  },
+  weekendActivity: {
+    enabled: false    // По умолчанию активность в выходные выключена
   }
 })
 
@@ -151,7 +155,6 @@ const placementManager = {
     try {
       const config = placementManager.getConfig(placementType)
 
-      // Для PAGE_BACKGROUND_WORKER используем специальный формат конфигурации
       const placementConfig = placementType === 'PAGE_BACKGROUND_WORKER'
           ? {
             PLACEMENT: placementType,
@@ -214,15 +217,20 @@ const placementManager = {
   }
 }
 
-// Сохранение настроек приложения
+// Сохранение настроек приложения (расширенная версия с новыми параметрами)
 const saveSettings = async () => {
   settingsStatus.value = 'loading'
   try {
     const settingsToSave = {
+      // Настройки старта рабочего дня
       workday_start_enabled: selectedFeatures.value.workdayStart ? 'Y' : 'N',
       workday_start_method: configSettings.value.workdayStart.method,
+      // Настройки завершения рабочего дня
       workday_end_enabled: selectedFeatures.value.workdayEnd ? 'Y' : 'N',
       workday_end_method: configSettings.value.workdayEnd.method,
+      // Настройки активности в выходные
+      weekend_activity_enabled: selectedFeatures.value.weekendActivity ? 'Y' : 'N',
+      // Флаг завершения установки
       installation_completed: 'Y'
     }
 
@@ -418,11 +426,15 @@ onUnmounted(() => {
                 </li>
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Форма для заполнения отчетов</span>
+                  <span class="text-sm md:text-base text-gray-700">Гибкая настройка способов уведомлений (модальное окно, автоматический, push, чат)</span>
                 </li>
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Гибкая настройка параметров системы</span>
+                  <span class="text-sm md:text-base text-gray-700">Контроль активности в выходные дни</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Форма для заполнения отчетов</span>
                 </li>
               </ul>
             </div>
@@ -435,7 +447,7 @@ onUnmounted(() => {
       </B24PageCard>
     </B24PageSection>
 
-    <!-- Шаг 2: Настройка функций -->
+    <!-- Шаг 2: Настройка функций (расширенный) -->
     <B24PageSection v-else-if="currentStep === 2">
       <B24PageCard>
         <div class="flex flex-col md:flex-row md:items-start md:space-x-6">
@@ -452,8 +464,8 @@ onUnmounted(() => {
               Выберите, какие функции системы контроля времени вы хотите активировать и настроить.
             </p>
 
-            <div class="space-y-4">
-              <!-- Помощь в старте рабочего дня -->
+            <div class="space-y-6">
+              <!-- Помощь в старте рабочего дня (расширенная) -->
               <B24PageCard>
                 <div class="flex items-center justify-between">
                   <div>
@@ -463,12 +475,15 @@ onUnmounted(() => {
                   <B24Switch v-model="selectedFeatures.workdayStart" />
                 </div>
                 <div v-if="selectedFeatures.workdayStart" class="mt-4 pt-4 border-t">
+                  <p class="text-sm font-medium text-gray-700 mb-3">Способ старта рабочего дня:</p>
                   <B24RadioGroup
                       v-model="configSettings.workdayStart.method"
                       :items="[
-                      { label: 'Автоматический старт', value: 'auto' },
-                      { label: 'Модальное окно с предупреждением', value: 'modal' }
-                    ]"
+                        { label: 'Автоматический старт', value: 'auto', description: 'Рабочий день начинается автоматически' },
+                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением начать рабочий день' },
+                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
+                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
+                      ]"
                       orientation="horizontal"
                       variant="card"
                       size="sm"
@@ -479,7 +494,7 @@ onUnmounted(() => {
                 </div>
               </B24PageCard>
 
-              <!-- Помощь в завершении рабочего дня -->
+              <!-- Помощь в завершении рабочего дня (расширенная) -->
               <B24PageCard>
                 <div class="flex items-center justify-between">
                   <div>
@@ -489,11 +504,14 @@ onUnmounted(() => {
                   <B24Switch v-model="selectedFeatures.workdayEnd" />
                 </div>
                 <div v-if="selectedFeatures.workdayEnd" class="mt-4 pt-4 border-t">
+                  <p class="text-sm font-medium text-gray-700 mb-3">Способ завершения рабочего дня:</p>
                   <B24RadioGroup
                       v-model="configSettings.workdayEnd.method"
                       :items="[
-                        { label: 'Автоматическое завершение', value: 'auto' },
-                        { label: 'Модальное окно с предупреждением', value: 'modal' }
+                        { label: 'Автоматическое завершение', value: 'auto', description: 'Рабочий день завершается автоматически' },
+                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением завершить рабочий день' },
+                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
+                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
                       ]"
                       orientation="horizontal"
                       variant="card"
@@ -502,6 +520,29 @@ onUnmounted(() => {
                       indicator="end"
                       class="overflow-scroll md:overflow-auto"
                   />
+                </div>
+              </B24PageCard>
+
+              <!-- Активность в выходные (новая опция) -->
+              <B24PageCard>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Активность в выходные</h3>
+                    <p class="text-sm text-gray-500">Разрешить уведомления и активность в выходные дни</p>
+                  </div>
+                  <B24Switch v-model="selectedFeatures.weekendActivity" />
+                </div>
+                <div v-if="selectedFeatures.weekendActivity" class="mt-4 pt-4 border-t">
+                  <div class="bg-yellow-50 rounded-lg p-4">
+                    <div class="flex items-start">
+                      <svg class="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                      </svg>
+                      <div class="text-sm text-yellow-700">
+                        <span class="font-medium">Примечание:</span> Используйте эту функцию осторожно, так как уведомления в выходные могут отвлекать сотрудников от отдыха.
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </B24PageCard>
             </div>
@@ -583,7 +624,7 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Настройка параметров системы -->
+              <!-- Настройка параметров системы (расширенная) -->
               <div class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="settingsStatus === 'loading'">
@@ -601,7 +642,7 @@ onUnmounted(() => {
                 </div>
                 <div class="ml-2 md:ml-3">
                   <p class="text-xs md:text-sm font-medium text-gray-900">Настройка параметров системы</p>
-                  <p class="text-xs text-gray-500">Сохранение настроек функций</p>
+                  <p class="text-xs text-gray-500">Сохранение настроек: старт/завершение рабочего дня, активность в выходные</p>
                 </div>
               </div>
             </div>
@@ -637,11 +678,19 @@ onUnmounted(() => {
                 <div class="space-y-2">
                   <div v-if="selectedFeatures.workdayStart" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Помощь в старте рабочего дня</span>
+                    <span class="text-sm text-gray-700">Помощь в старте рабочего дня (способ: {{ configSettings.workdayStart.method }})</span>
                   </div>
                   <div v-if="selectedFeatures.workdayEnd" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Помощь в завершении рабочего дня</span>
+                    <span class="text-sm text-gray-700">Помощь в завершении рабочего дня (способ: {{ configSettings.workdayEnd.method }})</span>
+                  </div>
+                  <div v-if="selectedFeatures.weekendActivity" class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-700">Активность в выходные дни (включена)</span>
+                  </div>
+                  <div v-else class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-500">Активность в выходные дни (выключена)</span>
                   </div>
                   <div class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
