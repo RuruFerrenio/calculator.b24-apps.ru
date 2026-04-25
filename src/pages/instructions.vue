@@ -139,7 +139,7 @@ const methods = [
             Сравнение методов начала и завершения рабочего дня
           </h2>
         </div>
-        <p class="text-gray-600 dark:text-gray-400 mb-4">
+        <p class="text-gray-600 dark:text-gray-400 mb-4 p-6">
           Доступно 4 способа уведомления сотрудников.
         </p>
 
