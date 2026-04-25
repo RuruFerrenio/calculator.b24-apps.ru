@@ -432,7 +432,6 @@ function openWorkdayModal(mode: 'start' | 'end'): void {
 
   applicationOpened.value = true
 
-  const modalUrl = `${window.location.origin}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
   const bgColor = mode === 'start' ? 'green' : 'red'
   const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
