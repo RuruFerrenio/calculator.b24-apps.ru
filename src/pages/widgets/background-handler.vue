@@ -78,9 +78,9 @@ async function checkTimemanAvailability(): Promise<boolean> {
       const isAvailable = methodData.isExisting && methodData.isAvailable
 
       if (isAvailable) {
-        console.log('✅ Метод timeman.status доступен')
+        console.log('Методы timeman доступны')
       } else {
-        console.warn('❌ Метод timeman.status НЕ доступен')
+        console.warn('Методы timeman не доступны')
       }
 
       resolve(isAvailable)
@@ -139,7 +139,6 @@ function getCookie(name: string): string | null {
 
 function deleteCookie(name: string): void {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-  console.log(`Кука ${name} удалена`)
 }
 
 // Очистка всех данных, используемых приложением
@@ -149,7 +148,6 @@ function clearAppData(): void {
   // Очищаем флаги из localStorage
   deleteStoredFlag('start_notification_sent')
   deleteStoredFlag('end_notification_sent')
-  console.log('Все данные приложения очищены')
 }
 
 // Функция для нормализации значений
@@ -294,7 +292,6 @@ function checkIsWeekend(callback: (isWeekend: boolean) => void): void {
             isWeekend = (currentDayOfWeek === 0 || currentDayOfWeek === 6)
           }
 
-          console.log(`Текущий день недели: ${currentDayOfWeek}, Выходной: ${isWeekend}, Настройка активности в выходные: ${weekendActivity.value.enabled}`)
           callback(isWeekend)
         }
     )
@@ -305,7 +302,6 @@ function checkIsWeekend(callback: (isWeekend: boolean) => void): void {
 function shouldAllowActivity(callback: (allow: boolean) => void): void {
   checkIsWeekend(function(isWeekend: boolean) {
     if (isWeekend && !weekendActivity.value.enabled) {
-      console.log('Сегодня выходной, а активность в выходные отключена. Действия не будут выполняться.')
       callback(false)
     } else {
       callback(true)
@@ -326,7 +322,6 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
     const notificationSent = getStoredFlag(notificationKey)
 
     if (notificationSent === 'true') {
-      console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
       return
     }
 
@@ -373,7 +368,6 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
             // При ошибке удаляем флаг, чтобы можно было повторить позже
             deleteStoredFlag(notificationKey)
           } else {
-            console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
           }
         }
     )
@@ -393,7 +387,6 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
     const notificationSent = getStoredFlag(notificationKey)
 
     if (notificationSent === 'true') {
-      console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
       return
     }
 
@@ -441,7 +434,6 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
             // При ошибке удаляем флаг, чтобы можно было повторить позже
             deleteStoredFlag(notificationKey)
           } else {
-            console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
           }
         }
     )
@@ -473,7 +465,6 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
           }
 
           const settings = result.data()
-          console.log('Настройки:', settings)
 
           // Если свободный график - всегда рабочее время
           if (settings.UF_TM_FREE === true) {
@@ -497,8 +488,6 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
           // Рабочее время - между MAX_START и MIN_FINISH
           const isWorkTime = currentMinutes >= maxStartMinutes &&
               currentMinutes <= minFinishMinutes
-
-          console.log(`Текущее время: ${currentMinutes} мин, Рабочее: ${maxStartMinutes}-${minFinishMinutes}, Результат: ${isWorkTime}`)
 
           callback(isWorkTime)
         }
@@ -532,9 +521,7 @@ function startWorkday(): void {
           isProcessing.value = false
 
           if (result.error()) {
-            console.error('Ошибка начала рабочего дня:', result.error())
           } else {
-            console.log('Рабочий день успешно начат')
             // После успешного начала очищаем флаги уведомлений
             deleteStoredFlag('start_notification_sent')
           }
@@ -563,9 +550,7 @@ function endWorkday(): void {
           isProcessing.value = false
 
           if (result.error()) {
-            console.error('Ошибка завершения рабочего дня:', result.error())
           } else {
-            console.log('Рабочий день успешно завершен')
             // После успешного завершения очищаем флаги уведомлений
             deleteStoredFlag('end_notification_sent')
           }
@@ -633,7 +618,6 @@ function onModalClosed(mode: 'start' | 'end'): void {
 function checkWorkdayStatus(): void {
   // ГЛАВНАЯ ПРОВЕРКА: если метод timeman.status НЕ доступен, ничего не делаем
   if (isTimemanAvailable.value === false) {
-    console.log('Метод timeman.status недоступен, пропускаем проверку рабочего дня')
     return
   }
 
@@ -641,7 +625,6 @@ function checkWorkdayStatus(): void {
 
   // Проверяем видимость страницы - если страница скрыта, не выполняем проверку
   if (!isPageVisible) {
-    console.log('Страница скрыта, пропускаем проверку рабочего дня')
     return
   }
 
@@ -661,35 +644,27 @@ function checkWorkdayStatus(): void {
           }
 
           const workDayParams = result.data()
-          console.log('Информация о рабочем дне:', workDayParams)
-          console.log('Статус:', workDayParams.STATUS)
 
           // Проверка для начала рабочего дня
           if (workdayStart.value.enabled && workDayParams.STATUS === 'CLOSED') {
             // Проверяем, рабочее ли сейчас время для начала дня
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (!isWorkTime) {
-                console.log('Сейчас не рабочее время, начало дня не требуется')
                 return
               }
 
               // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
               if (applicationOpened.value) {
-                console.log('Модальное окно уже открыто, пропускаем')
                 return
               }
 
               if (workdayStart.value.method === 'modal') {
-                console.log('Открываем модальное окно начала рабочего дня')
                 openWorkdayModal('start')
               } else if (workdayStart.value.method === 'auto') {
-                console.log('Автоматически запускаем рабочий день')
                 startWorkday()
               } else if (workdayStart.value.method === 'chat') {
-                console.log('Отправляем сообщение в чат для начала рабочего дня')
                 sendChatNotification(userId, 'start')
               } else if (workdayStart.value.method === 'push') {
-                console.log('Отправляем push-уведомление для начала рабочего дня')
                 sendPushNotification(userId, 'start')
               }
             })
@@ -702,27 +677,21 @@ function checkWorkdayStatus(): void {
           if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (isWorkTime) {
-                console.log('Сейчас рабочее время, завершение дня не требуется')
                 return
               }
 
               // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
               if (applicationOpened.value) {
-                console.log('Модальное окно уже открыто, пропускаем')
                 return
               }
 
               if (workdayEnd.value.method === 'modal') {
-                console.log('Открываем модальное окно завершения рабочего дня')
                 openWorkdayModal('end')
               } else if (workdayEnd.value.method === 'auto') {
-                console.log('Автоматически завершаем рабочий день')
                 endWorkday()
               } else if (workdayEnd.value.method === 'chat') {
-                console.log('Отправляем сообщение в чат для завершения рабочего дня')
                 sendChatNotification(userId, 'end')
               } else if (workdayEnd.value.method === 'push') {
-                console.log('Отправляем push-уведомление для завершения рабочего дня')
                 sendPushNotification(userId, 'end')
               }
             })
@@ -743,11 +712,9 @@ function startPeriodicCheck(): void {
 
   // Запускаем интервал проверки
   periodicCheckInterval = setInterval(() => {
-    console.log(`Периодическая проверка статуса рабочего дня (каждые ${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
     checkWorkdayStatus()
   }, MODAL_CONFIG.CHECK_INTERVAL_SECONDS * 1000)
 
-  console.log(`Запущен периодический таймер проверки (${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
 }
 
 // Остановка периодической проверки
@@ -755,7 +722,6 @@ function stopPeriodicCheck(): void {
   if (periodicCheckInterval) {
     clearInterval(periodicCheckInterval)
     periodicCheckInterval = null
-    console.log('Периодический таймер проверки остановлен')
   }
 }
 
@@ -766,7 +732,6 @@ function handleVisibilityChange(): void {
 
   if (isPageVisible && !wasVisible) {
     // Страница стала видимой - возобновляем проверки
-    console.log('Страница стала видимой, возобновляем проверки')
     if (isTimemanAvailable.value === true) {
       startPeriodicCheck()
       // Выполняем немедленную проверку при возвращении
@@ -774,7 +739,6 @@ function handleVisibilityChange(): void {
     }
   } else if (!isPageVisible && wasVisible) {
     // Страница скрыта - останавливаем проверки
-    console.log('Страница скрыта, останавливаем проверки')
     stopPeriodicCheck()
   }
 }
@@ -793,10 +757,8 @@ onMounted(async () => {
   // Инициализируем состояние видимости
   isPageVisible = !document.hidden
 
-  console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
-      console.log('REST API доступен')
       isBitrixLoaded.value = true
 
       // ======================================================================
@@ -806,7 +768,7 @@ onMounted(async () => {
       isTimemanAvailable.value = await checkTimemanAvailability()
 
       if (!isTimemanAvailable.value) {
-        console.warn('❌ Метод timeman.status НЕ ДОСТУПЕН. Приложение будет работать в режиме ожидания без выполнения активной логики.')
+        console.warn('Методы timeman не доступны. Приложение будет работать в режиме ожидания без выполнения активной логики.')
         // Метод недоступен - загружаем настройки, НО не запускаем проверки
         await loadSettings()
         return
@@ -815,7 +777,6 @@ onMounted(async () => {
       // ======================================================================
       // ТОЛЬКО ЕСЛИ МЕТОД ДОСТУПЕН - выполняем всю остальную логику
       // ======================================================================
-      console.log('✅ Метод timeman.status ДОСТУПЕН. Приложение работает в полном режиме.')
 
       await loadSettings()
 
