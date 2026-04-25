@@ -62,10 +62,10 @@ const title = computed(() => {
 
 const subtitle = computed(() => {
   if (isStartMode.value) {
-    return 'Начните рабочий день,' +
+    return 'Начните рабочий день,\n' +
         ' чтобы фиксировать рабочее время'
   }
-  return 'Завершите рабочий день,' +
+  return 'Завершите рабочий день,\n' +
       ' чтобы зафиксировать отработанное время'
 })
 
@@ -459,7 +459,7 @@ onMounted(() => {
       <!-- Иконка -->
       <div class="mb-8 flex justify-center">
         <div class="w-24 h-24 rounded-full flex items-center justify-center"
-             :class="mode === 'start' ? 'bg-white' : 'bg-white'">
+             :class="mode === 'start' ? 'bg-blue-50' : 'bg-orange-50'">
           <PowerIcon class="w-12 h-12" :class="mode === 'start' ? 'text-blue-600' : 'text-orange-600'" />
         </div>
       </div>
