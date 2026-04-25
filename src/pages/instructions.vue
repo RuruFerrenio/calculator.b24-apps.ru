@@ -830,7 +830,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Кнопка перехода к рабочим графикам - ИСПРАВЛЕНО использование bitrixDomain -->
-        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="mt-6 pt-4 ">
           <B24Button
               :href="`https://${bitrixDomain}/timeman/schedules/`"
               target="_blank"
