@@ -68,9 +68,9 @@ onMounted(() => {
               <RouterView />
             </div>
             <!-- Сайдбар - показываем только на указанных страницах -->
-<!--            <div v-if="showSidebar" class="lg:col-span-1">-->
-<!--              <Sidebar />-->
-<!--            </div>-->
+            <div v-if="showSidebar" class="lg:col-span-1">
+              <Sidebar />
+            </div>
           </template>
 
           <!-- Если кука modal - показываем WorkdayManager -->
