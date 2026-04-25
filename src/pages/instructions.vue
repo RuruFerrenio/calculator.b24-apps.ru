@@ -808,7 +808,6 @@ onUnmounted(() => {
         <div class="space-y-4 text-gray-700 dark:text-gray-300">
 
           <div class="flex items-start gap-3">
-            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>
               В разделе
               <span class="font-semibold">Рабочие графики</span>
@@ -817,17 +816,14 @@ onUnmounted(() => {
           </div>
 
           <div class="flex items-start gap-3">
-            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>Настройки для приложения берутся для конкретного сотрудника из графика, за которым он закреплён.</p>
           </div>
 
           <div class="flex items-start gap-3">
-            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>Настройки находятся в подразделе <span class="font-semibold">«Начало и завершение дня»</span> внутри графика работы.</p>
           </div>
 
           <div class="flex items-start gap-3">
-            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>На данный момент нет способа через методы REST-API, не зная ID графика, закрепленного за сотрудником, получить информацию о настройках рабочего дня, касательно
             работы в Субботу и Воскресенье. Поэтому в зависимости от потребностей работу приложения в эти дни можно отрегулировать соответствующей настройкой в приложении - <span class="font-semibold">«Активность в выходные»</span>.</p>
           </div>
