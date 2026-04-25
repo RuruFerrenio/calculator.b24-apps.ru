@@ -427,7 +427,16 @@ const initializeComponent = async (): Promise<void> => {
   }
 }
 
+// Очистка всех кук
+const clearCookies = () => {
+  document.cookie.split(';').forEach(cookie => {
+    const [name] = cookie.split('=');
+    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
+};
+
 onMounted(() => {
+  clearCookies();
   if (typeof BX24 !== 'undefined') {
     if (BX24.init) {
       BX24.init(async () => {
