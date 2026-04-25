@@ -55,7 +55,7 @@ const configSettings = ref({
 // URL обработчиков
 const HANDLERS = {
   pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`,
-  restAppUri: `${window.location.origin}/dist/widgets/dynamic-page`
+  restAppUri: `${window.location.origin}/dist/`
 }
 
 // Конфигурации встроек
