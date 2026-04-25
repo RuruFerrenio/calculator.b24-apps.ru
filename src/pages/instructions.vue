@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// Импорт иконок
+// Импорт иконок (остается без изменений)
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
 import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
@@ -18,10 +18,10 @@ import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
 import NotificationIcon from '@bitrix24/b24icons-vue/outline/NotificationIcon'
 
 // Реактивные переменные
-const windowLocationOrigin = ref('')
+const bitrixDomain = ref('') // Изменено с windowLocationOrigin на bitrixDomain
 const selectedMethod = ref<string | null>(null)
 
-// Данные о методах
+// Данные о методах (без изменений)
 const methods = [
   {
     name: 'Автоматический',
@@ -85,7 +85,7 @@ const methods = [
   }
 ]
 
-// Детальные описания методов
+// Детальные описания методов (без изменений)
 function getMethodDetails(methodName: string) {
   const details: Record<string, any> = {
     'Автоматический': {
@@ -145,14 +145,7 @@ function getMethodDetails(methodName: string) {
   return details[methodName] || details['Автоматический']
 }
 
-// Инициализация на клиенте
-onMounted(() => {
-  if (typeof window !== 'undefined' && window.location) {
-    windowLocationOrigin.value = window.location.origin
-  }
-})
-
-// Типы данных для второго компонента (если нужно объединить)
+// Типы данных для второго компонента
 interface WorkdaySettings {
   enabled: boolean
   method: 'auto' | 'modal' | 'chat' | 'push'
@@ -175,7 +168,7 @@ const workdayEnd = ref<WorkdaySettings>({
   method: 'modal'
 })
 
-// Состояние модальных окон (для внутреннего использования)
+// Состояние модальных окон
 const showStartModal = ref(false)
 const showEndModal = ref(false)
 
@@ -187,10 +180,10 @@ let isPageVisible = true
 const MODAL_CONFIG = {
   WIDTH: 500,
   DYNAMIC_PAGE_PATH: '/marketplace/view/app.69e7a5997e44b3.48094201/',
-  CHECK_INTERVAL_SECONDS: 10 // Интервал проверки в секундах
+  CHECK_INTERVAL_SECONDS: 10
 }
 
-// Функции для работы с localStorage
+// Функции для работы с localStorage (без изменений)
 function setStoredFlag(key: string, value: string, hours: number): void {
   const data = {
     value: value,
@@ -220,7 +213,7 @@ function deleteStoredFlag(key: string): void {
   localStorage.removeItem(key)
 }
 
-// Функции для работы с кукой (оставляем для других нужд)
+// Функции для работы с кукой
 function setCookie(name: string, value: string, minutes: number): void {
   const date = new Date()
   date.setTime(date.getTime() + minutes * 60 * 1000)
@@ -244,11 +237,10 @@ function deleteCookie(name: string): void {
   console.log(`Кука ${name} удалена`)
 }
 
-// Очистка всех данных, используемых приложением
+// Очистка всех данных
 function clearAppData(): void {
   deleteCookie('open_app_mode')
   deleteCookie('modal_type')
-  // Очищаем флаги из localStorage
   deleteStoredFlag('start_notification_sent')
   deleteStoredFlag('end_notification_sent')
   console.log('Все данные приложения очищены')
@@ -266,7 +258,7 @@ function normalizeMethod(value: unknown): 'auto' | 'modal' | 'chat' | 'push' | n
   return null
 }
 
-// Загрузка настроек
+// Загрузка настроек (без изменений)
 async function loadSettings(): Promise<void> {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
@@ -342,11 +334,10 @@ function getUserFullName(callback: (fullName: string) => void): void {
   )
 }
 
-// Отправка push-уведомления
+// Отправка push-уведомления - ИСПРАВЛЕНО использование домена
 function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  // Проверяем, было ли уже отправлено уведомление
   const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
   const notificationSent = getStoredFlag(notificationKey)
 
@@ -355,7 +346,8 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
     return
   }
 
-  const modalUrl = `${windowLocationOrigin.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  // Используем bitrixDomain вместо windowLocationOrigin
+  const modalUrl = `https://${bitrixDomain.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const title = mode === 'start' ? '[B]Начало рабочего дня[/B]' : '[B]Завершение рабочего дня[/B]'
   const message = mode === 'start'
       ? 'Время начать рабочий день!'
@@ -364,10 +356,8 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
   const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
   const colorToken = mode === 'start' ? 'primary' : 'alert'
 
-  // Устанавливаем флаг перед отправкой (на 24 часа)
   setStoredFlag(notificationKey, 'true', 24)
 
-  // Используем im.notify для отправки push-уведомления с правильной структурой ATTACH
   BX24.callMethod(
       'im.notify.system.add',
       {
@@ -394,40 +384,37 @@ function sendPushNotification(userId: number, mode: 'start' | 'end'): void {
       },
       function(result: any) {
         if (result.error()) {
-          console.error(`Ошибка отправки push-уведомления для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
-          // При ошибке удаляем флаг, чтобы можно было повторить позже
+          console.error(`Ошибка отправки push-уведомления:`, result.error())
           deleteStoredFlag(notificationKey)
         } else {
-          console.log(`Push-уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+          console.log(`Push-уведомление отправлено успешно`)
         }
       }
   )
 }
 
-// Отправка сообщения в чат (с проверкой флага)
+// Отправка сообщения в чат - ИСПРАВЛЕНО использование домена
 function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
   if (typeof BX24 === 'undefined') return
 
-  // Проверяем, было ли уже отправлено уведомление
   const notificationKey = mode === 'start' ? 'start_notification_sent' : 'end_notification_sent'
   const notificationSent = getStoredFlag(notificationKey)
 
   if (notificationSent === 'true') {
-    console.log(`Уведомление для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня уже было отправлено, пропускаем`)
+    console.log(`Уведомление уже было отправлено, пропускаем`)
     return
   }
 
-  const modalUrl = `${windowLocationOrigin.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  // Используем bitrixDomain вместо windowLocationOrigin
+  const modalUrl = `https://${bitrixDomain.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
   const messageText = mode === 'start'
       ? '🔔 Время начать рабочий день!\n'
       : '🔔 Время завершить рабочий день!\n'
 
   const buttonText = mode === 'start' ? 'Начать рабочий день' : 'Завершить рабочий день'
 
-  // Устанавливаем флаг перед отправкой (на 24 часа)
   setStoredFlag(notificationKey, 'true', 24)
 
-  // Определяем стили кнопки в зависимости от режима
   const buttonStyles = mode === 'start'
       ? {
         BG_COLOR_TOKEN: 'primary',
@@ -457,17 +444,98 @@ function sendChatNotification(userId: number, mode: 'start' | 'end'): void {
       },
       function(result: any) {
         if (result.error()) {
-          console.error(`Ошибка отправки сообщения в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня:`, result.error())
-          // При ошибке удаляем флаг, чтобы можно было повторить позже
+          console.error(`Ошибка отправки сообщения в чат:`, result.error())
           deleteStoredFlag(notificationKey)
         } else {
-          console.log(`Сообщение в чат для ${mode === 'start' ? 'начала' : 'завершения'} рабочего дня отправлено успешно`)
+          console.log(`Сообщение в чат отправлено успешно`)
         }
       }
   )
 }
 
-// Проверка, является ли текущее время рабочим
+// Открытие модального окна - ИСПРАВЛЕНО использование домена
+function openWorkdayModal(mode: 'start' | 'end'): void {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+  if (applicationOpened.value) return
+
+  applicationOpened.value = true
+
+  // Используем bitrixDomain вместо windowLocationOrigin
+  const modalUrl = `https://${bitrixDomain.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
+  const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
+  const bgColor = mode === 'start' ? 'green' : 'red'
+  const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
+
+  setCookie('open_app_mode', 'modal', 1)
+  setCookie('modal_type', mode, 1)
+
+  const modalSettings = {
+    opened: true,
+    title: modalTitle,
+    label: {
+      bgColor: bgColor,
+      text: labelText,
+      color: '#ffffff',
+    },
+    width: MODAL_CONFIG.WIDTH,
+  }
+
+  BX24.openApplication({}, function() {
+    onModalClosed(mode)
+  }, modalSettings)
+}
+
+// Остальные функции без изменений...
+function onModalClosed(mode: 'start' | 'end'): void {
+  applicationOpened.value = false
+  deleteCookie('open_app_mode')
+  deleteCookie('modal_type')
+
+  if (mode === 'start') {
+    showStartModal.value = false
+  } else {
+    showEndModal.value = false
+  }
+}
+
+function startWorkday(): void {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+
+  isProcessing.value = true
+  BX24.callMethod(
+      'timeman.open',
+      {},
+      function(result: any) {
+        isProcessing.value = false
+        if (result.error()) {
+          console.error('Ошибка начала рабочего дня:', result.error())
+        } else {
+          console.log('Рабочий день успешно начат')
+          deleteStoredFlag('start_notification_sent')
+        }
+      }
+  )
+}
+
+function endWorkday(): void {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+
+  isProcessing.value = true
+  BX24.callMethod(
+      'timeman.close',
+      {},
+      function(result: any) {
+        isProcessing.value = false
+        if (result.error()) {
+          console.error('Ошибка завершения рабочего дня:', result.error())
+        } else {
+          console.log('Рабочий день успешно завершен')
+          deleteStoredFlag('end_notification_sent')
+        }
+      }
+  )
+}
+
 function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
   if (typeof BX24 === 'undefined') {
     callback(true)
@@ -494,13 +562,11 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
           const settings = result.data()
           console.log('Настройки:', settings)
 
-          // Если свободный график - всегда рабочее время
           if (settings.UF_TM_FREE === true) {
             callback(true)
             return
           }
 
-          // Если учет времени отключен - всегда рабочее время
           if (settings.UF_TIMEMAN !== true) {
             callback(true)
             return
@@ -509,11 +575,9 @@ function checkIsWorkTime(callback: (isWorkTime: boolean) => void): void {
           const now = new Date()
           const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
-          // Парсим время
           const maxStartMinutes = parseTimeToMinutes(settings.UF_TM_MAX_START)
           const minFinishMinutes = parseTimeToMinutes(settings.UF_TM_MIN_FINISH)
 
-          // Рабочее время - между MAX_START и MIN_FINISH
           const isWorkTime = currentMinutes >= maxStartMinutes &&
               currentMinutes <= minFinishMinutes
 
@@ -531,108 +595,14 @@ function parseTimeToMinutes(timeStr: string): number {
   return hours * 60 + minutes
 }
 
-// Начало рабочего дня
-function startWorkday(): void {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-  isProcessing.value = true
-  BX24.callMethod(
-      'timeman.open',
-      {},
-      function(result: any) {
-        isProcessing.value = false
-
-        if (result.error()) {
-          console.error('Ошибка начала рабочего дня:', result.error())
-        } else {
-          console.log('Рабочий день успешно начат')
-          // После успешного начала очищаем флаги уведомлений
-          deleteStoredFlag('start_notification_sent')
-        }
-      }
-  )
-}
-
-// Завершение рабочего дня
-function endWorkday(): void {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-  isProcessing.value = true
-  BX24.callMethod(
-      'timeman.close',
-      {},
-      function(result: any) {
-        isProcessing.value = false
-
-        if (result.error()) {
-          console.error('Ошибка завершения рабочего дня:', result.error())
-        } else {
-          console.log('Рабочий день успешно завершен')
-          // После успешного завершения очищаем флаги уведомлений
-          deleteStoredFlag('end_notification_sent')
-        }
-      }
-  )
-}
-
-// Открытие модального окна через BX24.openApplication
-function openWorkdayModal(mode: 'start' | 'end'): void {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-  if (applicationOpened.value) return
-
-  applicationOpened.value = true
-
-  const modalUrl = `${windowLocationOrigin.value}${MODAL_CONFIG.DYNAMIC_PAGE_PATH}`
-  const modalTitle = mode === 'start' ? 'Начало рабочего дня' : 'Завершение рабочего дня'
-  const bgColor = mode === 'start' ? 'green' : 'red'
-  const labelText = mode === 'start' ? 'Старт дня' : 'Завершение дня'
-
-  // Устанавливаем куки перед открытием приложения
-  setCookie('open_app_mode', 'modal', 1)
-  setCookie('modal_type', mode, 1)
-
-  const modalSettings = {
-    opened: true,
-    title: modalTitle,
-    label: {
-      bgColor: bgColor,
-      text: labelText,
-      color: '#ffffff',
-    },
-    width: MODAL_CONFIG.WIDTH,
-  }
-
-  BX24.openApplication({}, function() {
-    onModalClosed(mode)
-  }, modalSettings)
-}
-
-// Обработчик закрытия модального окна
-function onModalClosed(mode: 'start' | 'end'): void {
-  applicationOpened.value = false
-
-  // Очищаем куки после закрытия
-  deleteCookie('open_app_mode')
-  deleteCookie('modal_type')
-
-  if (mode === 'start') {
-    showStartModal.value = false
-  } else {
-    showEndModal.value = false
-  }
-}
-
-// Проверка необходимости показа модальных окон (основная логика)
 function checkWorkdayStatus(): void {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
-  // Проверяем видимость страницы - если страница скрыта, не выполняем проверку
   if (!isPageVisible) {
     console.log('Страница скрыта, пропускаем проверку рабочего дня')
     return
   }
 
-  // Получаем ID текущего пользователя
   getCurrentUserId(function(userId: number) {
     currentUserId.value = userId
 
@@ -651,16 +621,13 @@ function checkWorkdayStatus(): void {
           console.log('Информация о рабочем дне:', workDayParams)
           console.log('Статус:', workDayParams.STATUS)
 
-          // Проверка для начала рабочего дня
           if (workdayStart.value.enabled && workDayParams.STATUS === 'CLOSED') {
-            // Проверяем, рабочее ли сейчас время для начала дня
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (!isWorkTime) {
                 console.log('Сейчас не рабочее время, начало дня не требуется')
                 return
               }
 
-              // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
               if (applicationOpened.value) {
                 console.log('Модальное окно уже открыто, пропускаем')
                 return
@@ -681,11 +648,9 @@ function checkWorkdayStatus(): void {
               }
             })
           } else if (workdayStart.value.enabled && workDayParams.STATUS !== 'CLOSED') {
-            // Если статус изменился и не CLOSED, очищаем флаг уведомления
             deleteStoredFlag('start_notification_sent')
           }
 
-          // Проверка для завершения рабочего дня
           if (workdayEnd.value.enabled && workDayParams.STATUS === 'OPENED') {
             checkIsWorkTime(function(isWorkTime: boolean) {
               if (isWorkTime) {
@@ -693,7 +658,6 @@ function checkWorkdayStatus(): void {
                 return
               }
 
-              // Дополнительная проверка: если модальное окно уже открыто, не открываем повторно
               if (applicationOpened.value) {
                 console.log('Модальное окно уже открыто, пропускаем')
                 return
@@ -714,7 +678,6 @@ function checkWorkdayStatus(): void {
               }
             })
           } else if (workdayEnd.value.enabled && workDayParams.STATUS !== 'OPENED') {
-            // Если статус изменился и не OPENED, очищаем флаг уведомления
             deleteStoredFlag('end_notification_sent')
           }
         }
@@ -722,13 +685,11 @@ function checkWorkdayStatus(): void {
   })
 }
 
-// Запуск периодической проверки
 function startPeriodicCheck(): void {
   if (periodicCheckInterval) {
     clearInterval(periodicCheckInterval)
   }
 
-  // Запускаем интервал проверки
   periodicCheckInterval = setInterval(() => {
     console.log(`Периодическая проверка статуса рабочего дня (каждые ${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
     checkWorkdayStatus()
@@ -737,7 +698,6 @@ function startPeriodicCheck(): void {
   console.log(`Запущен периодический таймер проверки (${MODAL_CONFIG.CHECK_INTERVAL_SECONDS} сек)`)
 }
 
-// Остановка периодической проверки
 function stopPeriodicCheck(): void {
   if (periodicCheckInterval) {
     clearInterval(periodicCheckInterval)
@@ -746,68 +706,88 @@ function stopPeriodicCheck(): void {
   }
 }
 
-// Обработчик видимости страницы
 function handleVisibilityChange(): void {
   const wasVisible = isPageVisible
   isPageVisible = !document.hidden
 
   if (isPageVisible && !wasVisible) {
-    // Страница стала видимой - возобновляем проверки
     console.log('Страница стала видимой, возобновляем проверки')
     startPeriodicCheck()
-    // Выполняем немедленную проверку при возвращении
     checkWorkdayStatus()
   } else if (!isPageVisible && wasVisible) {
-    // Страница скрыта - останавливаем проверки
     console.log('Страница скрыта, останавливаем проверки')
     stopPeriodicCheck()
   }
 }
 
-// Жизненный цикл - объединяем оба onMounted
-onMounted(async () => {
-  // Инициализируем origin
-  if (typeof window !== 'undefined' && window.location) {
-    windowLocationOrigin.value = window.location.origin
+// Функция для получения домена через BX24.getDomain()
+function getBitrixDomain(): string | null {
+  if (typeof BX24 !== 'undefined' && BX24.getDomain) {
+    try {
+      const domain = BX24.getDomain()
+      if (domain && typeof domain === 'string') {
+        console.log('Домен получен через BX24.getDomain():', domain)
+        return domain
+      }
+    } catch (error) {
+      console.error('Ошибка при вызове BX24.getDomain():', error)
+    }
   }
+  return null
+}
 
-  // НЕ очищаем данные полностью при загрузке!
-  // Очищаем только временные куки для модальных окон
+// Жизненный цикл - ОСНОВНЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ
+onMounted(async () => {
+  console.log('Компонент смонтирован, инициализация...')
+
+  // Удаляем временные куки
   deleteCookie('open_app_mode')
   deleteCookie('modal_type')
 
-  // Флаги уведомлений НЕ очищаем, чтобы предотвратить повторную отправку
-
   // Устанавливаем обработчик видимости страницы
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  // Инициализируем состояние видимости
   isPageVisible = !document.hidden
 
-  console.log('Работает встройка!')
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
-      console.log('REST API доступен')
+      console.log('BX24 инициализирован, REST API доступен')
       isBitrixLoaded.value = true
+
+      // Получаем домен через BX24.getDomain()
+      const domain = getBitrixDomain()
+      if (domain) {
+        bitrixDomain.value = domain
+        console.log('Домен успешно установлен:', bitrixDomain.value)
+      } else {
+        console.error('Не удалось получить домен через BX24.getDomain()')
+        // Fallback - пробуем получить из window.location, если не сработало
+        if (typeof window !== 'undefined' && window.location) {
+          const fallbackDomain = window.location.hostname
+          bitrixDomain.value = fallbackDomain
+          console.warn('Используем fallback домен:', fallbackDomain)
+        }
+      }
+
+      // Загружаем настройки
       await loadSettings()
 
       // Выполняем первую проверку
       checkWorkdayStatus()
 
-      // Запускаем периодическую проверку (только если страница видима)
+      // Запускаем периодическую проверку
       if (isPageVisible) {
         startPeriodicCheck()
       }
     })
+  } else {
+    console.error('BX24 не доступен')
   }
 })
 
-// Очистка при размонтировании компонента
+// Очистка при размонтировании
 onUnmounted(() => {
-  // Удаляем обработчик видимости
   document.removeEventListener('visibilitychange', handleVisibilityChange)
-  // Останавливаем периодический таймер
   stopPeriodicCheck()
-  // Очищаем только временные куки
   deleteCookie('open_app_mode')
   deleteCookie('modal_type')
 })
@@ -855,10 +835,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Кнопка перехода к рабочим графикам - ИСПРАВЛЕНО -->
+        <!-- Кнопка перехода к рабочим графикам - ИСПРАВЛЕНО использование bitrixDomain -->
         <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           <B24Button
-              :href="`${windowLocationOrigin}/timeman/schedules/`"
+              :href="`https://${bitrixDomain}/timeman/schedules/`"
               target="_blank"
               color="air-primary"
           >
@@ -871,6 +851,7 @@ onUnmounted(() => {
       </div>
     </B24Card>
 
+    <!-- Остальной шаблон без изменений -->
     <!-- Часть 2: Сравнительная таблица методов -->
     <div class="mb-8">
       <B24Card>
