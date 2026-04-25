@@ -431,10 +431,17 @@ const initializeComponent = async (): Promise<void> => {
 
 // Очистка всех кук
 const clearCookies = () => {
-  document.cookie.split(';').forEach(cookie => {
+  const cookies = document.cookie.split(';');
+
+  cookies.forEach(cookie => {
     const [name] = cookie.split('=');
-    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    const cookieName = name.trim();
+
+    if (cookieName) {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=None; Secure`;
+    }
   });
+
 };
 
 onMounted(() => {
