@@ -560,46 +560,6 @@ watch(() => formData.value.workdayEnd.method, () => {
               />
             </div>
           </div>
-
-          <!-- Информация о настройке -->
-          <div v-if="formData.weekendActivity.enabled" class="space-y-4 pt-4 border-t">
-            <div class="bg-blue-50 rounded-lg p-4">
-              <div class="flex items-start">
-                <svg class="w-5 h-5 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <div class="space-y-2">
-                  <p class="text-sm text-gray-700">
-                    При включении этой опции, система будет:
-                  </p>
-                  <ul class="text-sm text-gray-600 space-y-1 ml-6 list-disc">
-                    <li>Отправлять уведомления о начале и завершении рабочего дня в выходные дни</li>
-                    <li>Разрешить автоматический старт и завершение рабочего дня в выходные</li>
-                    <li>Отображать модальные окна и уведомления в выходные дни</li>
-                  </ul>
-                  <p class="text-sm text-gray-600 mt-2">
-                    <span class="font-medium">По умолчанию:</span> уведомления и активность доступны только в рабочие дни согласно рабочему графику.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-start p-3 bg-yellow-50 rounded-lg">
-              <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-              </svg>
-              <div class="text-sm text-yellow-700">
-                <span class="font-medium">Примечание:</span> Используйте эту функцию осторожно, так как уведомления в выходные могут отвлекать сотрудников от отдыха.
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="space-y-4 pt-4 border-t">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-500 text-center">
-                Включите активность в выходные, чтобы разрешить уведомления и автоматические действия в субботу и воскресенье
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </B24Card>
