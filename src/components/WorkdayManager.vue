@@ -43,6 +43,7 @@ const isActionCompleted = ref(false)
 const error = ref<string | null>(null)
 const statusMessage = ref('')
 const workdayInfo = ref<WorkdayInfo | null>(null)
+const isBX24Ready = ref(false)
 
 const currentUser = ref<CurrentUser>({
   id: 0,
@@ -139,7 +140,8 @@ const formatDateTime = (dateTimeStr?: string): string => {
 }
 
 const loadCurrentUser = async (): Promise<CurrentUser> => {
-  if (!BX24) {
+  // Проверяем наличие BX24
+  if (typeof window === 'undefined' || typeof (window as any).BX24 === 'undefined') {
     console.warn('BX24 API недоступна для загрузки данных пользователя')
     return {
       id: 0,
@@ -148,6 +150,8 @@ const loadCurrentUser = async (): Promise<CurrentUser> => {
       email: ''
     }
   }
+
+  const BX24 = (window as any).BX24
 
   try {
     const userData = await new Promise<any>((resolve, reject) => {
@@ -206,7 +210,9 @@ const loadCurrentUser = async (): Promise<CurrentUser> => {
 }
 
 const getCurrentWorkdayStatus = async (): Promise<WorkdayInfo | null> => {
-  if (!BX24) return null
+  if (typeof window === 'undefined' || typeof (window as any).BX24 === 'undefined') return null
+
+  const BX24 = (window as any).BX24
 
   try {
     const result = await new Promise<WorkdayInfo>((resolve, reject) => {
@@ -226,6 +232,8 @@ const getCurrentWorkdayStatus = async (): Promise<WorkdayInfo | null> => {
 }
 
 const startWorkday = async (): Promise<WorkdayInfo> => {
+  const BX24 = (window as any).BX24
+
   const status = await getCurrentWorkdayStatus()
 
   if (!status || status.STATUS === 'CLOSED') {
@@ -253,6 +261,8 @@ const startWorkday = async (): Promise<WorkdayInfo> => {
 }
 
 const endWorkday = async (): Promise<WorkdayInfo> => {
+  const BX24 = (window as any).BX24
+
   const status = await getCurrentWorkdayStatus()
 
   if (!status || status.STATUS === 'CLOSED') {
@@ -283,6 +293,8 @@ const endWorkday = async (): Promise<WorkdayInfo> => {
 }
 
 const resumeWorkday = async (): Promise<boolean> => {
+  const BX24 = (window as any).BX24
+
   try {
     const params: Record<string, any> = {}
     if (currentUser.value.id && currentUser.value.id > 0) {
@@ -320,11 +332,13 @@ const resumeWorkday = async (): Promise<boolean> => {
 }
 
 const closeApplication = (): void => {
-  if (typeof BX24 !== 'undefined' && typeof BX24.closeApplication === 'function') {
-    BX24.closeApplication()
+  if (typeof window !== 'undefined' && (window as any).BX24 && typeof (window as any).BX24.closeApplication === 'function') {
+    (window as any).BX24.closeApplication()
   } else {
     console.error('Функция BX24.closeApplication недоступна')
-    window.close()
+    if (window.close) {
+      window.close()
+    }
   }
 }
 
@@ -334,7 +348,7 @@ const executeAction = async (): Promise<void> => {
   error.value = null
   statusMessage.value = ''
 
-  if (!BX24) {
+  if (typeof window === 'undefined' || typeof (window as any).BX24 === 'undefined') {
     error.value = 'API Битрикс24 недоступно'
     toast.add({
       description: error.value,
@@ -431,6 +445,8 @@ const initializeComponent = async (): Promise<void> => {
 
 // Очистка всех кук
 const clearCookies = () => {
+  if (typeof document === 'undefined') return
+
   const cookies = document.cookie.split(';');
 
   cookies.forEach(cookie => {
@@ -441,23 +457,32 @@ const clearCookies = () => {
       document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=None; Secure`;
     }
   });
-
 };
 
 onMounted(() => {
   clearCookies();
-  if (typeof BX24 !== 'undefined') {
-    if (BX24.init) {
-      BX24.init(async () => {
-        await initializeComponent()
-      })
+
+  // Проверяем наличие BX24 с задержкой, так как он может загружаться асинхронно
+  const checkBX24 = () => {
+    if (typeof window !== 'undefined' && (window as any).BX24) {
+      const BX24 = (window as any).BX24;
+      isBX24Ready.value = true;
+
+      if (BX24.init) {
+        BX24.init(async () => {
+          await initializeComponent();
+        });
+      } else {
+        initializeComponent();
+      }
     } else {
-      initializeComponent()
+      // Если BX24 еще не загружен, ждем и пробуем снова
+      setTimeout(checkBX24, 100);
     }
-  } else {
-    initializeComponent()
-  }
-})
+  };
+
+  checkBX24();
+});
 </script>
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-white p-4">
@@ -488,7 +513,7 @@ onMounted(() => {
       <div class="mb-4" v-if="!isActionCompleted">
         <B24Button
             @click="executeAction"
-            :disabled="isProcessing || isActionCompleted"
+            :disabled="isProcessing || isActionCompleted || !isBX24Ready"
             variant="primary"
             size="lg"
             class="w-full h-15 rounded-full text-lg font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95"
