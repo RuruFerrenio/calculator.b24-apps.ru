@@ -1,11 +1,7 @@
 <script setup lang="ts">
 // Импорт иконок
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
-import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
-import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
 import TableEditorIcon from '@bitrix24/b24icons-vue/editor/TableEditorIcon'
-import InfoCircleIcon from '@bitrix24/b24icons-vue/outline/InfoCircleIcon'
-import CursorClickIcon from '@bitrix24/b24icons-vue/outline/CursorClickIcon'
 
 // Иконки для методов
 import PlayLIcon from '@bitrix24/b24icons-vue/outline/PlayLIcon'
@@ -17,7 +13,6 @@ import { ref } from 'vue'
 
 // Реактивные переменные
 const bitrixDomain = ref('your-domain.bitrix24.ru')
-const selectedMethod = ref<string | null>(null)
 
 // Данные о методах
 const methods = [
@@ -25,15 +20,13 @@ const methods = [
     name: 'Автоматический',
     icon: PlayLIcon,
     iconClass: 'text-green-500',
-    shortDescription: 'Действие выполняется автоматически без участия сотрудника',
+    shortDescription: 'Действие выполняется автоматически без участия сотрудника при первом открытии страницы портала битрикс24',
     pros: [
-      'Не отвлекает сотрудников',
       'Полная автоматизация процесса',
-      'Идеально для формального учёта времени'
+      'Не прерывает рабочий процесс'
     ],
     cons: [
-      'Сотрудник не контролирует процесс',
-      'Возможны ошибки при синхронизации'
+      'Сотрудник не контролирует процесс начала/завершения рабочего дня',
     ]
   },
   {
@@ -42,24 +35,23 @@ const methods = [
     iconClass: 'text-blue-500',
     shortDescription: 'Всплывающее окно с кнопкой действия, пока не будет выполнено',
     pros: [
-      'Действие нельзя пропустить',
-      'Максимальная вовлечённость сотрудника',
-      'Подходит для обязательного учёта времени'
+      'Сотрудник точно не забудет запустить рабочий день',
+      'Контроль за началом/завершением остается за сотрудником',
+      'Стильно',
+      'Рекоммендуем, это самый лучший и удобный из представленных вариантов'
     ],
     cons: [
-      'Может раздражать сотрудников',
-      'Требует ручного подтверждения'
+      'Если сотрудник приступил к работе раньше или заканчивает рабочий день позже указанного времени в графике, модальное окно может появиться посреди рабочего процесса',
     ]
   },
   {
     name: 'Сообщение в чате',
     icon: ChatsWithCheckIcon,
     iconClass: 'text-purple-500',
-    shortDescription: 'Уведомление отправляется в чат Битрикс24',
+    shortDescription: 'Уведомление отправляется в личный чат сотруднику в Битрикс24',
     pros: [
-      'Удобно для команд, работающих в чатах',
-      'Действие можно выполнить прямо из чата',
-      'Остаётся история уведомлений'
+      'Менее удобно, чем модальное окно, но если модальное окно не подошло - это неплохая альтернатива',
+      'Не прерывает рабочий процесс'
     ],
     cons: [
       'Может затеряться среди других сообщений',
@@ -70,78 +62,18 @@ const methods = [
     name: 'Push-уведомление',
     icon: NotificationIcon,
     iconClass: 'text-orange-500',
-    shortDescription: 'Мгновенное уведомление в мобильном приложении',
+    shortDescription: 'Уведомление push-формата в правом верхнем углу',
     pros: [
-      'Мгновенное оповещение',
-      'Подходит для мобильных сотрудников',
-      'Высокий охват'
+      'Менее удобно, чем модальное окно, но если модальное окно не подошло - это неплохая альтернатива',
+      'Заметное звуковое сопровождение',
+      'Не прерывает рабочий процесс'
     ],
     cons: [
-      'Требует установленного мобильного приложения',
-      'Может быть заблокировано настройками телефона'
+      'Может затеряться среди других сообщений',
+      'Требует внимания сотрудника'
     ]
   }
 ]
-
-// Детальные описания методов
-function getMethodDetails(methodName: string) {
-  const details: Record<string, any> = {
-    'Автоматический': {
-      title: 'Автоматический метод',
-      fullDescription: 'Система самостоятельно выполняет действие (начало или завершение рабочего дня) без какого-либо участия сотрудника. Не требует подтверждения или реакции от пользователя. Рабочий день начинается или завершается в заданное время автоматически.',
-      pros: [
-        'Не требует действий от сотрудника',
-        'Идеально для дисциплинированных команд',
-        'Нет риска забыть отметить начало/конец дня'
-      ],
-      cons: [
-        'Сотрудник может не заметить, что день начался/закончился',
-        'Не подходит для строгого контроля'
-      ]
-    },
-    'Модальное окно': {
-      title: 'Модальное окно с предупреждением',
-      fullDescription: 'При каждом открытии страницы портала показывается всплывающее окно с предложением выполнить действие. Окно будет появляться снова и снова, пока сотрудник его не выполнит. Самый надёжный способ уведомления.',
-      pros: [
-        'Действие невозможно пропустить',
-        'Высокая надёжность',
-        'Сотрудник точно выполнит действие'
-      ],
-      cons: [
-        'Может раздражать при частом появлении',
-        'Требует ручного подтверждения'
-      ]
-    },
-    'Сообщение в чате': {
-      title: 'Сообщение в чате',
-      fullDescription: 'В чат Битрикс24 (личный или общий) отправляется уведомление с предложением выполнить действие. Сотрудник может нажать на кнопку в сообщении, чтобы выполнить действие. Уведомление остается в истории чата.',
-      pros: [
-        'Удобно для команд, работающих в чатах',
-        'Действие выполняется прямо из чата',
-        'Остаётся история уведомлений'
-      ],
-      cons: [
-        'Сообщение может затеряться',
-        'Требует внимания сотрудника'
-      ]
-    },
-    'Push-уведомление': {
-      title: 'Push-уведомление',
-      fullDescription: 'Сотруднику отправляется push-уведомление в мобильное приложение Битрикс24. Нажатие на уведомление открывает портал с предложением выполнить действие. Мгновенный способ доставки.',
-      pros: [
-        'Мгновенная доставка',
-        'Подходит для мобильных сотрудников',
-        'Не требует открытого браузера'
-      ],
-      cons: [
-        'Требуется установленное мобильное приложение',
-        'Может быть отключено в настройках телефона',
-        'Ограничения на некоторых устройствах'
-      ]
-    }
-  }
-  return details[methodName] || details['Автоматический']
-}
 </script>
 
 <template>
@@ -208,7 +140,7 @@ function getMethodDetails(methodName: string) {
           </h2>
         </div>
         <p class="text-gray-600 dark:text-gray-400 mb-4">
-          Доступно 4 способа уведомления сотрудников. Нажмите на строку с методом для просмотра детального описания.
+          Доступно 4 способа уведомления сотрудников.
         </p>
 
         <B24TableWrapper
@@ -233,9 +165,6 @@ function getMethodDetails(methodName: string) {
             <tr
                 v-for="method in methods"
                 :key="method.name"
-                @click="selectedMethod = selectedMethod === method.name ? null : method.name"
-                class="cursor-pointer transition-all duration-200"
-                :class="{ 'bg-blue-50 dark:bg-blue-950/30': selectedMethod === method.name }"
             >
               <td class="font-medium text-gray-900 dark:text-gray-100">
                 <div class="flex items-center gap-2">
@@ -246,58 +175,18 @@ function getMethodDetails(methodName: string) {
               <td class="text-gray-600 dark:text-gray-400">{{ method.shortDescription }}</td>
               <td class="text-gray-600 dark:text-gray-400">
                 <ul class="list-disc list-inside space-y-0 text-sm">
-                  <li v-for="pro in method.pros.slice(0, 2)" :key="pro">{{ pro }}</li>
+                  <li v-for="pro in method.pros" :key="pro">{{ pro }}</li>
                 </ul>
               </td>
               <td class="text-gray-600 dark:text-gray-400">
                 <ul class="list-disc list-inside space-y-0 text-sm">
-                  <li v-for="con in method.cons.slice(0, 2)" :key="con">{{ con }}</li>
+                  <li v-for="con in method.cons" :key="con">{{ con }}</li>
                 </ul>
               </td>
             </tr>
             </tbody>
           </table>
         </B24TableWrapper>
-
-        <!-- Детальное описание выбранного метода -->
-        <div v-if="selectedMethod" class="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-          <div class="flex items-start gap-3">
-            <InfoCircleIcon class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                {{ getMethodDetails(selectedMethod).title }}
-              </h4>
-              <p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                {{ getMethodDetails(selectedMethod).fullDescription }}
-              </p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <CircleCheckIcon class="w-4 h-4 text-green-500" />
-                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Плюсы:</p>
-                  </div>
-                  <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li v-for="pro in getMethodDetails(selectedMethod).pros" :key="pro">{{ pro }}</li>
-                  </ul>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <AlertIcon class="w-4 h-4 text-yellow-500" />
-                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Минусы:</p>
-                  </div>
-                  <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li v-for="con in getMethodDetails(selectedMethod).cons" :key="con">{{ con }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
-          <CursorClickIcon class="inline-block w-4 h-4 mr-1" />
-          Нажмите на строку с методом, чтобы увидеть подробное описание
-        </div>
       </B24Card>
     </div>
   </div>
