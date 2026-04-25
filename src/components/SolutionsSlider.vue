@@ -76,7 +76,7 @@ const solutions: Solution[] = [
     badge: 'Новинка',
     badgeClass: 'bg-blue-100 text-blue-800'
   },
-  {
+  /*{
     id: 2,
     title: 'Калькулятор под рукой',
     description: 'Удобный калькулятор, интегрированный во все ключевые места системы',
@@ -87,7 +87,7 @@ const solutions: Solution[] = [
     installed: false,
     badge: null,
     badgeClass: ''
-  }
+  }*/
 ]
 
 const currentIndex = ref(0)
