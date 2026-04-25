@@ -16,7 +16,7 @@ const currentStep = ref(1)
 const totalSteps = 4
 const progress = computed(() => Math.round((currentStep.value / totalSteps) * 100))
 
-const autoFinishTimer = ref(null)
+const autoFinishTimer = ref<any>(null)
 const secondsLeft = ref(5)
 const isTimerActive = ref(false)
 
@@ -25,10 +25,10 @@ const isInstalling = ref(false)
 const installationComplete = ref(false)
 const installedCount = ref(0)
 const placementStatus = ref({
-  pageBackgroundWorker: null,
-  restAppUri: null
+  pageBackgroundWorker: null as string | null,
+  restAppUri: null as string | null
 })
-const settingsStatus = ref(null)
+const settingsStatus = ref(null as string | null)
 
 // Выбранные функции
 const selectedFeatures = ref({
@@ -74,18 +74,43 @@ const PLACEMENT_CONFIGS = {
   }
 }
 
+// Типы для Bitrix24 API (для TypeScript)
+interface BX24CallMethod {
+  (method: string, params: any, callback: (result: BX24Result) => void): void
+}
+
+interface BX24Result {
+  error: () => { getError: () => string } | null
+  data: () => any
+}
+
+interface BX24Init {
+  (callback: () => void): void
+}
+
+interface BX24Global {
+  callMethod?: BX24CallMethod
+  init?: BX24Init
+}
+
+declare global {
+  interface Window {
+    BX24?: BX24Global
+  }
+}
+
 // Функции для работы с Bitrix24 API
 const bitrixAPI = {
-  call: (method, params) => {
+  call: (method: string, params: any): Promise<any> => {
     return new Promise((resolve, reject) => {
-      if (typeof BX24 === 'undefined' || typeof BX24.callMethod === 'undefined') {
+      if (typeof window.BX24 === 'undefined' || typeof window.BX24.callMethod === 'undefined') {
         reject(new Error('Библиотека Bitrix24 не доступна'))
         return
       }
 
-      BX24.callMethod(method, params, (result) => {
+      window.BX24.callMethod(method, params, (result: BX24Result) => {
         if (result.error()) {
-          reject(new Error(result.error().getError()))
+          reject(new Error(result.error()?.getError() || 'Неизвестная ошибка'))
         } else {
           resolve(result.data())
         }
@@ -95,17 +120,16 @@ const bitrixAPI = {
 
   installFinish: () => {
     return new Promise((resolve, reject) => {
-      if (typeof BX24 === 'undefined') {
+      if (typeof window.BX24 === 'undefined') {
         reject(new Error('Библиотека Bitrix24 не доступна'))
         return
       }
-
-      BX24.installFinish()
-      resolve()
+      window.BX24.installFinish()
+      resolve(true)
     })
   },
 
-  setAppOption: async (key, value) => {
+  setAppOption: async (key: string, value: string): Promise<any> => {
     try {
       const result = await bitrixAPI.call('app.option.set', {
         options: { [key]: value }
@@ -116,109 +140,140 @@ const bitrixAPI = {
     }
   },
 
-  getPlacements: () => {
-    return new Promise((resolve, reject) => {
-      BX24.callMethod('placement.list', {}, (result) => {
-        if (result.error()) {
-          reject(new Error(result.error().getError()))
-        } else {
-          resolve(result.data())
-        }
-      })
-    })
+  getPlacements: async (): Promise<any[]> => {
+    try {
+      const result = await bitrixAPI.call('placement.get', {})
+      return Array.isArray(result) ? result : []
+    } catch (error) {
+      console.error('Ошибка при получении списка встроек:', error)
+      return []
+    }
   }
 }
 
-// Менеджер встроек
+// Менеджер встроек (исправленная версия, аналогичная первому компоненту)
 const placementManager = {
-  getConfig: (placementType) => {
-    const config = PLACEMENT_CONFIGS[placementType]
+  getConfig: (placementType: string): any => {
+    const config = PLACEMENT_CONFIGS[placementType as keyof typeof PLACEMENT_CONFIGS]
     if (!config) {
       throw new Error(`Неизвестный тип встройки: ${placementType}`)
     }
     return config
   },
 
-  unbind: async (placementType, handler) => {
+  checkStatus: async (placementType: string, handler: string): Promise<boolean> => {
     try {
-      await bitrixAPI.call('placement.unbind', {
+      const placements = await bitrixAPI.getPlacements()
+
+      if (!Array.isArray(placements)) {
+        console.warn('Получен некорректный формат данных встроек:', placements)
+        return false
+      }
+
+      // Обратите внимание: в placement.get поля приходят с маленькой буквы
+      const placement = placements.find((p: any) =>
+          p.placement === placementType &&
+          p.handler === handler
+      )
+
+      return !!placement
+    } catch (error) {
+      console.error(`Ошибка при проверке статуса встройки ${placementType}:`, error)
+      return false
+    }
+  },
+
+  unbind: async (placementType: string, handler: string): Promise<any> => {
+    try {
+      const result = await bitrixAPI.call('placement.unbind', {
         PLACEMENT: placementType,
         HANDLER: handler
       })
-      return true
+      return result
     } catch (error) {
+      console.error(`Ошибка удаления встройки ${placementType}:`, error)
+      // Игнорируем ошибку, если встройка не существует
       return null
     }
   },
 
-  bind: async (placementType, handler) => {
+  bind: async (placementType: string, handler: string): Promise<boolean> => {
     try {
       const config = placementManager.getConfig(placementType)
 
-      const placementConfig = placementType === 'PAGE_BACKGROUND_WORKER'
-          ? {
-            PLACEMENT: placementType,
-            HANDLER: handler,
-            OPTIONS: config.options
-          }
-          : {
-            PLACEMENT: placementType,
-            HANDLER: handler,
-            LANG_ALL: {
-              ru: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Инструменты контроля времени'
-              },
-              en: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Time control tools'
-              },
-              be: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Інструменты кантролю часу'
-              },
-              kk: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Уақытты бақылау құралдары'
-              }
+      // Формируем конфигурацию для регистрации (аналогично первому компоненту)
+      let placementConfig: any
+
+      if (placementType === 'PAGE_BACKGROUND_WORKER') {
+        // Для PAGE_BACKGROUND_WORKER используем минимальную конфигурацию
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          OPTIONS: config.options
+        }
+      } else {
+        // Для REST_APP_URI используем полную конфигурацию с LANG_ALL
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          LANG_ALL: {
+            ru: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Инструменты контроля времени'
             },
-            OPTIONS: config.options
-          }
+            en: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Time control tools'
+            },
+            be: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Інструменты кантролю часу'
+            },
+            kk: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Уақытты бақылау құралдары'
+            }
+          },
+          OPTIONS: config.options
+        }
+      }
 
       await bitrixAPI.call('placement.bind', placementConfig)
       return true
     } catch (error) {
+      console.error(`Ошибка регистрации встройки ${placementType}:`, error)
       throw error
     }
   },
 
-  reinstall: async (placementType, handler) => {
+  // Функция переустановки встройки (аналогичная registerAllPlacements из первого компонента)
+  reinstall: async (placementType: string, handler: string): Promise<boolean> => {
     try {
-      const placements = await bitrixAPI.getPlacements()
+      // Проверяем существование встройки
+      const exists = await placementManager.checkStatus(placementType, handler)
 
-      const existingPlacement = placements.find(p =>
-          p.PLACEMENT === placementType && p.HANDLER === handler
-      )
-
-      if (existingPlacement) {
+      // Если существует, удаляем
+      if (exists) {
         await placementManager.unbind(placementType, handler)
       }
 
+      // Регистрируем новую встройку
       await placementManager.bind(placementType, handler)
 
       return true
     } catch (error) {
+      console.error(`Ошибка при переустановке встройки ${placementType}:`, error)
       throw error
     }
   }
 }
 
 // Сохранение настроек приложения (расширенная версия с новыми параметрами)
-const saveSettings = async () => {
+const saveSettings = async (): Promise<boolean> => {
   settingsStatus.value = 'loading'
   try {
     const settingsToSave = {
@@ -242,37 +297,40 @@ const saveSettings = async () => {
     installedCount.value++
     return true
   } catch (error) {
+    console.error('Ошибка при сохранении настроек:', error)
     settingsStatus.value = 'error'
     return false
   }
 }
 
 // Регистрация фоновой встройки
-const registerPageBackgroundWorker = async () => {
+const registerPageBackgroundWorker = async (): Promise<void> => {
   placementStatus.value.pageBackgroundWorker = 'loading'
   try {
     await placementManager.reinstall('PAGE_BACKGROUND_WORKER', HANDLERS.pageBackgroundWorker)
     placementStatus.value.pageBackgroundWorker = 'success'
     installedCount.value++
   } catch (error) {
+    console.error('Ошибка при регистрации фонового счетчика:', error)
     placementStatus.value.pageBackgroundWorker = 'error'
   }
 }
 
 // Регистрация встройки REST_APP_URI (Форма для отчета)
-const registerRestAppUri = async () => {
+const registerRestAppUri = async (): Promise<void> => {
   placementStatus.value.restAppUri = 'loading'
   try {
     await placementManager.reinstall('REST_APP_URI', HANDLERS.restAppUri)
     placementStatus.value.restAppUri = 'success'
     installedCount.value++
   } catch (error) {
+    console.error('Ошибка при регистрации формы для отчета:', error)
     placementStatus.value.restAppUri = 'error'
   }
 }
 
 // Основная функция установки
-const startInstallation = async () => {
+const startInstallation = async (): Promise<void> => {
   if (currentStep.value === 2) {
     currentStep.value = 3
   }
@@ -292,13 +350,13 @@ const startInstallation = async () => {
     await saveSettings()
     installationComplete.value = true
   } catch (error) {
-    // Ошибка при установке
+    console.error('Ошибка при установке:', error)
   } finally {
     isInstalling.value = false
   }
 }
 
-const startAutoFinishTimer = () => {
+const startAutoFinishTimer = (): void => {
   if (currentStep.value === 4) {
     isTimerActive.value = true
     secondsLeft.value = 5
@@ -308,6 +366,7 @@ const startAutoFinishTimer = () => {
 
       if (secondsLeft.value <= 0) {
         clearInterval(autoFinishTimer.value)
+        autoFinishTimer.value = null
         isTimerActive.value = false
         finishInstallation()
       }
@@ -315,7 +374,7 @@ const startAutoFinishTimer = () => {
   }
 }
 
-const cancelAutoFinish = () => {
+const cancelAutoFinish = (): void => {
   if (autoFinishTimer.value) {
     clearInterval(autoFinishTimer.value)
     autoFinishTimer.value = null
@@ -336,7 +395,7 @@ const installationProgress = computed(() => {
   return Math.round((installedCount.value / installationsToProcess.value) * 100)
 })
 
-const nextStep = () => {
+const nextStep = (): void => {
   if (currentStep.value === 2) {
     startInstallation()
   } else if (currentStep.value < totalSteps) {
@@ -347,19 +406,19 @@ const nextStep = () => {
   }
 }
 
-const prevStep = () => {
+const prevStep = (): void => {
   if (currentStep.value > 1) {
     cancelAutoFinish()
     currentStep.value--
   }
 }
 
-const finishInstallation = async () => {
+const finishInstallation = async (): Promise<void> => {
   cancelAutoFinish()
   try {
     await bitrixAPI.installFinish()
   } catch (error) {
-    // Ошибка завершения установки
+    console.error('Ошибка при завершении установки:', error)
   }
 }
 
@@ -479,11 +538,11 @@ onUnmounted(() => {
                   <B24RadioGroup
                       v-model="configSettings.workdayStart.method"
                       :items="[
-                        { label: 'Автоматический старт', value: 'auto', description: 'Рабочий день начинается автоматически' },
-                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением начать рабочий день' },
-                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
-                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
-                      ]"
+                      { label: 'Автоматический старт', value: 'auto', description: 'Рабочий день начинается автоматически' },
+                      { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением начать рабочий день' },
+                      { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
+                      { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
+                    ]"
                       orientation="horizontal"
                       variant="card"
                       size="sm"
@@ -508,11 +567,11 @@ onUnmounted(() => {
                   <B24RadioGroup
                       v-model="configSettings.workdayEnd.method"
                       :items="[
-                        { label: 'Автоматическое завершение', value: 'auto', description: 'Рабочий день завершается автоматически' },
-                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением завершить рабочий день' },
-                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
-                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
-                      ]"
+                      { label: 'Автоматическое завершение', value: 'auto', description: 'Рабочий день завершается автоматически' },
+                      { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением завершить рабочий день' },
+                      { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
+                      { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
+                    ]"
                       orientation="horizontal"
                       variant="card"
                       size="sm"
@@ -648,7 +707,7 @@ onUnmounted(() => {
             </div>
 
             <div class="flex justify-end gap-3 pt-6 border-t">
-              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад"  size="lg" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
+              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад" size="lg" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
               <B24Button v-if="installationComplete" @click="nextStep" label="Продолжить" size="lg" color="primary" :icon="ArrowRightLIcon" icon-position="right" />
             </div>
           </div>
