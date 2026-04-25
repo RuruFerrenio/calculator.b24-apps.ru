@@ -183,7 +183,7 @@ onUnmounted(() => {
 
               <!-- Техническая поддержка -->
               <a
-                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время"
+                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Удобное начало и завершение рабочего дня"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
               >
                 <MailOutIcon class="w-5 h-5 mr-3 text-gray-500" />
