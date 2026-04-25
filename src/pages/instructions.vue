@@ -806,23 +806,9 @@ onUnmounted(() => {
         </div>
 
         <div class="space-y-4 text-gray-700 dark:text-gray-300">
-          <div class="bg-yellow-50 dark:bg-yellow-950/30 rounded-lg p-4">
-            <div class="flex items-start gap-2">
-              <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-              <div class="text-sm">
-                <p class="font-medium text-yellow-800 dark:text-yellow-400 mb-2">
-                  Важное предварительное условие
-                </p>
-                <p>
-                  В разделе
-                  <span class="font-semibold bg-yellow-100 dark:bg-yellow-900/50 px-1.5 py-0.5 rounded">Рабочие графики</span>
-                  должен быть обязательно заведён <span class="font-semibold">хотя бы один график работы</span>.
-                </p>
-              </div>
-            </div>
-          </div>
 
           <div class="flex items-start gap-3">
+            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>
               В разделе
               <span class="font-semibold">Рабочие графики</span>
@@ -831,14 +817,17 @@ onUnmounted(() => {
           </div>
 
           <div class="flex items-start gap-3">
+            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>Настройки для приложения берутся для конкретного сотрудника из графика, за которым он закреплён.</p>
           </div>
 
           <div class="flex items-start gap-3">
+            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>Настройки находятся в подразделе <span class="font-semibold">«Начало и завершение дня»</span> внутри графика работы.</p>
           </div>
 
           <div class="flex items-start gap-3">
+            <AlertIcon class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
             <p>На данный момент нет способа через методы REST-API, не зная ID графика, закрепленного за сотрудником, получить информацию о настройках рабочего дня, касательно
             работы в Субботу и Воскресенье. Поэтому в зависимости от потребностей работу приложения в эти дни можно отрегулировать соответствующей настройкой в приложении - <span class="font-semibold">«Активность в выходные»</span>.</p>
           </div>
