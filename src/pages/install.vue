@@ -61,15 +61,15 @@ const HANDLERS = {
 // Конфигурации встроек
 const PLACEMENT_CONFIGS = {
   PAGE_BACKGROUND_WORKER: {
-    title: 'Фоновый счетчик',
-    description: 'Подсчитывает время, проведенное пользователем на странице',
+    title: 'Фоновая встройка',
+    description: 'Автоматически определяет время старта и завершения рабочего дня и оповещает об этом сотрудника',
     options: {
       errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
     }
   },
   REST_APP_URI: {
-    title: 'Форма для отчета',
-    description: 'Позволяет сотруднику заполнять запрошенные отчеты',
+    title: 'Встройка для управления рабочим днем из уведомлений',
+    description: 'Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях',
     options: {}
   }
 }
@@ -259,7 +259,7 @@ const registerPageBackgroundWorker = async () => {
   }
 }
 
-// Регистрация встройки REST_APP_URI (Форма для отчета)
+// Регистрация встройки REST_APP_URI (Встройка для управления рабочим днем из уведомлений)
 const registerRestAppUri = async () => {
   placementStatus.value.restAppUri = 'loading'
   try {
@@ -668,10 +668,6 @@ onUnmounted(() => {
                   <div v-else class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
                     <span class="text-sm text-gray-500">Активность в выходные дни (выключена)</span>
-                  </div>
-                  <div class="flex items-start">
-                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Форма для заполнения отчетов</span>
                   </div>
                 </div>
 

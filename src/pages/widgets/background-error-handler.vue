@@ -1,88 +1,173 @@
 <script setup lang="ts">
-import RocketIcon from '@bitrix24/b24icons-vue/main/RocketIcon'
-import PaletteIcon from '@bitrix24/b24icons-vue/outline/PaletteIcon'
-import TaskIcon from '@bitrix24/b24icons-vue/button/TaskIcon'
-import AppsIcon from '@bitrix24/b24icons-vue/solid/AppsIcon'
-import CodeIcon from '@bitrix24/b24icons-vue/common-service/CodeIcon'
-import ShieldCheckedIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
-import ArrowRightLIcon from '@bitrix24/b24icons-vue/outline/ArrowRightLIcon'
+import { onMounted } from 'vue'
+
+// URL обработчика фоновой встройки
+const HANDLERS = {
+  pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`
+}
+
+// Конфигурация встройки
+const PLACEMENT_CONFIG = {
+  PAGE_BACKGROUND_WORKER: {
+    title: 'Фоновый счетчик',
+    description: 'Подсчитывает время, проведенное пользователем на странице',
+    options: {
+      errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
+    }
+  }
+}
+
+// Функции для работы с Bitrix24 API
+const bitrixAPI = {
+  call: (method, params) => {
+    return new Promise((resolve, reject) => {
+      if (typeof BX24 === 'undefined' || typeof BX24.callMethod === 'undefined') {
+        reject(new Error('Библиотека Bitrix24 не доступна'))
+        return
+      }
+
+      BX24.callMethod(method, params, (result) => {
+        if (result.error()) {
+          reject(new Error(result.error().getError()))
+        } else {
+          resolve(result.data())
+        }
+      })
+    })
+  },
+
+  installFinish: () => {
+    return new Promise((resolve, reject) => {
+      if (typeof BX24 === 'undefined') {
+        reject(new Error('Библиотека Bitrix24 не доступна'))
+        return
+      }
+
+      BX24.installFinish()
+      resolve()
+    })
+  },
+
+  getPlacements: () => {
+    return new Promise((resolve, reject) => {
+      BX24.callMethod('placement.list', {}, (result) => {
+        if (result.error()) {
+          reject(new Error(result.error().getError()))
+        } else {
+          resolve(result.data())
+        }
+      })
+    })
+  }
+}
+
+// Менеджер встроек
+const placementManager = {
+  getConfig: (placementType) => {
+    const config = PLACEMENT_CONFIG[placementType]
+    if (!config) {
+      throw new Error(`Неизвестный тип встройки: ${placementType}`)
+    }
+    return config
+  },
+
+  unbind: async (placementType, handler) => {
+    try {
+      await bitrixAPI.call('placement.unbind', {
+        PLACEMENT: placementType,
+        HANDLER: handler
+      })
+      return true
+    } catch (error) {
+      return null
+    }
+  },
+
+  bind: async (placementType, handler) => {
+    try {
+      const config = placementManager.getConfig(placementType)
+
+      const placementConfig = {
+        PLACEMENT: placementType,
+        HANDLER: handler,
+        OPTIONS: config.options,
+        LANG_ALL: {
+          ru: {
+            TITLE: config.title,
+            DESCRIPTION: config.description,
+            GROUP_NAME: 'Инструменты контроля времени'
+          },
+          en: {
+            TITLE: config.title,
+            DESCRIPTION: config.description,
+            GROUP_NAME: 'Time control tools'
+          },
+          be: {
+            TITLE: config.title,
+            DESCRIPTION: config.description,
+            GROUP_NAME: 'Інструменты кантролю часу'
+          },
+          kk: {
+            TITLE: config.title,
+            DESCRIPTION: config.description,
+            GROUP_NAME: 'Уақытты бақылау құралдары'
+          }
+        }
+      }
+
+      await bitrixAPI.call('placement.bind', placementConfig)
+      return true
+    } catch (error) {
+      throw error
+    }
+  },
+
+  reinstall: async (placementType, handler) => {
+    try {
+      const placements = await bitrixAPI.getPlacements()
+
+      const existingPlacement = placements.find(p =>
+          p.PLACEMENT === placementType && p.HANDLER === handler
+      )
+
+      if (existingPlacement) {
+        await placementManager.unbind(placementType, handler)
+      }
+
+      await placementManager.bind(placementType, handler)
+
+      return true
+    } catch (error) {
+      throw error
+    }
+  }
+}
+
+// Регистрация фоновой встройки
+const registerPageBackgroundWorker = async () => {
+  try {
+    await placementManager.reinstall('PAGE_BACKGROUND_WORKER', HANDLERS.pageBackgroundWorker)
+    return true
+  } catch (error) {
+    throw error
+  }
+}
+
+// Основная функция
+const run = async () => {
+  try {
+    await registerPageBackgroundWorker()
+    await bitrixAPI.installFinish()
+  } catch (error) {
+    // Обработка ошибки
+  }
+}
+
+onMounted(() => {
+  run()
+})
 </script>
 
 <template>
-  <div>
-    <PageHero />
-
-    <B24PageSection
-        id="features"
-        title="A full-stack foundation for modern Vue apps"
-        description="Build on a robust starting point. This template provides everything you need to create production-ready applications with Bitrix24 UI's component system."
-        :features="[
-        {
-          icon: RocketIcon,
-          title: 'Production-ready from day one',
-          description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and Vite. Focus on building features, not setting up tooling.'
-        },
-        {
-          icon: PaletteIcon,
-          title: 'Beautiful by default',
-          description: 'Powered by Bitrix24 UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.',
-        },
-        {
-          icon: TaskIcon,
-          title: 'Lightning fast',
-          description: 'Optimized with Vite\'s blazing fast HMR, automatic code splitting, and tree-shaking. Your users will love the speed.'
-        },
-        {
-          icon: AppsIcon,
-          title: '100+ components included',
-          description: 'Access Bitrix24 UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.',
-        },
-        {
-          icon: CodeIcon,
-          title: 'Developer experience first',
-          description: 'Auto-imports, hot module replacement, TypeScript support, and Vue DevTools integration. Write less boilerplate and ship more features.'
-        },
-        {
-          icon: ShieldCheckedIcon,
-          title: 'Built for scale',
-          description: 'Modern Vue 3 architecture with Composition API, proper error handling, and security best practices built-in.',
-        }
-      ]"
-    />
-
-    <B24PageSection>
-      <B24PageCard
-          title="Starting a new Vue project?"
-          description="Join the community of developers building with Vue and Bitrix24 UI. Use the ready‑made starter template. Build and ship faster."
-          variant="tinted-alt"
-          :b24ui="{
-          title: 'sm:text-5xl',
-          description: 'sm:text-2xl'
-        }"
-      >
-        <template #footer>
-          <div class="flex flex-wrap items-center gap-4 mt-2">
-            <B24Button
-                label="Start building"
-                to="https://bitrix24.github.io/b24ui/docs/getting-started/installation/vue/"
-                target="_blank"
-                color="air-boost"
-            >
-              <template #trailing>
-                <ArrowRightLIcon class="size-6" />
-              </template>
-            </B24Button>
-
-            <B24Link
-                to="https://github.com/bitrix24/starter-b24ui-vue"
-                target="_blank"
-                is-action
-            >
-              View on GitHub
-            </B24Link>
-          </div>
-        </template>
-      </B24PageCard>
-    </B24PageSection>
-  </div>
+  <div style="display: none;"></div>
 </template>
