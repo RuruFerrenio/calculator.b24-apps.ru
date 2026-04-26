@@ -73,15 +73,15 @@ const HANDLERS: Record<PlacementType, string> = {
 
 const PLACEMENT_CONFIGS: Record<PlacementType, PlacementConfig> = {
   PAGE_BACKGROUND_WORKER: {
-    title: 'Фоновый счетчик',
-    description: 'Подсчитывает время, проведенное пользователем на странице',
+    title: 'Фоновая встройка',
+    description: 'Автоматически определяет время старта и завершения рабочего дня и оповещает об этом сотрудника',
     options: {
       errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
     }
   },
   REST_APP_URI: {
-    title: 'Форма для отчета',
-    description: 'Позволяет сотруднику заполнять запрошенные отчеты',
+    title: 'Встройка для управления рабочим днем из уведомлений',
+    description: 'Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях',
     options: {}
   }
 }
