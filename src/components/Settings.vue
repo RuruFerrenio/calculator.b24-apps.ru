@@ -335,7 +335,7 @@ watch(() => formData.value.workdayEnd.method, () => {
                         {
                             label: 'Push-уведомление',
                             value: 'push',
-                            description: 'Отправлять push-уведомление в мобильное приложение'
+                            description: 'Отправлять push-уведомление'
                         }
                     ]"
                     orientation="horizontal"
@@ -400,7 +400,7 @@ watch(() => formData.value.workdayEnd.method, () => {
                   </div>
                   <div>
                     <p class="text-sm text-gray-700">
-                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в мобильное приложение Битрикс24.
+                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в Битрикс24.
                     </p>
                   </div>
                 </div>
@@ -478,7 +478,7 @@ watch(() => formData.value.workdayEnd.method, () => {
                         {
                             label: 'Push-уведомление',
                             value: 'push',
-                            description: 'Отправлять push-уведомление в мобильное приложение'
+                            description: 'Отправлять push-уведомление'
                         }
                     ]"
                     orientation="horizontal"
@@ -543,7 +543,7 @@ watch(() => formData.value.workdayEnd.method, () => {
                   </div>
                   <div>
                     <p class="text-sm text-gray-700">
-                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в мобильное приложение Битрикс24.
+                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в Битрикс24.
                     </p>
                   </div>
                 </div>
