@@ -37,12 +37,10 @@ const handleReview = (): void => {
       (window as any).BX24.openPath(
           '/marketplace/detail/tekhnogalera.avtomaticheskoe_nachalo_i_zavershenie_rabochego_dnya/',
           function(result: any) {
-            console.log(result);
           }
       );
     });
   } else {
-    console.warn('BX24 не доступен');
   }
 };
 
@@ -69,19 +67,15 @@ const goToInstructions = (): void => {
 
 // Функция проверки прав администратора
 const checkAdminRights = () => {
-  console.log('Проверка прав администратора...')
   if (typeof (window as any).BX24 !== 'undefined') {
     (window as any).BX24.init(() => {
       const adminStatus = (window as any).BX24.isAdmin()
-      console.log('Статус администратора:', adminStatus)
 
       if (isAdmin.value !== adminStatus) {
         isAdmin.value = adminStatus
-        console.log('Статус администратора обновлен:', isAdmin.value)
       }
     })
   } else {
-    console.warn('BX24 не доступен')
     if (isAdmin.value !== false) {
       isAdmin.value = false
     }
@@ -90,14 +84,12 @@ const checkAdminRights = () => {
 
 // Инициализация и запуск периодической проверки
 const initialize = () => {
-  console.log('Запуск инициализации')
   checkAdminRights()
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
       checkAdminRights()
     }, 5000)
-    console.log('Запущена периодическая проверка прав (интервал 5 секунд)')
   }
 }
 
@@ -106,7 +98,6 @@ const cleanup = () => {
   if (intervalId !== null) {
     clearInterval(intervalId)
     intervalId = null
-    console.log('Остановлена периодическая проверка прав')
   }
 }
 

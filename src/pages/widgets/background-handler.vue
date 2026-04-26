@@ -78,7 +78,6 @@ async function checkTimemanAvailability(): Promise<boolean> {
       const isAvailable = methodData.isExisting && methodData.isAvailable
 
       if (isAvailable) {
-        console.log('Методы timeman доступны')
       } else {
         console.warn('Методы timeman не доступны')
       }

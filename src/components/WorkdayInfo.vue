@@ -211,7 +211,6 @@ const getFullName = (userData: any): string => {
  */
 const checkTimemanAvailability = async (): Promise<boolean> => {
   if (typeof BX24 === 'undefined') {
-    console.warn('⚠️ BX24 не загружен')
     return false
   }
 
@@ -220,7 +219,6 @@ const checkTimemanAvailability = async (): Promise<boolean> => {
       name: 'timeman.status'
     }, (result: any) => {
       if (result.error()) {
-        console.warn('⚠️ Метод method.get вернул ошибку:', result.error())
         resolve(false)
         return
       }
@@ -230,9 +228,7 @@ const checkTimemanAvailability = async (): Promise<boolean> => {
       const isAvailable = methodData.isExisting && methodData.isAvailable
 
       if (isAvailable) {
-        console.log('✅ Метод timeman.status доступен')
       } else {
-        console.warn('❌ Метод timeman.status НЕ доступен. Требуется тариф "Профессиональный"')
       }
 
       resolve(isAvailable)
@@ -272,7 +268,6 @@ const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
     userProfilesCache.value[userProfile.ID] = userProfile
     return userProfile
   } catch (err) {
-    console.error('Ошибка получения пользователя:', err)
     return null
   }
 }
@@ -299,7 +294,6 @@ const getWorkdayStatus = async (): Promise<WorkdayInfo | null> => {
     })
     return result
   } catch (err) {
-    console.error('Ошибка получения статуса рабочего дня:', err)
     error.value = 'Не удалось получить статус рабочего дня'
     return null
   }
@@ -358,7 +352,6 @@ const refreshData = async () => {
 
     error.value = null
   } catch (err) {
-    console.error('Ошибка обновления данных:', err)
     error.value = 'Ошибка при обновлении данных'
   } finally {
     isRefreshing.value = false
@@ -387,7 +380,6 @@ const handleStartWorkday = async () => {
     })
     await refreshData()
   } catch (err: any) {
-    console.error('Ошибка начала рабочего дня:', err)
     const errorMessage = err.error_description || err.message || 'Ошибка при начале рабочего дня'
     error.value = errorMessage
     toast.add({
@@ -420,7 +412,6 @@ const handleEndWorkday = async () => {
     })
     await refreshData()
   } catch (err: any) {
-    console.error('Ошибка завершения рабочего дня:', err)
     const errorMessage = err.error_description || err.message || 'Ошибка при завершении рабочего дня'
     error.value = errorMessage
     toast.add({
@@ -471,7 +462,6 @@ onMounted(() => {
       isTimemanAvailable.value = await checkTimemanAvailability()
 
       if (!isTimemanAvailable.value) {
-        console.warn('❌ Метод timeman.status НЕ ДОСТУПЕН. Требуется тариф "Профессиональный"')
         isLoading.value = false
         return
       }
@@ -479,7 +469,6 @@ onMounted(() => {
       // ======================================================================
       // ТОЛЬКО ЕСЛИ МЕТОД ДОСТУПЕН - выполняем всю остальную логику
       // ======================================================================
-      console.log('✅ Метод timeman.status ДОСТУПЕН. Приложение работает в полном режиме.')
 
       await refreshData()
       startAutoRefresh()

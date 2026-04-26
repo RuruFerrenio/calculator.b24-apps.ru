@@ -372,7 +372,6 @@ const init = (): void => {
           checkPlacementsStatus()
         })
       } else {
-        console.warn('Bitrix24 API не доступен')
       }
     }, 100)
   }

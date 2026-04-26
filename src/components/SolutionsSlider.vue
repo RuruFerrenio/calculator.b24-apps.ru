@@ -53,12 +53,10 @@ const handleReview = (): void => {
       (window as any).BX24.openPath(
           '/marketplace/detail/tekhnogalera.chistoe_vremya/',
           function(result: any) {
-            console.log(result);
           }
       );
     });
   } else {
-    console.warn('BX24 не доступен');
   }
 };
 

@@ -142,7 +142,6 @@ const formatDateTime = (dateTimeStr?: string): string => {
 const loadCurrentUser = async (): Promise<CurrentUser> => {
   // Проверяем наличие BX24
   if (typeof window === 'undefined' || typeof (window as any).BX24 === 'undefined') {
-    console.warn('BX24 API недоступна для загрузки данных пользователя')
     return {
       id: 0,
       name: 'Тестовый пользователь',
@@ -197,7 +196,6 @@ const loadCurrentUser = async (): Promise<CurrentUser> => {
         }
       }
     } catch (authError) {
-      console.warn('Ошибка при получении BX24.getAuth():', authError)
     }
 
     return {
