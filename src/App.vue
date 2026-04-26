@@ -39,9 +39,6 @@ onMounted(() => {
   const mode = getCookie('open_app_mode')
   const type = getCookie('modal_type')
 
-  console.log('open_app_mode:', mode)
-  console.log('modal_type:', type)
-
   if (mode === 'modal') {
     openAppMode.value = 'modal'
     if (type === 'start' || type === 'end') {
