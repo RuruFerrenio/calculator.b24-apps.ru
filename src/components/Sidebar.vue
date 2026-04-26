@@ -191,18 +191,6 @@ onUnmounted(() => {
               </div>
             </nav>
           </div>
-
-          <!-- Информация о безопасности -->
-          <div class="pt-4 border-t">
-            <div class="flex items-start">
-              <ShieldCheckIcon class="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <div>
-                <p class="text-xs text-gray-600">
-                  Данные об активности пользователей хранятся во внутреннем персональном хранилище портала Bitrix24.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </B24Card>

@@ -404,14 +404,14 @@ onMounted(() => {
 
           <!-- Список встроек -->
           <div class="space-y-6">
-            <!-- Фоновый счетчик -->
+            <!-- Фоновая встройка -->
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center space-x-3 mb-2">
                     <div>
-                      <p class="font-medium text-gray-900">Фоновый счетчик</p>
-                      <p class="text-sm text-gray-500">Подсчитывает время, проведенное пользователем на странице</p>
+                      <p class="font-medium text-gray-900">Фоновая встройка</p>
+                      <p class="text-sm text-gray-500">Автоматически определяет время старта и завершения рабочего дня и оповещает об этом сотрудника</p>
                     </div>
                   </div>
 
@@ -436,14 +436,14 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Форма для отчета -->
+            <!-- Встройка для управления рабочим днем из уведомлений -->
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center space-x-3 mb-2">
                     <div>
-                      <p class="font-medium text-gray-900">Форма для отчета</p>
-                      <p class="text-sm text-gray-500">Позволяет сотруднику заполнять запрошенные отчеты</p>
+                      <p class="font-medium text-gray-900">Встройка для управления рабочим днем из уведомлений</p>
+                      <p class="text-sm text-gray-500">Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях</p>
                     </div>
                   </div>
 

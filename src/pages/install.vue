@@ -380,9 +380,6 @@ onUnmounted(() => {
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3 px-2">
         Установка приложения "Удобное начало и завершение рабочего дня"
       </h1>
-      <p class="text-base md:text-lg text-gray-600 mx-auto px-4">
-        Настройка и активация системы мониторинга активности и рабочего времени
-      </p>
     </div>
 
     <!-- Прогресс-бар -->
@@ -427,14 +424,6 @@ onUnmounted(() => {
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
                   <span class="text-sm md:text-base text-gray-700">Гибкая настройка способов уведомлений (модальное окно, автоматический, push, чат)</span>
-                </li>
-                <li class="flex items-start">
-                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Контроль активности в выходные дни</span>
-                </li>
-                <li class="flex items-start">
-                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Форма для заполнения отчетов</span>
                 </li>
               </ul>
             </div>
@@ -532,18 +521,6 @@ onUnmounted(() => {
                   </div>
                   <B24Switch v-model="selectedFeatures.weekendActivity" />
                 </div>
-                <div v-if="selectedFeatures.weekendActivity" class="mt-4 pt-4 border-t">
-                  <div class="bg-yellow-50 rounded-lg p-4">
-                    <div class="flex items-start">
-                      <svg class="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                      </svg>
-                      <div class="text-sm text-yellow-700">
-                        <span class="font-medium">Примечание:</span> Используйте эту функцию осторожно, так как уведомления в выходные могут отвлекать сотрудников от отдыха.
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </B24PageCard>
             </div>
 
@@ -580,7 +557,7 @@ onUnmounted(() => {
             </div>
 
             <div class="space-y-3 md:space-y-4 mb-6 md:mb-8">
-              <!-- Фоновый счетчик -->
+              <!-- Фоновая встройка -->
               <div class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="placementStatus.pageBackgroundWorker === 'loading'">
@@ -597,12 +574,12 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <div class="ml-2 md:ml-3">
-                  <p class="text-xs md:text-sm font-medium text-gray-900">Фоновый счетчик</p>
-                  <p class="text-xs text-gray-500">Подсчитывает время, проведенное пользователем на странице</p>
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Фоновая встройка</p>
+                  <p class="text-xs text-gray-500">Автоматически определяет время старта и завершения рабочего дня и оповещает об этом сотрудника</p>
                 </div>
               </div>
 
-              <!-- Форма для отчета -->
+              <!-- Встройка для управления рабочим днем из уведомлений -->
               <div class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="placementStatus.restAppUri === 'loading'">
@@ -619,8 +596,8 @@ onUnmounted(() => {
                   </div>
                 </div>
                 <div class="ml-2 md:ml-3">
-                  <p class="text-xs md:text-sm font-medium text-gray-900">Форма для отчета</p>
-                  <p class="text-xs text-gray-500">Позволяет сотруднику заполнять запрошенные отчеты</p>
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Встройка для управления рабочим днем из уведомлений</p>
+                  <p class="text-xs text-gray-500">Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях</p>
                 </div>
               </div>
 
@@ -642,7 +619,7 @@ onUnmounted(() => {
                 </div>
                 <div class="ml-2 md:ml-3">
                   <p class="text-xs md:text-sm font-medium text-gray-900">Настройка параметров системы</p>
-                  <p class="text-xs text-gray-500">Сохранение настроек: старт/завершение рабочего дня, активность в выходные</p>
+                  <p class="text-xs text-gray-500">Сохранение настроек</p>
                 </div>
               </div>
             </div>
