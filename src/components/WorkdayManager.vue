@@ -63,11 +63,9 @@ const title = computed(() => {
 
 const subtitle = computed(() => {
   if (isStartMode.value) {
-    return 'Начните рабочий день,' +
-        ' чтобы фиксировать рабочее время'
+    return 'Начните рабочий день,\nчтобы фиксировать рабочее время'
   }
-  return 'Завершите рабочий день,' +
-      ' чтобы зафиксировать отработанное время'
+  return 'Завершите рабочий день,\nчтобы зафиксировать отработанное время'
 })
 
 const completionMessage = computed(() => {
@@ -500,7 +498,7 @@ onMounted(() => {
       </h1>
 
       <!-- Подзаголовок -->
-      <p class="text-gray-600 mb-8" v-if="!isActionCompleted">
+      <p class="text-gray-600 mb-8 whitespace-pre-line" v-if="!isActionCompleted">
         {{ subtitle }}
       </p>
       <p class="text-gray-600 mb-8" v-else>
