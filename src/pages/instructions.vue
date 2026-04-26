@@ -9,10 +9,10 @@ import WindowScreenIcon from '@bitrix24/b24icons-vue/social/WindowScreenIcon'
 import NotificationIcon from '@bitrix24/b24icons-vue/outline/NotificationIcon'
 import ChatsWithCheckIcon from '@bitrix24/b24icons-vue/outline/ChatsWithCheckIcon'
 
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 // Реактивные переменные
-const bitrixDomain = ref('your-domain.bitrix24.ru')
+const bitrixDomain = ref('')
 
 // Данные о методах
 const methods = [
@@ -38,7 +38,7 @@ const methods = [
       'Сотрудник точно не забудет запустить рабочий день',
       'Контроль за началом/завершением остается за сотрудником',
       'Стильно',
-      'Рекоммендуем, это самый лучший и удобный из представленных вариантов'
+      'Рекомендуем, это самый лучший и удобный из представленных вариантов'
     ],
     cons: [
       'Если сотрудник приступил к работе раньше или заканчивает рабочий день позже указанного времени в графике, модальное окно может появиться посреди рабочего процесса',
@@ -74,6 +74,13 @@ const methods = [
     ]
   }
 ]
+
+// Получение реального домена при монтировании компонента
+onMounted(() => {
+  if (typeof B24 !== 'undefined' && B24.getDomain) {
+    bitrixDomain.value = B24.getDomain()
+  }
+})
 </script>
 
 <template>
@@ -114,6 +121,7 @@ const methods = [
               :href="`https://${bitrixDomain}/timeman/schedules/`"
               target="_blank"
               color="air-primary"
+              :disabled="!bitrixDomain"
           >
             <template #left-icon>
               <SettingsIcon class="w-4 h-4" />
