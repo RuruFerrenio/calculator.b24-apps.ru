@@ -75,10 +75,43 @@ const methods = [
   }
 ]
 
-// Получение реального домена при монтировании компонента
+// Функция для получения домена через BX24.getDomain()
+function getBitrixDomain(): string | null {
+  if (typeof BX24 !== 'undefined' && BX24.getDomain) {
+    try {
+      const domain = BX24.getDomain()
+      if (domain && typeof domain === 'string') {
+        return domain
+      }
+    } catch (error) {
+    }
+  }
+  return null
+}
+
+// Получение реального домена через инициализацию BX24
 onMounted(() => {
-  if (typeof B24 !== 'undefined' && B24.getDomain) {
-    bitrixDomain.value = B24.getDomain()
+  if (typeof BX24 !== 'undefined' && BX24.init) {
+    // Ждем инициализации BX24 перед получением домена
+    BX24.init(() => {
+      const domain = getBitrixDomain()
+      if (domain) {
+        bitrixDomain.value = domain
+      } else {
+        console.error('Не удалось получить домен через BX24.getDomain()')
+        // Fallback - пробуем получить из window.location
+        if (typeof window !== 'undefined' && window.location) {
+          const fallbackDomain = window.location.hostname
+          bitrixDomain.value = fallbackDomain
+        }
+      }
+    })
+  } else {
+    // Fallback для случая, когда BX24 нет
+    if (typeof window !== 'undefined' && window.location) {
+      const fallbackDomain = window.location.hostname
+      bitrixDomain.value = fallbackDomain
+    }
   }
 })
 </script>
