@@ -192,7 +192,7 @@ const bitrixAPI = {
 
   getPlacements: async (): Promise<any[]> => {
     try {
-      const result = await bitrixAPI.call('placement.get', {})
+      const result = await bitrixAPI.call('placement.list', {})
       return Array.isArray(result) ? result : []
     } catch (error) {
       return []
@@ -504,6 +504,9 @@ async function loadPlacementStatus(
     if (isUserField) {
       isEnabled = await userFieldManager.checkStatus()
     } else {
+      console.log('Проверяем встройки')
+      console.log(placementType)
+      console.log(handler)
       isEnabled = await placementManager.checkStatus(placementType, handler)
     }
     settings.value[key] = isEnabled
