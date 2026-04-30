@@ -18,18 +18,18 @@
                   v-model="currentExpression"
                   type="text"
                   class="w-full text-right text-xl font-semibold text-b24-text-primary bg-transparent border-none outline-none calculator-input"
+                  :placeholder="direction === 'rtl' ? '۰' : '0'"
+                  spellcheck="false"
+                  :dir="direction"
                   @keydown="handleKeyDown"
                   @input="onExpressionChange"
                   @focus="onInputFocus"
                   @blur="onInputBlur"
-                  placeholder="0"
-                  spellcheck="false"
-                  :dir="direction"
               />
             </div>
 
             <div class="border-t border-b24-border pt-1 mt-1">
-              <div class="text-lg font-bold text-b24-primary truncate calculator-display" style="min-height: 24px;">
+              <div class="text-lg font-bold text-b24-primary truncate calculator-display" style="min-height: 24px">
                 = {{ formattedResult }}
               </div>
             </div>
@@ -56,19 +56,13 @@
       </div>
 
       <!-- Main Keyboard Accordion -->
-      <B24Card class="overflow-hidden">
-        <div
-            class="cursor-pointer flex items-center justify-between hover:bg-b24-surface-hover transition-colors p-3"
-            @click="toggleKeyboard"
-        >
-          <h3 class="text-sm font-semibold text-b24-text-primary">Основная клавиатура</h3>
-          <div class="transform transition-transform" :class="{ 'rotate-180': keyboardOpen }">
-            <i class="fas fa-chevron-down text-b24-text-secondary"></i>
-          </div>
-        </div>
-
-        <div v-if="keyboardOpen" class="pt-3 pb-3 px-3">
-          <div class="grid grid-cols-4 gap-2 mt-3">
+      <B24Accordion
+          :items="keyboardAccordionItems"
+          :collapsible="true"
+          :unmount-on-hide="false"
+      >
+        <template #body="{ item }">
+          <div class="grid grid-cols-4 gap-2 mt-1">
             <B24Button size="lg" variant="secondary" @click="clear" class="calc-btn">C</B24Button>
             <B24Button size="lg" variant="secondary" @click="backspace" class="calc-btn">⌫</B24Button>
             <B24Button size="lg" variant="secondary" @click="addPercentage" class="calc-btn">%</B24Button>
@@ -90,7 +84,7 @@
             <B24Button size="lg" variant="ghost" @click="addToExpression('+')" class="calc-btn calc-btn-operation">+</B24Button>
 
             <B24Button size="lg" variant="ghost" @click="addToExpression('0')" class="calc-btn calc-btn-number col-span-2">0</B24Button>
-            <B24Button size="lg" variant="ghost" @click="addToExpression('.')" class="calc-btn calc-btn-number">.</B24Button>
+            <B24Button size="lg" variant="ghost" @click="addToExpression('.')" class="calc-btn calc-btn-number">,</B24Button>
             <B24Button size="lg" @click="calculate" class="calc-btn calc-btn-equals">=</B24Button>
           </div>
 
@@ -100,166 +94,152 @@
             <B24Button size="sm" variant="ghost" @click="addToExpression('^')" class="calc-btn">xʸ</B24Button>
             <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn">π</B24Button>
           </div>
-        </div>
-      </B24Card>
+        </template>
+      </B24Accordion>
 
       <!-- Engineering Functions Accordion -->
-      <B24Card class="overflow-hidden">
-        <div
-            class="cursor-pointer flex items-center justify-between hover:bg-b24-surface-hover transition-colors p-3"
-            @click="toggleEngineering"
-        >
-          <h3 class="text-sm font-semibold text-b24-text-primary">Инженерные функции</h3>
-          <div class="transform transition-transform" :class="{ 'rotate-180': engineeringOpen }">
-            <i class="fas fa-calculator text-b24-text-secondary"></i>
-          </div>
-        </div>
-
-        <div v-if="engineeringOpen" class="pt-3 pb-3 px-3">
-          <!-- Trigonometry -->
-          <div class="mb-4">
-            <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Тригонометрия</h4>
-            <div class="grid grid-cols-3 gap-2 mb-3">
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sin')" class="calc-btn-engineering">sin</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('cos')" class="calc-btn-engineering">cos</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('tan')" class="calc-btn-engineering">tan</B24Button>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('asin')" class="calc-btn-engineering">asin</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('acos')" class="calc-btn-engineering">acos</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('atan')" class="calc-btn-engineering">atan</B24Button>
-            </div>
-          </div>
-
-          <!-- Mathematics -->
-          <div class="mb-4">
-            <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Математические</h4>
-            <div class="grid grid-cols-3 gap-2">
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sqrt')" class="calc-btn-engineering">√</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addPower(2)" class="calc-btn-engineering">x²</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addPower('y')" class="calc-btn-engineering">xʸ</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('ln')" class="calc-btn-engineering">ln</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('log10')" class="calc-btn-engineering">log₁₀</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('exp')" class="calc-btn-engineering">eˣ</B24Button>
-            </div>
-          </div>
-
-          <!-- Constants & Factorial -->
-          <div class="mb-4">
-            <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Константы</h4>
-            <div class="grid grid-cols-3 gap-2">
-              <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn-engineering">π</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addConstant('e')" class="calc-btn-engineering">e</B24Button>
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('factorial')" class="calc-btn-engineering">n!</B24Button>
-            </div>
-          </div>
-
-          <!-- Additional -->
+      <B24Accordion :items="engineeringAccordionItems" :collapsible="true" :unmount-on-hide="false">
+        <template #body>
           <div>
-            <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Дополнительно</h4>
-            <div class="grid grid-cols-3 gap-2">
-              <B24Button size="sm" variant="ghost" @click="wrapWithFunction('abs')" class="calc-btn-engineering">|x|</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addReciprocal" class="calc-btn-engineering">1/x</B24Button>
-              <B24Button size="sm" variant="ghost" @click="toggleAngleMode" class="calc-btn-engineering">
-                {{ angleMode === 'deg' ? 'DEG' : 'RAD' }}
-              </B24Button>
+            <!-- Trigonometry -->
+            <div class="mb-4">
+              <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Тригонометрия</h4>
+              <div class="grid grid-cols-3 gap-2 mb-3">
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sin')" class="calc-btn-engineering">sin</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('cos')" class="calc-btn-engineering">cos</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('tan')" class="calc-btn-engineering">tan</B24Button>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('asin')" class="calc-btn-engineering">asin</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('acos')" class="calc-btn-engineering">acos</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('atan')" class="calc-btn-engineering">atan</B24Button>
+              </div>
+            </div>
+
+            <!-- Mathematics -->
+            <div class="mb-4">
+              <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Математические</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sqrt')" class="calc-btn-engineering">√</B24Button>
+                <B24Button size="sm" variant="ghost" @click="addPower(2)" class="calc-btn-engineering">x²</B24Button>
+                <B24Button size="sm" variant="ghost" @click="addPower('y')" class="calc-btn-engineering">xʸ</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('ln')" class="calc-btn-engineering">ln</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('log10')" class="calc-btn-engineering">log₁₀</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('exp')" class="calc-btn-engineering">eˣ</B24Button>
+              </div>
+            </div>
+
+            <!-- Constants & Factorial -->
+            <div class="mb-4">
+              <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Константы</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn-engineering">π</B24Button>
+                <B24Button size="sm" variant="ghost" @click="addConstant('e')" class="calc-btn-engineering">e</B24Button>
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('factorial')" class="calc-btn-engineering">n!</B24Button>
+              </div>
+            </div>
+
+            <!-- Additional -->
+            <div>
+              <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Дополнительно</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <B24Button size="sm" variant="ghost" @click="wrapWithFunction('abs')" class="calc-btn-engineering">|x|</B24Button>
+                <B24Button size="sm" variant="ghost" @click="addReciprocal" class="calc-btn-engineering">1/x</B24Button>
+                <B24Button size="sm" variant="ghost" @click="toggleAngleMode" class="calc-btn-engineering">
+                  {{ angleMode === 'deg' ? 'DEG' : 'RAD' }}
+                </B24Button>
+              </div>
             </div>
           </div>
-        </div>
-      </B24Card>
+        </template>
+      </B24Accordion>
 
       <!-- History Accordion -->
-      <B24Card class="overflow-hidden">
-        <div
-            class="cursor-pointer flex items-center justify-between hover:bg-b24-surface-hover transition-colors p-3"
-            @click="toggleHistory"
-        >
-          <h3 class="text-sm font-semibold text-b24-text-primary">История</h3>
+      <B24Accordion :items="historyAccordionItems" :collapsible="true" :unmount-on-hide="false">
+        <template #trailing="{ open }">
           <div class="flex items-center space-x-2">
             <span v-if="history.length > 0" class="text-xs text-b24-text-secondary">
               {{ history.length }} записей
             </span>
-            <div class="transform transition-transform" :class="{ 'rotate-180': historyOpen }">
+            <div class="transform transition-transform" :class="{ 'rotate-180': open }">
               <i class="fas fa-chevron-down text-b24-text-secondary"></i>
             </div>
           </div>
-        </div>
+        </template>
+        <template #body>
+          <div>
+            <div v-if="history.length === 0" class="text-center py-4">
+              <p class="text-sm text-b24-text-secondary">История пуста</p>
+            </div>
 
-        <div v-if="historyOpen" class="pt-3 pb-3 px-3">
-          <div v-if="history.length === 0" class="text-center py-4">
-            <p class="text-sm text-b24-text-secondary">История пуста</p>
-          </div>
-
-          <div v-else class="space-y-2 max-h-40 overflow-y-auto">
-            <div
-                v-for="item in history.slice(0, 10)"
-                :key="item.id"
-                @click="restoreFromHistory(item)"
-                class="history-item p-2 rounded cursor-pointer hover:bg-b24-surface-hover transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div class="text-sm text-b24-text-secondary font-mono truncate">{{ item.expression }}</div>
-                <span class="text-xs text-b24-text-tertiary ml-2 flex-shrink-0">{{ item.timestamp }}</span>
+            <div v-else class="space-y-2 max-h-40 overflow-y-auto">
+              <div
+                  v-for="item in history.slice(0, 10)"
+                  :key="item.id"
+                  class="history-item p-2 rounded cursor-pointer hover:bg-b24-surface-hover transition-colors"
+                  @click="restoreFromHistory(item)"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="text-sm text-b24-text-secondary font-mono truncate">{{ item.expression }}</div>
+                  <span class="text-xs text-b24-text-tertiary ml-2 flex-shrink-0">{{ item.timestamp }}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="flex justify-start mt-3">
-            <B24Button size="xs" variant="ghost" @click="clearHistory" class="text-xs w-full justify-center">
-              Очистить историю
-            </B24Button>
+            <div class="flex justify-start mt-3">
+              <B24Button size="xs" variant="ghost" @click="clearHistory" class="text-xs w-full justify-center">
+                Очистить историю
+              </B24Button>
+            </div>
           </div>
-        </div>
-      </B24Card>
+        </template>
+      </B24Accordion>
 
       <!-- Help Accordion -->
-      <B24Card class="overflow-hidden">
-        <div
-            class="cursor-pointer flex items-center justify-between hover:bg-b24-surface-hover transition-colors p-3"
-            @click="toggleHelp"
-        >
-          <h3 class="text-sm font-semibold text-b24-text-primary">Справка</h3>
-          <div class="transform transition-transform" :class="{ 'rotate-180': helpOpen }">
+      <B24Accordion :items="helpAccordionItems" :collapsible="true" :unmount-on-hide="false">
+        <template #trailing="{ open }">
+          <div class="transform transition-transform" :class="{ 'rotate-180': open }">
             <i class="fas fa-question-circle text-b24-text-secondary"></i>
           </div>
-        </div>
-
-        <div v-if="helpOpen" class="pt-3 pb-3 px-3">
-          <div class="mb-4">
-            <h4 class="text-xs font-semibold text-b24-text-primary mb-2 px-1 pb-1 border-b border-b24-border">
-              Основные клавиши
-            </h4>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-b24-text-secondary">Вычислить</span>
-                <div class="flex items-center space-x-1">
-                  <kbd class="keyboard-key">Enter</kbd>
-                  <span class="text-xs text-b24-text-tertiary">или</span>
-                  <kbd class="keyboard-key">=</kbd>
+        </template>
+        <template #body>
+          <div>
+            <div class="mb-4">
+              <h4 class="text-xs font-semibold text-b24-text-primary mb-2 px-1 pb-1 border-b border-b24-border">
+                Основные клавиши
+              </h4>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-b24-text-secondary">Вычислить</span>
+                  <div class="flex items-center space-x-1">
+                    <kbd class="keyboard-key">Enter</kbd>
+                    <span class="text-xs text-b24-text-tertiary">или</span>
+                    <kbd class="keyboard-key">=</kbd>
+                  </div>
                 </div>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-b24-text-secondary">Очистить всё</span>
-                <div class="flex items-center space-x-1">
-                  <kbd class="keyboard-key">Esc</kbd>
-                  <span class="text-xs text-b24-text-tertiary">или</span>
-                  <kbd class="keyboard-key">Del</kbd>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-b24-text-secondary">Очистить всё</span>
+                  <div class="flex items-center space-x-1">
+                    <kbd class="keyboard-key">Esc</kbd>
+                    <span class="text-xs text-b24-text-tertiary">или</span>
+                    <kbd class="keyboard-key">Del</kbd>
+                  </div>
                 </div>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-b24-text-secondary">Удалить символ</span>
-                <kbd class="keyboard-key">Backspace</kbd>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-b24-text-secondary">Удалить символ</span>
+                  <kbd class="keyboard-key">Backspace</kbd>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="pt-3 border-t border-b24-border">
-            <p class="text-xs text-b24-text-tertiary italic">
-              Поддерживаются цифры 0-9, операции +, -, *, /, ^, %, скобки (), математические функции
-            </p>
+            <div class="pt-3 border-t border-b24-border">
+              <p class="text-xs text-b24-text-tertiary italic">
+                Поддерживаются цифры 0-9, операции +, -, *, /, ^, %, скобки (), математические функции
+              </p>
+            </div>
           </div>
-        </div>
-      </B24Card>
+        </template>
+      </B24Accordion>
     </div>
   </B24App>
 </template>
@@ -267,7 +247,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
-import { evaluate, type EvalFunction } from 'mathjs'
+import { evaluate } from 'mathjs'
 
 // Types
 interface HistoryItem {
@@ -319,16 +299,51 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const sendBtnActive = ref<boolean>(true)
 const fitWindow = ref<boolean>(true)
 const lastSavedExpression = ref<string | null>(null)
-const direction = ref<'ltr' | 'rtl'>('ltr')
+
+// Direction for RTL/LTR
+const direction = computed(() => {
+  const match = currentExpression.value.match(/[\u0600-\u06FF]/)
+  if (match) return 'rtl'
+  return 'ltr'
+})
 
 // Debounce timer
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// Accordion items
+const keyboardAccordionItems = ref([
+  {
+    label: 'Основная клавиатура',
+    value: 'keyboard',
+  },
+])
+
+const engineeringAccordionItems = ref([
+  {
+    label: 'Инженерные функции',
+    value: 'engineering',
+  },
+])
+
+const historyAccordionItems = ref([
+  {
+    label: 'История',
+    value: 'history',
+  },
+])
+
+const helpAccordionItems = ref([
+  {
+    label: 'Справка',
+    value: 'help',
+  },
+])
 
 // Helper functions
 const showNotification = (message: string, variant: 'success' | 'error' | 'warning' | 'info' = 'success') => {
   toast.add({
     description: message,
-    variant
+    variant,
   })
 }
 
@@ -358,10 +373,7 @@ const evaluateExpression = (): void => {
     }
 
     // Prepare expression for math.js
-    let preparedExpr = expr
-        .replace(/\^/g, '^')
-        .replace(/pi/g, 'pi')
-        .replace(/e(?![a-z])/g, 'e')
+    let preparedExpr = expr.replace(/\^/g, '^').replace(/pi/g, 'pi').replace(/e(?![a-z])/g, 'e')
 
     // Handle percentage
     preparedExpr = preparedExpr.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)')
@@ -413,7 +425,7 @@ const calculate = (): void => {
           id: Date.now(),
           expression: `${displayExpr} = ${resultValue}`,
           timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-          rawExpression: currentExpression.value
+          rawExpression: currentExpression.value,
         })
 
         if (history.value.length > 20) {
@@ -597,9 +609,7 @@ const restoreFromHistory = (item: HistoryItem): void => {
 // Interaction
 const copyToClipboard = async (): Promise<void> => {
   try {
-    const textToCopy = formattedResult.value !== '...' && formattedResult.value !== ''
-        ? formattedResult.value
-        : '0'
+    const textToCopy = formattedResult.value !== '...' && formattedResult.value !== '' ? formattedResult.value : '0'
     await navigator.clipboard.writeText(textToCopy)
     showNotification('Скопировано в буфер обмена', 'success')
   } catch (error) {
@@ -610,7 +620,8 @@ const copyToClipboard = async (): Promise<void> => {
 
 const sendToChat = async (): Promise<void> => {
   try {
-    const expression = previousExpression.value ||
+    const expression =
+        previousExpression.value ||
         (currentExpression.value && result.value !== '...' && result.value !== ''
             ? `${currentExpression.value} = ${formattedResult.value}`
             : formattedResult.value || '0')
@@ -625,7 +636,7 @@ const sendToChat = async (): Promise<void> => {
       await window.BX24.callMethod('im.message.add', {
         DIALOG_ID: currentDialogId,
         MESSAGE: expression,
-        SYSTEM: 'N'
+        SYSTEM: 'N',
       })
       showNotification('Отправлено в чат', 'success')
     } else {
@@ -638,22 +649,6 @@ const sendToChat = async (): Promise<void> => {
 }
 
 // UI toggles
-const toggleEngineering = (): void => {
-  engineeringOpen.value = !engineeringOpen.value
-}
-
-const toggleKeyboard = (): void => {
-  keyboardOpen.value = !keyboardOpen.value
-}
-
-const toggleHistory = (): void => {
-  historyOpen.value = !historyOpen.value
-}
-
-const toggleHelp = (): void => {
-  helpOpen.value = !helpOpen.value
-}
-
 const toggleAngleMode = (): void => {
   angleMode.value = angleMode.value === 'deg' ? 'rad' : 'deg'
   showNotification(`Режим: ${angleMode.value === 'deg' ? 'Градусы' : 'Радианы'}`, 'info')
@@ -667,13 +662,13 @@ const toggleAngleMode = (): void => {
 const handleKeyDown = (e: KeyboardEvent): void => {
   const key = e.key
 
-  if (key === 'Backspace' && e.target?.tagName !== 'INPUT') {
+  if (key === 'Backspace' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
     e.preventDefault()
     backspace()
     return
   }
 
-  if (e.target?.tagName === 'INPUT') {
+  if ((e.target as HTMLElement)?.tagName === 'INPUT') {
     if (/^[0-9\.\+\-\*\/\^\(\)%,]$/.test(key)) {
       return
     }
@@ -800,7 +795,7 @@ onUnmounted(() => {
 
 <style scoped>
 .calculator-display {
-  font-feature-settings: "tnum";
+  font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   word-break: break-all;
@@ -810,7 +805,7 @@ onUnmounted(() => {
 }
 
 .calculator-input {
-  font-feature-settings: "tnum";
+  font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
   font-family: inherit;
   width: 100%;
@@ -908,19 +903,19 @@ onUnmounted(() => {
   user-select: none;
 }
 
-[dir="rtl"] .calculator-input {
+[dir='rtl'] .calculator-input {
   text-align: left;
 }
 
-[dir="rtl"] .calculator-display {
+[dir='rtl'] .calculator-display {
   text-align: left;
 }
 
-[dir="rtl"] .text-right {
+[dir='rtl'] .text-right {
   text-align: left;
 }
 
-[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+[dir='rtl'] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
   margin-left: 0;
   margin-right: 0.5rem;
 }
