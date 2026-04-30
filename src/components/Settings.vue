@@ -1,40 +1,144 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import PlacementsManager from './PlacementsManager.vue'
 
 const toast = useToast()
 
+// URL обработчиков (должны совпадать с инсталлером)
+const HANDLERS = {
+  pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`,
+  restAppUri: `${window.location.origin}/dist/`,
+  chatTextarea: `${window.location.origin}/dist/widgets/chat-textarea`,
+  chatSidebar: `${window.location.origin}/dist/widgets/chat-sidebar`,
+  taskSidebar: `${window.location.origin}/dist/widgets/task-sidebar`,
+  taskTab: `${window.location.origin}/dist/widgets/task-tab`,
+  callCard: `${window.location.origin}/dist/widgets/call-card`,
+  userField: `${window.location.origin}/dist/widgets/user-field`
+}
+
+// Конфигурации встроек
+const PLACEMENT_CONFIGS = {
+  PAGE_BACKGROUND_WORKER: {
+    title: 'Фоновая встройка',
+    description: 'Автоматически определяет время старта и завершения рабочего дня',
+    options: {
+      errorHandlerUrl: `${window.location.origin}/dist/widgets/background-error-handler`
+    }
+  },
+  REST_APP_URI: {
+    title: 'Встройка для управления рабочим днем из уведомлений',
+    description: 'Управление статусом рабочего дня через уведомления',
+    options: {}
+  },
+  IM_TEXTAREA: {
+    title: 'Калькулятор в панели ввода сообщения',
+    description: 'Расчеты прямо в панели ввода сообщения чата',
+    options: {
+      iconName: 'fa-calculator',
+      context: 'ALL',
+      role: 'USER',
+      color: 'AQUA',
+      extranet: 'N',
+      width: 300,
+      height: 675
+    }
+  },
+  IM_SIDEBAR: {
+    title: 'Калькулятор в боковой панели чата',
+    description: 'Расчеты в боковой панели чата',
+    options: {
+      iconName: 'fa-calculator',
+      context: 'ALL',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  TASK_VIEW_SIDEBAR: {
+    title: 'Калькулятор в боковой панели задачи',
+    description: 'Расчеты в боковой панели задачи',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  TASK_VIEW_TAB: {
+    title: 'Калькулятор во вкладке задачи',
+    description: 'Расчеты в отдельной вкладке задачи',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  CALL_CARD: {
+    title: 'Калькулятор в карточке звонка',
+    description: 'Расчеты в карточке звонка',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+    }
+  }
+}
+
+// Конфигурация пользовательского поля
+const USER_FIELD_CONFIG = {
+  TYPE_ID: 'calculator_crm',
+  TITLE: 'Калькулятор в CRM',
+  DESCRIPTION: 'Поле с калькулятором для проведения расчетов',
+  OPTIONS: {
+    height: 500
+  }
+}
+
 // Типы данных
-interface WorkdaySettings {
-  enabled: boolean
-  method: 'auto' | 'modal' | 'chat' | 'push'
+interface PlacementStatus {
+  pageBackgroundWorker: boolean
+  restAppUri: boolean
+  chatTextarea: boolean
+  chatSidebar: boolean
+  taskSidebar: boolean
+  taskTab: boolean
+  callCard: boolean
+  userField: boolean
 }
 
-interface FormData {
-  workdayStart: WorkdaySettings
-  workdayEnd: WorkdaySettings
-  weekendActivity: {
-    enabled: boolean
-  }
-}
-
-// Инициализируем formData как обычный объект, а не ref
-const formData = ref<FormData>({
-  workdayStart: {
-    enabled: false,
-    method: 'modal'
-  },
-  workdayEnd: {
-    enabled: false,
-    method: 'modal'
-  },
-  weekendActivity: {
-    enabled: false
-  }
+// Состояние настроек
+const settings = ref<PlacementStatus>({
+  pageBackgroundWorker: false,
+  restAppUri: false,
+  chatTextarea: false,
+  chatSidebar: false,
+  taskSidebar: false,
+  taskTab: false,
+  callCard: false,
+  userField: false
 })
 
-const isProcessing = ref(false)
+// Состояния загрузки для каждого свитчера
+const processingStates = ref({
+  pageBackgroundWorker: false,
+  restAppUri: false,
+  chatTextarea: false,
+  chatSidebar: false,
+  taskSidebar: false,
+  taskTab: false,
+  callCard: false,
+  userField: false
+})
+
 const isBitrixLoaded = ref(false)
 
 // Функция для уведомлений
@@ -47,513 +151,637 @@ function showNotification(type: 'success' | 'error' | 'warning' | 'info', messag
   }
 }
 
-function getWorkdayStartMethodText(): string {
-  const methods: Record<'auto' | 'modal' | 'chat' | 'push', string> = {
-    'auto': 'Автоматический старт',
-    'modal': 'Модальное окно с предупреждением',
-    'chat': 'Сообщение в чате',
-    'push': 'Push-уведомление'
+// Функции для работы с Bitrix24 API
+const bitrixAPI = {
+  call: (method: string, params: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (typeof BX24 === 'undefined' || typeof BX24.callMethod === 'undefined') {
+        reject(new Error('Библиотека Bitrix24 не доступна'))
+        return
+      }
+
+      BX24.callMethod(method, params, (result: any) => {
+        if (result.error()) {
+          reject(new Error(result.error().getError()))
+        } else {
+          resolve(result.data())
+        }
+      })
+    })
+  },
+
+  setAppOption: async (key: string, value: string): Promise<any> => {
+    try {
+      const result = await bitrixAPI.call('app.option.set', {
+        options: { [key]: value }
+      })
+      return result
+    } catch (error) {
+      throw error
+    }
+  },
+
+  getAppOption: async (key: string): Promise<string | null> => {
+    try {
+      const result = await bitrixAPI.call('app.option.get', { name: key })
+      return result || null
+    } catch (error) {
+      return null
+    }
+  },
+
+  getPlacements: async (): Promise<any[]> => {
+    try {
+      const result = await bitrixAPI.call('placement.list', {})
+      return Array.isArray(result) ? result : []
+    } catch (error) {
+      return []
+    }
+  },
+
+  getUserFieldTypes: async (): Promise<any[]> => {
+    try {
+      const result = await bitrixAPI.call('userfieldtype.list', {})
+      return Array.isArray(result) ? result : []
+    } catch (error) {
+      return []
+    }
   }
-  return methods[formData.value.workdayStart.method] || 'модальное окно'
 }
 
-function getWorkdayEndMethodText(): string {
-  const methods: Record<'auto' | 'modal' | 'chat' | 'push', string> = {
-    'auto': 'Автоматическое завершение',
-    'modal': 'Модальное окно с предупреждением',
-    'chat': 'Сообщение в чате',
-    'push': 'Push-уведомление'
+// Менеджер встроек
+const placementManager = {
+  getConfig: (placementType: string) => {
+    const config = PLACEMENT_CONFIGS[placementType as keyof typeof PLACEMENT_CONFIGS]
+    if (!config) {
+      throw new Error(`Неизвестный тип встройки: ${placementType}`)
+    }
+    return config
+  },
+
+  bind: async (placementType: string, handler: string): Promise<boolean> => {
+    try {
+      const config = placementManager.getConfig(placementType)
+
+      let placementConfig: any
+
+      if (placementType === 'PAGE_BACKGROUND_WORKER') {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          OPTIONS: config.options
+        }
+      } else if (placementType === 'REST_APP_URI') {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          LANG_ALL: {
+            ru: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятор под рукой'
+            },
+            en: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Calculator at hand'
+            },
+            be: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятар пад рукой'
+            },
+            kk: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Қол астындағы калькулятор'
+            }
+          },
+          OPTIONS: config.options
+        }
+      } else {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          LANG_ALL: {
+            ru: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятор под рукой'
+            },
+            en: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Calculator at hand'
+            },
+            be: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятар пад рукой'
+            },
+            kk: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Қол астындағы калькулятор'
+            }
+          },
+          OPTIONS: config.options
+        }
+      }
+
+      await bitrixAPI.call('placement.bind', placementConfig)
+      return true
+    } catch (error) {
+      throw error
+    }
+  },
+
+  unbind: async (placementType: string, handler: string): Promise<boolean> => {
+    try {
+      await bitrixAPI.call('placement.unbind', {
+        PLACEMENT: placementType,
+        HANDLER: handler
+      })
+      return true
+    } catch (error) {
+      return false
+    }
+  },
+
+  checkStatus: async (placementType: string, handler: string): Promise<boolean> => {
+    try {
+      const placements = await bitrixAPI.getPlacements()
+      const placement = placements.find(p =>
+          p.PLACEMENT === placementType && p.HANDLER === handler
+      )
+      return !!placement
+    } catch (error) {
+      return false
+    }
   }
-  return methods[formData.value.workdayEnd.method] || 'модальное окно'
 }
 
-async function toggleWorkdayStart(newValue: boolean): Promise<void> {
+// Менеджер пользовательских полей
+const userFieldManager = {
+  checkStatus: async (): Promise<boolean> => {
+    try {
+      const userFieldTypes = await bitrixAPI.getUserFieldTypes()
+      const existingType = userFieldTypes.find(type =>
+          type.USER_TYPE_ID === USER_FIELD_CONFIG.TYPE_ID &&
+          type.HANDLER === HANDLERS.userField
+      )
+      return !!existingType
+    } catch (error) {
+      return false
+    }
+  },
+
+  add: async (): Promise<boolean> => {
+    try {
+      await bitrixAPI.call('userfieldtype.add', {
+        USER_TYPE_ID: USER_FIELD_CONFIG.TYPE_ID,
+        HANDLER: HANDLERS.userField,
+        TITLE: USER_FIELD_CONFIG.TITLE,
+        DESCRIPTION: USER_FIELD_CONFIG.DESCRIPTION,
+        OPTIONS: USER_FIELD_CONFIG.OPTIONS
+      })
+      return true
+    } catch (error) {
+      throw error
+    }
+  },
+
+  delete: async (): Promise<boolean> => {
+    try {
+      await bitrixAPI.call('userfieldtype.delete', {
+        USER_TYPE_ID: USER_FIELD_CONFIG.TYPE_ID
+      })
+      return true
+    } catch (error) {
+      return false
+    }
+  }
+}
+
+// Универсальная функция переключения встройки
+async function togglePlacement(
+    key: keyof PlacementStatus,
+    placementType: string,
+    handler: string,
+    isUserField: boolean = false
+): Promise<void> {
+  if (processingStates.value[key]) return
+
+  processingStates.value[key] = true
+  const newValue = !settings.value[key]
+
   try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_start_enabled', newValue ? 'Y' : 'N')
-    }
-    formData.value.workdayStart.enabled = newValue
-    showNotification('success', newValue ? 'Помощь в старте рабочего дня включена' : 'Помощь в старте рабочего дня выключена')
-  } catch {
-    showNotification('error', 'Ошибка сохранения настройки')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function toggleWorkdayEnd(newValue: boolean): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_end_enabled', newValue ? 'Y' : 'N')
-    }
-    formData.value.workdayEnd.enabled = newValue
-    showNotification('success', newValue ? 'Помощь в завершении рабочего дня включена' : 'Помощь в завершении рабочего дня выключена')
-  } catch {
-    showNotification('error', 'Ошибка сохранения настройки')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function toggleWeekendActivity(newValue: boolean): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('weekend_activity_enabled', newValue ? 'Y' : 'N')
-    }
-    formData.value.weekendActivity.enabled = newValue
-    showNotification('success', newValue ? 'Активность в выходные включена' : 'Активность в выходные выключена')
-  } catch {
-    showNotification('error', 'Ошибка сохранения настройки')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function updateWorkdayStartMethod(): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_start_method', formData.value.workdayStart.method)
-    }
-    const methodText = getWorkdayStartMethodText()
-    showNotification('success', `Способ старта рабочего дня: ${methodText}`)
-  } catch {
-    showNotification('error', 'Ошибка сохранения способа старта')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function updateWorkdayEndMethod(): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_end_method', formData.value.workdayEnd.method)
-    }
-    const methodText = getWorkdayEndMethodText()
-    showNotification('success', `Способ завершения рабочего дня: ${methodText}`)
-  } catch {
-    showNotification('error', 'Ошибка сохранения способа завершения')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function saveWorkdayStartSettings(): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_start_enabled', formData.value.workdayStart.enabled ? 'Y' : 'N')
-      await BX24.appOption.set('workday_start_method', formData.value.workdayStart.method)
-    }
-    showNotification('success', 'Настройки помощи в старте рабочего дня сохранены')
-  } catch {
-    showNotification('error', 'Ошибка сохранения настроек')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-async function saveWorkdayEndSettings(): Promise<void> {
-  try {
-    isProcessing.value = true
-    if (isBitrixLoaded.value && typeof BX24 !== 'undefined') {
-      await BX24.appOption.set('workday_end_enabled', formData.value.workdayEnd.enabled ? 'Y' : 'N')
-      await BX24.appOption.set('workday_end_method', formData.value.workdayEnd.method)
-    }
-    showNotification('success', 'Настройки помощи в завершении рабочего дня сохранены')
-  } catch {
-    showNotification('error', 'Ошибка сохранения настроек')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-function normalizeBoolean(value: unknown): boolean {
-  return value === 'Y' || value === true || value === 1
-}
-
-function normalizeMethod(value: unknown, validMethods: readonly string[]): 'auto' | 'modal' | 'chat' | 'push' | null {
-  if (typeof value === 'string' && validMethods.includes(value)) {
-    return value as 'auto' | 'modal' | 'chat' | 'push'
-  }
-  return null
-}
-
-async function loadSettings(): Promise<void> {
-  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
-
-  try {
-    const [
-      workdayStartEnabled,
-      workdayStartMethod,
-      workdayEndEnabled,
-      workdayEndMethod,
-      weekendActivityEnabled
-    ] = await Promise.all([
-      BX24.appOption.get('workday_start_enabled'),
-      BX24.appOption.get('workday_start_method'),
-      BX24.appOption.get('workday_end_enabled'),
-      BX24.appOption.get('workday_end_method'),
-      BX24.appOption.get('weekend_activity_enabled')
-    ])
-
-    // Загрузка настроек старта рабочего дня
-    formData.value.workdayStart.enabled = normalizeBoolean(workdayStartEnabled)
-
-    const startMethod = normalizeMethod(workdayStartMethod, ['auto', 'modal', 'chat', 'push'])
-    if (startMethod) {
-      formData.value.workdayStart.method = startMethod
+    if (!isBitrixLoaded.value || typeof BX24 === 'undefined') {
+      throw new Error('Библиотека Bitrix24 не доступна')
     }
 
-    // Загрузка настроек завершения рабочего дня
-    formData.value.workdayEnd.enabled = normalizeBoolean(workdayEndEnabled)
-
-    const endMethod = normalizeMethod(workdayEndMethod, ['auto', 'modal', 'chat', 'push'])
-    if (endMethod) {
-      formData.value.workdayEnd.method = endMethod
+    if (newValue) {
+      // Включение
+      if (isUserField) {
+        await userFieldManager.add()
+      } else {
+        await placementManager.bind(placementType, handler)
+      }
+      showNotification('success', getSuccessMessage(key, true))
+    } else {
+      // Выключение
+      if (isUserField) {
+        await userFieldManager.delete()
+      } else {
+        await placementManager.unbind(placementType, handler)
+      }
+      showNotification('success', getSuccessMessage(key, false))
     }
 
-    // Загрузка настройки активности в выходные
-    formData.value.weekendActivity.enabled = normalizeBoolean(weekendActivityEnabled)
+    settings.value[key] = newValue
+
+    // Сохраняем настройку в app.options
+    const optionKey = `${key}_enabled`
+    await bitrixAPI.setAppOption(optionKey, newValue ? 'Y' : 'N')
 
   } catch (error) {
-    console.error('Ошибка загрузки настроек:', error)
+    console.error(`Ошибка при переключении ${key}:`, error)
+    showNotification('error', getErrorMessage(key, newValue))
+    // Обновляем статус из системы
+    await loadPlacementStatus(key, placementType, handler, isUserField)
+  } finally {
+    processingStates.value[key] = false
   }
 }
 
-// Жизненный цикл
+// Получение сообщений об успехе
+function getSuccessMessage(key: keyof PlacementStatus, enabled: boolean): string {
+  const messages: Record<keyof PlacementStatus, { on: string; off: string }> = {
+    pageBackgroundWorker: {
+      on: 'Фоновая встройка включена',
+      off: 'Фоновая встройка выключена'
+    },
+    restAppUri: {
+      on: 'Управление из уведомлений включено',
+      off: 'Управление из уведомлений выключено'
+    },
+    chatTextarea: {
+      on: 'Калькулятор в панели ввода сообщения включен',
+      off: 'Калькулятор в панели ввода сообщения выключен'
+    },
+    chatSidebar: {
+      on: 'Калькулятор в боковой панели чата включен',
+      off: 'Калькулятор в боковой панели чата выключен'
+    },
+    taskSidebar: {
+      on: 'Калькулятор в боковой панели задачи включен',
+      off: 'Калькулятор в боковой панели задачи выключен'
+    },
+    taskTab: {
+      on: 'Калькулятор во вкладке задачи включен',
+      off: 'Калькулятор во вкладке задачи выключен'
+    },
+    callCard: {
+      on: 'Калькулятор в карточке звонка включен',
+      off: 'Калькулятор в карточке звонка выключен'
+    },
+    userField: {
+      on: 'Пользовательское поле с калькулятором включено',
+      off: 'Пользовательское поле с калькулятором выключено'
+    }
+  }
+  return enabled ? messages[key].on : messages[key].off
+}
+
+// Получение сообщений об ошибке
+function getErrorMessage(key: keyof PlacementStatus, enabled: boolean): string {
+  const messages: Record<keyof PlacementStatus, { on: string; off: string }> = {
+    pageBackgroundWorker: {
+      on: 'Ошибка при включении фоновой встройки',
+      off: 'Ошибка при выключении фоновой встройки'
+    },
+    restAppUri: {
+      on: 'Ошибка при включении управления из уведомлений',
+      off: 'Ошибка при выключении управления из уведомлений'
+    },
+    chatTextarea: {
+      on: 'Ошибка при включении калькулятора в панели ввода сообщения',
+      off: 'Ошибка при выключении калькулятора в панели ввода сообщения'
+    },
+    chatSidebar: {
+      on: 'Ошибка при включении калькулятора в боковой панели чата',
+      off: 'Ошибка при выключении калькулятора в боковой панели чата'
+    },
+    taskSidebar: {
+      on: 'Ошибка при включении калькулятора в боковой панели задачи',
+      off: 'Ошибка при выключении калькулятора в боковой панели задачи'
+    },
+    taskTab: {
+      on: 'Ошибка при включении калькулятора во вкладке задачи',
+      off: 'Ошибка при выключении калькулятора во вкладке задачи'
+    },
+    callCard: {
+      on: 'Ошибка при включении калькулятора в карточке звонка',
+      off: 'Ошибка при выключении калькулятора в карточке звонка'
+    },
+    userField: {
+      on: 'Ошибка при включении пользовательского поля',
+      off: 'Ошибка при выключении пользовательского поля'
+    }
+  }
+  return enabled ? messages[key].on : messages[key].off
+}
+
+// Загрузка статуса конкретной встройки
+async function loadPlacementStatus(
+    key: keyof PlacementStatus,
+    placementType: string,
+    handler: string,
+    isUserField: boolean = false
+): Promise<void> {
+  try {
+    let isEnabled: boolean
+    if (isUserField) {
+      isEnabled = await userFieldManager.checkStatus()
+    } else {
+      isEnabled = await placementManager.checkStatus(placementType, handler)
+    }
+    settings.value[key] = isEnabled
+  } catch (error) {
+    console.error(`Ошибка загрузки статуса ${key}:`, error)
+  }
+}
+
+// Загрузка всех настроек
+async function loadAllSettings(): Promise<void> {
+  if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
+
+  await Promise.all([
+    loadPlacementStatus('pageBackgroundWorker', 'PAGE_BACKGROUND_WORKER', HANDLERS.pageBackgroundWorker),
+    loadPlacementStatus('restAppUri', 'REST_APP_URI', HANDLERS.restAppUri),
+    loadPlacementStatus('chatTextarea', 'IM_TEXTAREA', HANDLERS.chatTextarea),
+    loadPlacementStatus('chatSidebar', 'IM_SIDEBAR', HANDLERS.chatSidebar),
+    loadPlacementStatus('taskSidebar', 'TASK_VIEW_SIDEBAR', HANDLERS.taskSidebar),
+    loadPlacementStatus('taskTab', 'TASK_VIEW_TAB', HANDLERS.taskTab),
+    loadPlacementStatus('callCard', 'CALL_CARD', HANDLERS.callCard),
+    loadPlacementStatus('userField', '', '', true)
+  ])
+}
+
+// Функции-обертки для каждого свитчера
+const togglePageBackgroundWorker = () => togglePlacement('pageBackgroundWorker', 'PAGE_BACKGROUND_WORKER', HANDLERS.pageBackgroundWorker)
+const toggleRestAppUri = () => togglePlacement('restAppUri', 'REST_APP_URI', HANDLERS.restAppUri)
+const toggleChatTextarea = () => togglePlacement('chatTextarea', 'IM_TEXTAREA', HANDLERS.chatTextarea)
+const toggleChatSidebar = () => togglePlacement('chatSidebar', 'IM_SIDEBAR', HANDLERS.chatSidebar)
+const toggleTaskSidebar = () => togglePlacement('taskSidebar', 'TASK_VIEW_SIDEBAR', HANDLERS.taskSidebar)
+const toggleTaskTab = () => togglePlacement('taskTab', 'TASK_VIEW_TAB', HANDLERS.taskTab)
+const toggleCallCard = () => togglePlacement('callCard', 'CALL_CARD', HANDLERS.callCard)
+const toggleUserField = () => togglePlacement('userField', '', '', true)
+
+// Инициализация
 onMounted(async () => {
   if (typeof BX24 !== 'undefined' && BX24.init) {
     BX24.init(async () => {
       isBitrixLoaded.value = true
-      await loadSettings()
+      await loadAllSettings()
     })
   }
-})
-
-// Наблюдатели
-watch(() => formData.value.workdayStart.method, () => {
-  if (isProcessing.value) return
-  updateWorkdayStartMethod()
-})
-
-watch(() => formData.value.workdayEnd.method, () => {
-  if (isProcessing.value) return
-  updateWorkdayEndMethod()
 })
 </script>
 
 <template>
   <div>
-    <!-- Блок 1: Активность в выходные -->
-    <B24Card class="mb-8">
-      <div class="p-0 md:p-6">
-        <div class="space-y-6">
+    <!-- Блок 1: Фоновая встройка -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">
-                Работа в выходные
+              <h3 class="text-base font-medium text-gray-900">
+                Фоновая встройка
               </h3>
               <p class="text-sm text-gray-500 mt-1">
-                Разрешить работу приложения в выходные дни
+                Автоматически определяет время старта и завершения рабочего дня
               </p>
             </div>
-            <div class="ml-4 flex items-center space-x-4">
+            <div class="ml-4 flex items-center space-x-3">
               <div class="w-2 h-2 rounded-full"
-                   :class="formData.weekendActivity.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                   :class="settings.pageBackgroundWorker ? 'bg-green-500' : 'bg-red-500'"></div>
               <B24Switch
-                  :model-value="formData.weekendActivity.enabled"
-                  @update:model-value="toggleWeekendActivity"
-                  :disabled="isProcessing"
+                  :model-value="settings.pageBackgroundWorker"
+                  @update:model-value="togglePageBackgroundWorker"
+                  :disabled="processingStates.pageBackgroundWorker"
               />
             </div>
           </div>
         </div>
       </div>
     </B24Card>
-    <!-- Блок 2: Помощь в старте рабочего дня -->
-    <B24Card class="mb-8">
-      <div class="p-0 md:p-6">
-        <div class="space-y-6">
+
+    <!-- Блок 2: Управление из уведомлений -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">
-                Помощь в старте рабочего дня
+              <h3 class="text-base font-medium text-gray-900">
+                Управление рабочим днем из уведомлений
               </h3>
               <p class="text-sm text-gray-500 mt-1">
-                Автоматическая помощь сотрудникам в своевременном начале рабочего дня
+                Управление статусом рабочего дня через уведомления
               </p>
             </div>
-            <div class="ml-4 flex items-center space-x-4">
+            <div class="ml-4 flex items-center space-x-3">
               <div class="w-2 h-2 rounded-full"
-                   :class="formData.workdayStart.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                   :class="settings.restAppUri ? 'bg-green-500' : 'bg-red-500'"></div>
               <B24Switch
-                  :model-value="formData.workdayStart.enabled"
-                  @update:model-value="toggleWorkdayStart"
-                  :disabled="isProcessing"
+                  :model-value="settings.restAppUri"
+                  @update:model-value="toggleRestAppUri"
+                  :disabled="processingStates.restAppUri"
               />
-            </div>
-          </div>
-
-          <!-- Настройки помощи -->
-          <div v-if="formData.workdayStart.enabled" class="space-y-4 pt-4 border-t">
-            <B24Form
-                :state="formData"
-                class="space-y-4"
-                @submit="saveWorkdayStartSettings"
-            >
-              <!-- Способ старта рабочего дня -->
-              <B24FormField
-                  label="Способ старта рабочего дня"
-                  name="workdayStartMethod"
-                  :help-text="`Текущий способ: ${getWorkdayStartMethodText()}`"
-              >
-                <B24RadioGroup
-                    :model-value="formData.workdayStart.method"
-                    @update:model-value="(val) => formData.workdayStart.method = val"
-                    :disabled="isProcessing"
-                    :items="[
-                        {
-                            label: 'Автоматический старт',
-                            value: 'auto',
-                            description: 'Рабочий день начинается автоматически при открытии'
-                        },
-                        {
-                            label: 'Модальное окно с предупреждением',
-                            value: 'modal',
-                            description: 'Показывать окно с предложением начать рабочий день'
-                        },
-                        {
-                            label: 'Сообщение в чате',
-                            value: 'chat',
-                            description: 'Отправлять уведомление в чат Б24'
-                        },
-                        {
-                            label: 'Push-уведомление',
-                            value: 'push',
-                            description: 'Отправлять push-уведомление'
-                        }
-                    ]"
-                    orientation="horizontal"
-                    variant="card"
-                    size="sm"
-                    default-value="modal"
-                    indicator="end"
-                    class="overflow-scroll md:overflow-auto"
-                />
-              </B24FormField>
-            </B24Form>
-
-            <!-- Информация о системе помощи -->
-            <div class="space-y-4 mt-6">
-              <h4 class="text-sm font-medium text-gray-900">
-                Как работает помощь в старте рабочего дня
-              </h4>
-              <div class="space-y-3">
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">1</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      При открытии страницы портала, система проверяет, запущен ли рабочий день пользователя и является ли текущее время рабочим (берется из настроек Рабочего графика).
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">2</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Автоматический старт:</span> рабочий день начинается автоматически без участия сотрудника.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">3</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Модальное окно:</span> при каждом открытии страницы портала показывается окно с кнопкой "Начать рабочий день", пока сотрудник не начнет рабочий день.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">4</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением начать рабочий день.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">5</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в Битрикс24.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start mt-2 p-3 bg-yellow-50 rounded-lg">
-                  <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                  </svg>
-                  <div class="text-sm text-yellow-700">
-                    <span class="font-medium">Функция доступна на тарифах "Профессиональный" и выше.</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </B24Card>
-    <!-- Блок 3: Помощь в завершении рабочего дня -->
-    <B24Card class="mb-8">
-      <div class="p-0 md:p-6">
-        <div class="space-y-6">
+
+    <!-- Блок 3: Калькулятор в панели ввода сообщения -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">
-                Помощь в завершении рабочего дня
+              <h3 class="text-base font-medium text-gray-900">
+                Калькулятор в панели ввода сообщения
               </h3>
               <p class="text-sm text-gray-500 mt-1">
-                Автоматическая помощь сотрудникам в своевременном завершении рабочего дня
+                Расчеты прямо в панели ввода сообщения чата
               </p>
             </div>
-            <div class="ml-4 flex items-center space-x-4">
+            <div class="ml-4 flex items-center space-x-3">
               <div class="w-2 h-2 rounded-full"
-                   :class="formData.workdayEnd.enabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                   :class="settings.chatTextarea ? 'bg-green-500' : 'bg-red-500'"></div>
               <B24Switch
-                  :model-value="formData.workdayEnd.enabled"
-                  @update:model-value="toggleWorkdayEnd"
-                  :disabled="isProcessing"
+                  :model-value="settings.chatTextarea"
+                  @update:model-value="toggleChatTextarea"
+                  :disabled="processingStates.chatTextarea"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+
+    <!-- Блок 4: Калькулятор в боковой панели чата -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900">
+                Калькулятор в боковой панели чата
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Расчеты в боковой панели чата
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full"
+                   :class="settings.chatSidebar ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="settings.chatSidebar"
+                  @update:model-value="toggleChatSidebar"
+                  :disabled="processingStates.chatSidebar"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+
+    <!-- Блок 5: Калькулятор в боковой панели задачи -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900">
+                Калькулятор в боковой панели задачи
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Расчеты в боковой панели задачи
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full"
+                   :class="settings.taskSidebar ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="settings.taskSidebar"
+                  @update:model-value="toggleTaskSidebar"
+                  :disabled="processingStates.taskSidebar"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+
+    <!-- Блок 6: Калькулятор во вкладке задачи -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900">
+                Калькулятор во вкладке задачи
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Расчеты в отдельной вкладке задачи
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full"
+                   :class="settings.taskTab ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="settings.taskTab"
+                  @update:model-value="toggleTaskTab"
+                  :disabled="processingStates.taskTab"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+
+    <!-- Блок 7: Калькулятор в карточке звонка -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900">
+                Калькулятор в карточке звонка
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Расчеты в карточке звонка
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full"
+                   :class="settings.callCard ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="settings.callCard"
+                  @update:model-value="toggleCallCard"
+                  :disabled="processingStates.callCard"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </B24Card>
+
+    <!-- Блок 8: Пользовательское поле -->
+    <B24Card class="mb-6">
+      <div class="p-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <h3 class="text-base font-medium text-gray-900">
+                Пользовательское поле с калькулятором
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Поле с калькулятором в карточках CRM
+              </p>
+            </div>
+            <div class="ml-4 flex items-center space-x-3">
+              <div class="w-2 h-2 rounded-full"
+                   :class="settings.userField ? 'bg-green-500' : 'bg-red-500'"></div>
+              <B24Switch
+                  :model-value="settings.userField"
+                  @update:model-value="toggleUserField"
+                  :disabled="processingStates.userField"
               />
             </div>
           </div>
 
-          <!-- Настройки помощи в завершении -->
-          <div v-if="formData.workdayEnd.enabled" class="space-y-4 pt-4 border-t">
-            <B24Form
-                :state="formData"
-                class="space-y-4"
-                @submit="saveWorkdayEndSettings"
-            >
-              <!-- Способ завершения рабочего дня -->
-              <B24FormField
-                  label="Способ завершения рабочего дня"
-                  name="workdayEndMethod"
-                  :help-text="`Текущий способ: ${getWorkdayEndMethodText()}`"
-              >
-                <B24RadioGroup
-                    :model-value="formData.workdayEnd.method"
-                    @update:model-value="(val) => formData.workdayEnd.method = val"
-                    :disabled="isProcessing"
-                    :items="[
-                        {
-                            label: 'Автоматическое завершение',
-                            value: 'auto',
-                            description: 'Рабочий день завершается автоматически'
-                        },
-                        {
-                            label: 'Модальное окно с предупреждением',
-                            value: 'modal',
-                            description: 'Показывать окно с предложением завершить рабочий день'
-                        },
-                        {
-                            label: 'Сообщение в чате',
-                            value: 'chat',
-                            description: 'Отправлять уведомление в чат Б24'
-                        },
-                        {
-                            label: 'Push-уведомление',
-                            value: 'push',
-                            description: 'Отправлять push-уведомление'
-                        }
-                    ]"
-                    orientation="horizontal"
-                    variant="card"
-                    size="sm"
-                    default-value="modal"
-                    indicator="end"
-                    class="overflow-scroll md:overflow-auto"
-                />
-              </B24FormField>
-            </B24Form>
-
-            <!-- Информация о системе помощи в завершении -->
-            <div class="space-y-4 mt-6">
-              <h4 class="text-sm font-medium text-gray-900">
-                Как работает помощь в завершении рабочего дня
+          <!-- Информация о типе поля -->
+          <div v-if="settings.userField" class="mt-4 pt-4 border-t">
+            <div class="bg-blue-50 rounded-lg p-4">
+              <h4 class="text-sm font-medium text-blue-800 mb-2">
+                Информация о пользовательском поле
               </h4>
-              <div class="space-y-3">
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">1</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      При открытии страницы портала, система проверяет, запущен ли рабочий день пользователя и является ли текущее время рабочим (берется из настроек Рабочего графика).
-                    </p>
-                  </div>
+              <div class="space-y-2 text-sm text-blue-700">
+                <div class="flex">
+                  <span class="font-medium w-32 flex-shrink-0">Код типа:</span>
+                  <span class="font-mono bg-white px-2 py-0.5 rounded">calculator_crm</span>
                 </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">2</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Автоматическое завершение:</span> рабочий день закрывается автоматически без участия сотрудника
-                    </p>
-                  </div>
+                <div class="flex">
+                  <span class="font-medium w-32 flex-shrink-0">Название:</span>
+                  <span>Калькулятор в CRM</span>
                 </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">3</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Модальное окно:</span> при каждом открытии страницы портала показывается окно с кнопкой "Завершить рабочий день", пока сотрудник не завершит рабочий день.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">4</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Сообщение в чате:</span> в чат Битрикс24 отправляется уведомление с предложением завершить рабочий день.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span class="text-xs font-medium text-blue-600">5</span>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <span class="font-medium">Push-уведомление:</span> сотруднику отправляется push-уведомление в Битрикс24.
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-start mt-2 p-3 bg-yellow-50 rounded-lg">
-                  <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                  </svg>
-                  <div class="text-sm text-yellow-700">
-                    <span class="font-medium">Функция доступна на тарифах "Профессиональный" и выше.</span>
-                  </div>
+                <div class="flex">
+                  <span class="font-medium w-32 flex-shrink-0">Описание:</span>
+                  <span>Поле с калькулятором для проведения расчетов</span>
                 </div>
               </div>
             </div>
@@ -562,7 +790,7 @@ watch(() => formData.value.workdayEnd.method, () => {
       </div>
     </B24Card>
 
-    <!-- Управление встройками -->
+    <!-- Управление встройками (PAGE_BACKGROUND_WORKER и REST_APP_URI) -->
     <PlacementsManager class="mt-8" />
   </div>
 </template>

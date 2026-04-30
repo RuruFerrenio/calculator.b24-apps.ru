@@ -122,7 +122,7 @@ onUnmounted(() => {
               <PowerIcon class="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Удобное начало и завершение рабочего дня</h3>
+              <h3 class="text-lg font-semibold text-gray-900">Калькулятор под рукой</h3>
               <p class="text-sm text-gray-500">Версия 1.0.0</p>
             </div>
           </div>

@@ -26,37 +26,71 @@ const installationComplete = ref(false)
 const installedCount = ref(0)
 const placementStatus = ref({
   pageBackgroundWorker: null,
-  restAppUri: null
+  restAppUri: null,
+  chatTextarea: null,
+  chatSidebar: null,
+  taskSidebar: null,
+  taskTab: null,
+  callCard: null,
+  userField: null
 })
 const settingsStatus = ref(null)
 
-// Выбранные функции
-const selectedFeatures = ref({
-  workdayStart: true,    // Помощь в старте - по умолчанию включена
-  workdayEnd: true,      // Помощь в завершении - по умолчанию включена
-  weekendActivity: false // Активность в выходные - по умолчанию выключена
-})
-
-// Расширенные настройки (методы)
-const configSettings = ref({
-  workdayStart: {
-    enabled: true,
-    method: 'modal'  // По умолчанию модальное окно
-  },
-  workdayEnd: {
-    enabled: true,
-    method: 'modal'  // По умолчанию модальное окно
-  },
-  weekendActivity: {
-    enabled: false    // По умолчанию активность в выходные выключена
-  }
+// Выбранные встройки
+const selectedPlacements = ref({
+  pageBackgroundWorker: true,
+  restAppUri: true,
+  chatTextarea: true,
+  chatSidebar: true,
+  taskSidebar: true,
+  taskTab: true,
+  callCard: true,
+  userField: true
 })
 
 // URL обработчиков
 const HANDLERS = {
   pageBackgroundWorker: `${window.location.origin}/dist/widgets/background-handler`,
-  restAppUri: `${window.location.origin}/dist/`
+  restAppUri: `${window.location.origin}/dist/`,
+  chatTextarea: `${window.location.origin}/dist/widgets/chat-textarea`,
+  chatSidebar: `${window.location.origin}/dist/widgets/chat-sidebar`,
+  taskSidebar: `${window.location.origin}/dist/widgets/task-sidebar`,
+  taskTab: `${window.location.origin}/dist/widgets/task-tab`,
+  callCard: `${window.location.origin}/dist/widgets/call-card`,
+  userField: `${window.location.origin}/dist/widgets/user-field`
 }
+
+// Изображения для слайдеров
+const chatImages = ref([
+  `${window.location.origin}/images/install/calc_in_chat_panel.png`,
+  `${window.location.origin}/images/install/calc_in_chat_sidebar.png`
+])
+
+const taskImages = ref([
+  `${window.location.origin}/images/install/calc_in_task.png`,
+])
+
+const callCardImages = ref([
+  `${window.location.origin}/images/install/calc_in_call_card.png`,
+])
+
+const userFieldImages = ref([
+  `${window.location.origin}/images/install/calc_in_crm.png`,
+])
+
+// Текущие слайды
+const currentChatSlide = ref(0)
+const currentTaskSlide = ref(0)
+const currentCallCardSlide = ref(0)
+const currentUserFieldSlide = ref(0)
+
+// Автопрокрутка слайдеров
+const autoplayIntervals = ref({
+  chat: null,
+  task: null,
+  callCard: null,
+  userField: null
+})
 
 // Конфигурации встроек
 const PLACEMENT_CONFIGS = {
@@ -71,6 +105,76 @@ const PLACEMENT_CONFIGS = {
     title: 'Встройка для управления рабочим днем из уведомлений',
     description: 'Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях',
     options: {}
+  },
+  IM_TEXTAREA: {
+    title: 'Калькулятор в CRM',
+    description: 'Расчеты прямо в панели ввода сообщения',
+    options: {
+      iconName: 'fa-calculator',
+      context: 'ALL',
+      role: 'USER',
+      color: 'AQUA',
+      extranet: 'N',
+      width: 300,
+      height: 675
+    }
+  },
+  IM_SIDEBAR: {
+    title: 'Калькулятор в CRM',
+    description: 'Расчеты в боковой панели чата',
+    options: {
+      iconName: 'fa-calculator',
+      context: 'ALL',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  TASK_VIEW_SIDEBAR: {
+    title: 'Калькулятор в задачах',
+    description: 'Расчеты в боковой панели задачи',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  TASK_VIEW_TAB: {
+    title: 'Калькулятор',
+    description: 'Расчеты во вкладке задачи',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+      width: 300,
+      height: 500,
+    }
+  },
+  CALL_CARD: {
+    title: 'Калькулятор',
+    description: 'Расчеты в карточке звонка',
+    options: {
+      iconName: 'fa-calculator',
+      color: 'AQUA',
+      extranet: 'N',
+      role: 'USER',
+    }
+  }
+}
+
+// Конфигурация пользовательского поля
+const USER_FIELD_CONFIG = {
+  TYPE_ID: 'calculator_crm',
+  TITLE: 'Калькулятор в CRM',
+  DESCRIPTION: 'Поле с калькулятором для проведения расчетов',
+  OPTIONS: {
+    height: 500
   }
 }
 
@@ -126,6 +230,15 @@ const bitrixAPI = {
         }
       })
     })
+  },
+
+  getUserFieldTypes: async () => {
+    try {
+      const result = await bitrixAPI.call('userfieldtype.list', {})
+      return result || []
+    } catch (error) {
+      return []
+    }
   }
 }
 
@@ -155,39 +268,71 @@ const placementManager = {
     try {
       const config = placementManager.getConfig(placementType)
 
-      const placementConfig = placementType === 'PAGE_BACKGROUND_WORKER'
-          ? {
-            PLACEMENT: placementType,
-            HANDLER: handler,
-            OPTIONS: config.options
-          }
-          : {
-            PLACEMENT: placementType,
-            HANDLER: handler,
-            LANG_ALL: {
-              ru: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Инструменты контроля времени'
-              },
-              en: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Time control tools'
-              },
-              be: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Інструменты кантролю часу'
-              },
-              kk: {
-                TITLE: config.title,
-                DESCRIPTION: config.description,
-                GROUP_NAME: 'Уақытты бақылау құралдары'
-              }
+      let placementConfig
+
+      if (placementType === 'PAGE_BACKGROUND_WORKER') {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          OPTIONS: config.options
+        }
+      } else if (placementType === 'REST_APP_URI') {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          LANG_ALL: {
+            ru: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятор под рукой'
             },
-            OPTIONS: config.options
-          }
+            en: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Calculator at hand'
+            },
+            be: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятар пад рукой'
+            },
+            kk: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Қол астындағы калькулятор'
+            }
+          },
+          OPTIONS: config.options
+        }
+      } else {
+        placementConfig = {
+          PLACEMENT: placementType,
+          HANDLER: handler,
+          LANG_ALL: {
+            ru: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятор под рукой'
+            },
+            en: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Calculator at hand'
+            },
+            be: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Калькулятар пад рукой'
+            },
+            kk: {
+              TITLE: config.title,
+              DESCRIPTION: config.description,
+              GROUP_NAME: 'Қол астындағы калькулятор'
+            }
+          },
+          OPTIONS: config.options
+        }
+      }
 
       await bitrixAPI.call('placement.bind', placementConfig)
       return true
@@ -214,23 +359,78 @@ const placementManager = {
     } catch (error) {
       throw error
     }
+  },
+
+  checkStatus: async (placementType, handler) => {
+    try {
+      const placements = await bitrixAPI.getPlacements()
+      if (!Array.isArray(placements)) return false
+      const placement = placements.find(p =>
+          p.PLACEMENT === placementType && p.HANDLER === handler
+      )
+      return !!placement
+    } catch (error) {
+      return false
+    }
   }
 }
 
-// Сохранение настроек приложения (расширенная версия с новыми параметрами)
+// Менеджер пользовательских полей
+const userFieldManager = {
+  checkStatus: async () => {
+    try {
+      const userFieldTypes = await bitrixAPI.getUserFieldTypes()
+      if (!Array.isArray(userFieldTypes)) return false
+      const existingType = userFieldTypes.find(type =>
+          type.USER_TYPE_ID === USER_FIELD_CONFIG.TYPE_ID &&
+          type.HANDLER === HANDLERS.userField
+      )
+      return !!existingType
+    } catch (error) {
+      return false
+    }
+  },
+
+  add: async () => {
+    try {
+      await bitrixAPI.call('userfieldtype.add', {
+        USER_TYPE_ID: USER_FIELD_CONFIG.TYPE_ID,
+        HANDLER: HANDLERS.userField,
+        TITLE: USER_FIELD_CONFIG.TITLE,
+        DESCRIPTION: USER_FIELD_CONFIG.DESCRIPTION,
+        OPTIONS: USER_FIELD_CONFIG.OPTIONS
+      })
+      return true
+    } catch (error) {
+      throw error
+    }
+  },
+
+  delete: async () => {
+    try {
+      await bitrixAPI.call('userfieldtype.delete', {
+        USER_TYPE_ID: USER_FIELD_CONFIG.TYPE_ID
+      })
+      return true
+    } catch (error) {
+      throw error
+    }
+  }
+}
+
+// Сохранение настроек приложения
 const saveSettings = async () => {
   settingsStatus.value = 'loading'
   try {
     const settingsToSave = {
-      // Настройки старта рабочего дня
-      workday_start_enabled: selectedFeatures.value.workdayStart ? 'Y' : 'N',
-      workday_start_method: configSettings.value.workdayStart.method,
-      // Настройки завершения рабочего дня
-      workday_end_enabled: selectedFeatures.value.workdayEnd ? 'Y' : 'N',
-      workday_end_method: configSettings.value.workdayEnd.method,
-      // Настройки активности в выходные
-      weekend_activity_enabled: selectedFeatures.value.weekendActivity ? 'Y' : 'N',
-      // Флаг завершения установки
+      page_background_worker_enabled: selectedPlacements.value.pageBackgroundWorker ? 'Y' : 'N',
+      rest_app_uri_enabled: selectedPlacements.value.restAppUri ? 'Y' : 'N',
+      chat_textarea_enabled: selectedPlacements.value.chatTextarea ? 'Y' : 'N',
+      chat_sidebar_enabled: selectedPlacements.value.chatSidebar ? 'Y' : 'N',
+      task_sidebar_enabled: selectedPlacements.value.taskSidebar ? 'Y' : 'N',
+      task_tab_enabled: selectedPlacements.value.taskTab ? 'Y' : 'N',
+      call_card_enabled: selectedPlacements.value.callCard ? 'Y' : 'N',
+      user_field_enabled: selectedPlacements.value.userField ? 'Y' : 'N',
       installation_completed: 'Y'
     }
 
@@ -259,7 +459,7 @@ const registerPageBackgroundWorker = async () => {
   }
 }
 
-// Регистрация встройки REST_APP_URI (Встройка для управления рабочим днем из уведомлений)
+// Регистрация встройки REST_APP_URI
 const registerRestAppUri = async () => {
   placementStatus.value.restAppUri = 'loading'
   try {
@@ -268,6 +468,211 @@ const registerRestAppUri = async () => {
     installedCount.value++
   } catch (error) {
     placementStatus.value.restAppUri = 'error'
+  }
+}
+
+// Регистрация встроек калькулятора
+const registerChatTextarea = async () => {
+  placementStatus.value.chatTextarea = 'loading'
+  try {
+    await placementManager.reinstall('IM_TEXTAREA', HANDLERS.chatTextarea)
+    placementStatus.value.chatTextarea = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.chatTextarea = 'error'
+  }
+}
+
+const registerChatSidebar = async () => {
+  placementStatus.value.chatSidebar = 'loading'
+  try {
+    await placementManager.reinstall('IM_SIDEBAR', HANDLERS.chatSidebar)
+    placementStatus.value.chatSidebar = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.chatSidebar = 'error'
+  }
+}
+
+const registerTaskSidebar = async () => {
+  placementStatus.value.taskSidebar = 'loading'
+  try {
+    await placementManager.reinstall('TASK_VIEW_SIDEBAR', HANDLERS.taskSidebar)
+    placementStatus.value.taskSidebar = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.taskSidebar = 'error'
+  }
+}
+
+const registerTaskTab = async () => {
+  placementStatus.value.taskTab = 'loading'
+  try {
+    await placementManager.reinstall('TASK_VIEW_TAB', HANDLERS.taskTab)
+    placementStatus.value.taskTab = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.taskTab = 'error'
+  }
+}
+
+const registerCallCard = async () => {
+  placementStatus.value.callCard = 'loading'
+  try {
+    await placementManager.reinstall('CALL_CARD', HANDLERS.callCard)
+    placementStatus.value.callCard = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.callCard = 'error'
+  }
+}
+
+const registerUserField = async () => {
+  placementStatus.value.userField = 'loading'
+  try {
+    await userFieldManager.delete()
+    await userFieldManager.add()
+    placementStatus.value.userField = 'success'
+    installedCount.value++
+  } catch (error) {
+    placementStatus.value.userField = 'error'
+  }
+}
+
+// Функции для слайдеров
+const startAutoplay = () => {
+  if (currentStep.value === 2) {
+    if (chatImages.value.length > 1) startChatAutoplay()
+    if (taskImages.value.length > 1) startTaskAutoplay()
+    if (callCardImages.value.length > 1) startCallCardAutoplay()
+    if (userFieldImages.value.length > 1) startUserFieldAutoplay()
+  }
+}
+
+const stopAutoplay = () => {
+  stopChatAutoplay()
+  stopTaskAutoplay()
+  stopCallCardAutoplay()
+  stopUserFieldAutoplay()
+}
+
+const startChatAutoplay = () => {
+  stopChatAutoplay()
+  autoplayIntervals.value.chat = setInterval(() => nextChatSlide(), 4000)
+}
+
+const stopChatAutoplay = () => {
+  if (autoplayIntervals.value.chat) {
+    clearInterval(autoplayIntervals.value.chat)
+    autoplayIntervals.value.chat = null
+  }
+}
+
+const nextChatSlide = () => {
+  currentChatSlide.value = currentChatSlide.value < chatImages.value.length - 1
+      ? currentChatSlide.value + 1
+      : 0
+}
+
+const prevChatSlide = () => {
+  currentChatSlide.value = currentChatSlide.value > 0
+      ? currentChatSlide.value - 1
+      : chatImages.value.length - 1
+}
+
+const goToChatSlide = (index) => {
+  if (index >= 0 && index < chatImages.value.length) {
+    currentChatSlide.value = index
+  }
+}
+
+const startTaskAutoplay = () => {
+  stopTaskAutoplay()
+  autoplayIntervals.value.task = setInterval(() => nextTaskSlide(), 4200)
+}
+
+const stopTaskAutoplay = () => {
+  if (autoplayIntervals.value.task) {
+    clearInterval(autoplayIntervals.value.task)
+    autoplayIntervals.value.task = null
+  }
+}
+
+const nextTaskSlide = () => {
+  currentTaskSlide.value = currentTaskSlide.value < taskImages.value.length - 1
+      ? currentTaskSlide.value + 1
+      : 0
+}
+
+const prevTaskSlide = () => {
+  currentTaskSlide.value = currentTaskSlide.value > 0
+      ? currentTaskSlide.value - 1
+      : taskImages.value.length - 1
+}
+
+const goToTaskSlide = (index) => {
+  if (index >= 0 && index < taskImages.value.length) {
+    currentTaskSlide.value = index
+  }
+}
+
+const startCallCardAutoplay = () => {
+  stopCallCardAutoplay()
+  autoplayIntervals.value.callCard = setInterval(() => nextCallCardSlide(), 4400)
+}
+
+const stopCallCardAutoplay = () => {
+  if (autoplayIntervals.value.callCard) {
+    clearInterval(autoplayIntervals.value.callCard)
+    autoplayIntervals.value.callCard = null
+  }
+}
+
+const nextCallCardSlide = () => {
+  currentCallCardSlide.value = currentCallCardSlide.value < callCardImages.value.length - 1
+      ? currentCallCardSlide.value + 1
+      : 0
+}
+
+const prevCallCardSlide = () => {
+  currentCallCardSlide.value = currentCallCardSlide.value > 0
+      ? currentCallCardSlide.value - 1
+      : callCardImages.value.length - 1
+}
+
+const goToCallCardSlide = (index) => {
+  if (index >= 0 && index < callCardImages.value.length) {
+    currentCallCardSlide.value = index
+  }
+}
+
+const startUserFieldAutoplay = () => {
+  stopUserFieldAutoplay()
+  autoplayIntervals.value.userField = setInterval(() => nextUserFieldSlide(), 4600)
+}
+
+const stopUserFieldAutoplay = () => {
+  if (autoplayIntervals.value.userField) {
+    clearInterval(autoplayIntervals.value.userField)
+    autoplayIntervals.value.userField = null
+  }
+}
+
+const nextUserFieldSlide = () => {
+  currentUserFieldSlide.value = currentUserFieldSlide.value < userFieldImages.value.length - 1
+      ? currentUserFieldSlide.value + 1
+      : 0
+}
+
+const prevUserFieldSlide = () => {
+  currentUserFieldSlide.value = currentUserFieldSlide.value > 0
+      ? currentUserFieldSlide.value - 1
+      : userFieldImages.value.length - 1
+}
+
+const goToUserFieldSlide = (index) => {
+  if (index >= 0 && index < userFieldImages.value.length) {
+    currentUserFieldSlide.value = index
   }
 }
 
@@ -282,13 +687,25 @@ const startInstallation = async () => {
 
   placementStatus.value = {
     pageBackgroundWorker: null,
-    restAppUri: null
+    restAppUri: null,
+    chatTextarea: null,
+    chatSidebar: null,
+    taskSidebar: null,
+    taskTab: null,
+    callCard: null,
+    userField: null
   }
   settingsStatus.value = null
 
   try {
-    await registerPageBackgroundWorker()
-    await registerRestAppUri()
+    if (selectedPlacements.value.pageBackgroundWorker) await registerPageBackgroundWorker()
+    if (selectedPlacements.value.restAppUri) await registerRestAppUri()
+    if (selectedPlacements.value.chatTextarea) await registerChatTextarea()
+    if (selectedPlacements.value.chatSidebar) await registerChatSidebar()
+    if (selectedPlacements.value.taskSidebar) await registerTaskSidebar()
+    if (selectedPlacements.value.taskTab) await registerTaskTab()
+    if (selectedPlacements.value.callCard) await registerCallCard()
+    if (selectedPlacements.value.userField) await registerUserField()
     await saveSettings()
     installationComplete.value = true
   } catch (error) {
@@ -323,12 +740,21 @@ const cancelAutoFinish = () => {
   }
 }
 
-const hasSelectedFeatures = computed(() => {
-  return Object.values(selectedFeatures.value).some(value => value === true)
+const hasSelectedPlacements = computed(() => {
+  return Object.values(selectedPlacements.value).some(value => value === true)
 })
 
 const installationsToProcess = computed(() => {
-  return 3 // Две встройки + настройки
+  let count = 0
+  if (selectedPlacements.value.pageBackgroundWorker) count++
+  if (selectedPlacements.value.restAppUri) count++
+  if (selectedPlacements.value.chatTextarea) count++
+  if (selectedPlacements.value.chatSidebar) count++
+  if (selectedPlacements.value.taskSidebar) count++
+  if (selectedPlacements.value.taskTab) count++
+  if (selectedPlacements.value.callCard) count++
+  if (selectedPlacements.value.userField) count++
+  return count
 })
 
 const installationProgress = computed(() => {
@@ -367,6 +793,7 @@ onUnmounted(() => {
   if (autoFinishTimer.value) {
     clearInterval(autoFinishTimer.value)
   }
+  stopAutoplay()
 })
 </script>
 
@@ -378,8 +805,11 @@ onUnmounted(() => {
         <PowerIcon class="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
       </div>
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3 px-2">
-        Установка приложения "Удобное начало и завершение рабочего дня"
+        Установка приложения "Калькулятор под рукой"
       </h1>
+      <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-4">
+        Калькулятор всегда под рукой: в чатах, задачах, звонках и карточках CRM
+      </p>
     </div>
 
     <!-- Прогресс-бар -->
@@ -406,24 +836,44 @@ onUnmounted(() => {
           </div>
           <div class="flex-1">
             <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">
-              Добро пожаловать в систему контроля начала и завершения рабочего дня
+              Добро пожаловать в приложение "Калькулятор под рукой"
             </h2>
             <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
-              Настройте систему, которая поможет сотрудникам запускать и завершать рабочий день своевременно.
+              Установите калькулятор в различные места вашего Битрикс24 для быстрого доступа к вычислениям
             </p>
 
             <div class="bg-blue-50 rounded-xl p-4 md:p-6 mb-4 md:mb-6">
               <h3 class="text-base md:text-lg font-semibold text-blue-800 mb-3">
-                Ключевые возможности системы
+                Ключевые возможности приложения
               </h3>
               <ul class="space-y-2 md:space-y-3">
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Помощь в старте и завершении рабочего дня</span>
+                  <span class="text-sm md:text-base text-gray-700">Фоновая встройка для автоматического определения времени</span>
                 </li>
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Гибкая настройка способов уведомлений (модальное окно, автоматический, push, чат)</span>
+                  <span class="text-sm md:text-base text-gray-700">Управление рабочим днем через уведомления</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Калькулятор в панели ввода сообщений чата</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Калькулятор в боковой панели чата</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Калькулятор в задачах (боковая панель и вкладка)</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Калькулятор в карточке звонка</span>
+                </li>
+                <li class="flex items-start">
+                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                  <span class="text-sm md:text-base text-gray-700">Пользовательское поле с калькулятором в карточках CRM</span>
                 </li>
               </ul>
             </div>
@@ -436,7 +886,7 @@ onUnmounted(() => {
       </B24PageCard>
     </B24PageSection>
 
-    <!-- Шаг 2: Настройка функций (расширенный) -->
+    <!-- Шаг 2: Выбор встроек -->
     <B24PageSection v-else-if="currentStep === 2">
       <B24PageCard>
         <div class="flex flex-col md:flex-row md:items-start md:space-x-6">
@@ -447,86 +897,197 @@ onUnmounted(() => {
           </div>
           <div class="flex-1">
             <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">
-              Настройка основных функций системы
+              Выберите компоненты для установки
             </h2>
             <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
-              Выберите, какие функции системы контроля начала и завершения рабочего дня вы хотите активировать и настроить.
+              Отметьте, какие компоненты приложения вы хотите активировать
             </p>
 
-            <div class="space-y-6">
-              <!-- Помощь в старте рабочего дня (расширенная) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Фоновая встройка -->
               <B24PageCard>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Помощь в старте рабочего дня</h3>
-                    <p class="text-sm text-gray-500">Автоматическая помощь сотрудникам в своевременном начале рабочего дня</p>
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900">Фоновая встройка</h3>
+                      <p class="text-sm text-gray-500">Автоматически определяет время старта и завершения рабочего дня</p>
+                    </div>
+                    <B24Switch v-model="selectedPlacements.pageBackgroundWorker" />
                   </div>
-                  <B24Switch v-model="selectedFeatures.workdayStart" />
-                </div>
-                <div v-if="selectedFeatures.workdayStart" class="mt-4 pt-4 border-t">
-                  <p class="text-sm font-medium text-gray-700 mb-3">Способ старта рабочего дня:</p>
-                  <B24RadioGroup
-                      v-model="configSettings.workdayStart.method"
-                      :items="[
-                        { label: 'Автоматический старт', value: 'auto', description: 'Рабочий день начинается автоматически' },
-                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением начать рабочий день' },
-                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
-                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
-                      ]"
-                      orientation="horizontal"
-                      variant="card"
-                      size="sm"
-                      default-value="modal"
-                      indicator="end"
-                      class="overflow-scroll md:overflow-auto"
-                  />
                 </div>
               </B24PageCard>
 
-              <!-- Помощь в завершении рабочего дня (расширенная) -->
+              <!-- Встройка для управления из уведомлений -->
               <B24PageCard>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Помощь в завершении рабочего дня</h3>
-                    <p class="text-sm text-gray-500">Автоматическая помощь сотрудникам в своевременном завершении рабочего дня</p>
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900">Управление из уведомлений</h3>
+                      <p class="text-sm text-gray-500">Управление статусом рабочего дня через уведомления</p>
+                    </div>
+                    <B24Switch v-model="selectedPlacements.restAppUri" />
                   </div>
-                  <B24Switch v-model="selectedFeatures.workdayEnd" />
-                </div>
-                <div v-if="selectedFeatures.workdayEnd" class="mt-4 pt-4 border-t">
-                  <p class="text-sm font-medium text-gray-700 mb-3">Способ завершения рабочего дня:</p>
-                  <B24RadioGroup
-                      v-model="configSettings.workdayEnd.method"
-                      :items="[
-                        { label: 'Автоматическое завершение', value: 'auto', description: 'Рабочий день завершается автоматически' },
-                        { label: 'Модальное окно с предупреждением', value: 'modal', description: 'Показывать окно с предложением завершить рабочий день' },
-                        { label: 'Сообщение в чате', value: 'chat', description: 'Отправлять уведомление в чат Б24' },
-                        { label: 'Push-уведомление', value: 'push', description: 'Отправлять push-уведомление' }
-                      ]"
-                      orientation="horizontal"
-                      variant="card"
-                      size="sm"
-                      default-value="modal"
-                      indicator="end"
-                      class="overflow-scroll md:overflow-auto"
-                  />
                 </div>
               </B24PageCard>
 
-              <!-- Активность в выходные (новая опция) -->
-              <B24PageCard>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Активность в выходные</h3>
-                    <p class="text-sm text-gray-500">Разрешить уведомления и активность в выходные дни</p>
+              <!-- Калькулятор в чате (панель ввода) -->
+              <B24PageCard class="hover:shadow-lg transition-shadow duration-300">
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Калькулятор в панели ввода сообщения</h3>
+                        <p class="text-sm text-gray-500">Расчеты прямо в панели ввода сообщения</p>
+                      </div>
+                    </div>
+                    <B24Switch v-model="selectedPlacements.chatTextarea" />
                   </div>
-                  <B24Switch v-model="selectedFeatures.weekendActivity" />
+
+                  <div class="bg-gray-100 rounded-lg overflow-hidden relative" @mouseenter="stopAutoplay" @mouseleave="startAutoplay">
+                    <div class="relative h-48 overflow-hidden">
+                      <transition name="fade" mode="out-in">
+                        <div :key="chatImages[currentChatSlide]" class="absolute inset-0 flex items-center justify-center p-4">
+                          <div class="text-center">
+                            <img :src="chatImages[currentChatSlide]" alt="Калькулятор в панели ввода сообщения" class="max-w-full max-h-full object-contain mx-auto" />
+                            <p class="text-xs text-gray-500 mt-2">
+                              {{ currentChatSlide === 0 ? 'Калькулятор в панели ввода сообщения' : 'Калькулятор в боковой панели чата' }}
+                            </p>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+
+                    <div v-if="chatImages.length > 1" class="absolute top-1/2 left-0 right-0 flex justify-between px-2 transform -translate-y-1/2">
+                      <button @click="prevChatSlide" class="p-1 rounded-full bg-white/80 hover:bg-white shadow-sm" :disabled="currentChatSlide === 0" :class="{ 'opacity-50 cursor-not-allowed': currentChatSlide === 0 }">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                      </button>
+                      <button @click="nextChatSlide" class="p-1 rounded-full bg-white/80 hover:bg-white shadow-sm" :disabled="currentChatSlide >= chatImages.length - 1" :class="{ 'opacity-50 cursor-not-allowed': currentChatSlide >= chatImages.length - 1 }">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div v-if="chatImages.length > 1" class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
+                      <button v-for="index in chatImages.length" :key="index" @click="goToChatSlide(index - 1)" class="w-1.5 h-1.5 rounded-full transition-all duration-300" :class="currentChatSlide === index - 1 ? 'bg-blue-600 w-4' : 'bg-gray-300 hover:bg-gray-400'" />
+                    </div>
+                  </div>
+                </div>
+              </B24PageCard>
+
+              <!-- Калькулятор в задачах -->
+              <B24PageCard class="hover:shadow-lg transition-shadow duration-300">
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Калькулятор в задачах</h3>
+                        <p class="text-sm text-gray-500">Расчеты в боковой панели и вкладке задачи</p>
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <B24Switch v-model="selectedPlacements.taskSidebar" />
+                      <B24Switch v-model="selectedPlacements.taskTab" />
+                    </div>
+                  </div>
+
+                  <div class="bg-gray-100 rounded-lg overflow-hidden relative" @mouseenter="stopAutoplay" @mouseleave="startAutoplay">
+                    <div class="relative h-48 overflow-hidden">
+                      <transition name="fade" mode="out-in">
+                        <div :key="taskImages[currentTaskSlide]" class="absolute inset-0 flex items-center justify-center p-4">
+                          <div class="text-center">
+                            <img :src="taskImages[currentTaskSlide]" alt="Калькулятор в задачах" class="max-w-full max-h-full object-contain mx-auto" />
+                            <p class="text-xs text-gray-500 mt-2">Калькулятор в боковой панели задачи</p>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
+                </div>
+              </B24PageCard>
+
+              <!-- Калькулятор в карточке звонка -->
+              <B24PageCard class="hover:shadow-lg transition-shadow duration-300">
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Калькулятор в карточке звонка</h3>
+                        <p class="text-sm text-gray-500">Расчеты в карточке звонка</p>
+                      </div>
+                    </div>
+                    <B24Switch v-model="selectedPlacements.callCard" />
+                  </div>
+
+                  <div class="bg-gray-100 rounded-lg overflow-hidden relative" @mouseenter="stopAutoplay" @mouseleave="startAutoplay">
+                    <div class="relative h-48 overflow-hidden">
+                      <transition name="fade" mode="out-in">
+                        <div :key="callCardImages[currentCallCardSlide]" class="absolute inset-0 flex items-center justify-center p-4">
+                          <div class="text-center">
+                            <img :src="callCardImages[currentCallCardSlide]" alt="Калькулятор в карточке звонка" class="max-w-full max-h-full object-contain mx-auto" />
+                            <p class="text-xs text-gray-500 mt-2">Калькулятор в карточке звонка</p>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
+                </div>
+              </B24PageCard>
+
+              <!-- Пользовательское поле -->
+              <B24PageCard class="hover:shadow-lg transition-shadow duration-300">
+                <div class="p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Пользовательское поле с калькулятором</h3>
+                        <p class="text-sm text-gray-500">Поле с калькулятором в карточках CRM</p>
+                      </div>
+                    </div>
+                    <B24Switch v-model="selectedPlacements.userField" />
+                  </div>
+
+                  <div class="bg-gray-100 rounded-lg overflow-hidden relative" @mouseenter="stopAutoplay" @mouseleave="startAutoplay">
+                    <div class="relative h-48 overflow-hidden">
+                      <transition name="fade" mode="out-in">
+                        <div :key="userFieldImages[currentUserFieldSlide]" class="absolute inset-0 flex items-center justify-center p-4">
+                          <div class="text-center">
+                            <img :src="userFieldImages[currentUserFieldSlide]" alt="Пользовательское поле с калькулятором" class="max-w-full max-h-full object-contain mx-auto" />
+                            <p class="text-xs text-gray-500 mt-2">Пользовательское поле с калькулятором</p>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
                 </div>
               </B24PageCard>
             </div>
 
             <div class="flex justify-between gap-3 pt-6 mt-6 border-t">
               <B24Button @click="prevStep" label="Назад" variant="outline" size="lg" :icon="ArrowLeftLIcon" />
-              <B24Button @click="nextStep" label="Продолжить" color="primary" size="lg" :disabled="!hasSelectedFeatures" :icon="ArrowRightLIcon" icon-position="right" />
+              <B24Button @click="nextStep" label="Продолжить" color="primary" size="lg" :disabled="!hasSelectedPlacements" :icon="ArrowRightLIcon" icon-position="right" />
             </div>
           </div>
         </div>
@@ -543,8 +1104,8 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex-1">
-            <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Установка системы</h2>
-            <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">Выполняется установка и настройка выбранных компонентов системы.</p>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Установка приложения</h2>
+            <p class="text-sm md:text-base text-gray-600 mb-4 md:mb-6">Выполняется установка и настройка выбранных компонентов.</p>
 
             <div class="mb-6 md:mb-8">
               <div class="flex items-center justify-between mb-2">
@@ -558,74 +1119,134 @@ onUnmounted(() => {
 
             <div class="space-y-3 md:space-y-4 mb-6 md:mb-8">
               <!-- Фоновая встройка -->
-              <div class="flex items-center">
+              <div v-if="selectedPlacements.pageBackgroundWorker" class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
-                  <div v-if="placementStatus.pageBackgroundWorker === 'loading'">
-                    <LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" />
-                  </div>
-                  <div v-else-if="placementStatus.pageBackgroundWorker === 'success'">
-                    <SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-                  </div>
-                  <div v-else-if="placementStatus.pageBackgroundWorker === 'error'">
-                    <ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-                  </div>
-                  <div v-else>
-                    <div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div>
-                  </div>
+                  <div v-if="placementStatus.pageBackgroundWorker === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.pageBackgroundWorker === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.pageBackgroundWorker === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
                 </div>
                 <div class="ml-2 md:ml-3">
                   <p class="text-xs md:text-sm font-medium text-gray-900">Фоновая встройка</p>
-                  <p class="text-xs text-gray-500">Автоматически определяет время старта и завершения рабочего дня и оповещает об этом сотрудника</p>
+                  <p class="text-xs text-gray-500">Автоматически определяет время старта и завершения рабочего дня</p>
                 </div>
               </div>
 
-              <!-- Встройка для управления рабочим днем из уведомлений -->
-              <div class="flex items-center">
+              <!-- Встройка для управления из уведомлений -->
+              <div v-if="selectedPlacements.restAppUri" class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
-                  <div v-if="placementStatus.restAppUri === 'loading'">
-                    <LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" />
-                  </div>
-                  <div v-else-if="placementStatus.restAppUri === 'success'">
-                    <SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-                  </div>
-                  <div v-else-if="placementStatus.restAppUri === 'error'">
-                    <ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-                  </div>
-                  <div v-else>
-                    <div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div>
-                  </div>
+                  <div v-if="placementStatus.restAppUri === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.restAppUri === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.restAppUri === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
                 </div>
                 <div class="ml-2 md:ml-3">
-                  <p class="text-xs md:text-sm font-medium text-gray-900">Встройка для управления рабочим днем из уведомлений</p>
-                  <p class="text-xs text-gray-500">Позволяет сотруднику управлять статусом рабочего дня через сообщения в чатах или push-уведомлениях</p>
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Управление рабочим днем из уведомлений</p>
+                  <p class="text-xs text-gray-500">Управление статусом рабочего дня через уведомления</p>
                 </div>
               </div>
 
-              <!-- Настройка параметров системы (расширенная) -->
-              <div class="flex items-center">
+              <!-- Калькулятор в панели ввода сообщения -->
+              <div v-if="selectedPlacements.chatTextarea" class="flex items-center">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
-                  <div v-if="settingsStatus === 'loading'">
-                    <LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" />
-                  </div>
-                  <div v-else-if="settingsStatus === 'success'">
-                    <SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-                  </div>
-                  <div v-else-if="settingsStatus === 'error'">
-                    <ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-                  </div>
-                  <div v-else>
-                    <div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div>
-                  </div>
+                  <div v-if="placementStatus.chatTextarea === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.chatTextarea === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.chatTextarea === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
                 </div>
                 <div class="ml-2 md:ml-3">
-                  <p class="text-xs md:text-sm font-medium text-gray-900">Настройка параметров системы</p>
-                  <p class="text-xs text-gray-500">Сохранение настроек</p>
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Калькулятор в панели ввода сообщения</p>
+                  <p class="text-xs text-gray-500">Расчеты прямо в панели ввода сообщения чата</p>
+                </div>
+              </div>
+
+              <!-- Калькулятор в боковой панели чата -->
+              <div v-if="selectedPlacements.chatSidebar" class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.chatSidebar === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.chatSidebar === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.chatSidebar === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Калькулятор в боковой панели чата</p>
+                  <p class="text-xs text-gray-500">Расчеты в боковой панели чата</p>
+                </div>
+              </div>
+
+              <!-- Калькулятор в боковой панели задачи -->
+              <div v-if="selectedPlacements.taskSidebar" class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.taskSidebar === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.taskSidebar === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.taskSidebar === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Калькулятор в боковой панели задачи</p>
+                  <p class="text-xs text-gray-500">Расчеты в боковой панели задачи</p>
+                </div>
+              </div>
+
+              <!-- Калькулятор во вкладке задачи -->
+              <div v-if="selectedPlacements.taskTab" class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.taskTab === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.taskTab === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.taskTab === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Калькулятор во вкладке задачи</p>
+                  <p class="text-xs text-gray-500">Расчеты в отдельной вкладке задачи</p>
+                </div>
+              </div>
+
+              <!-- Калькулятор в карточке звонка -->
+              <div v-if="selectedPlacements.callCard" class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.callCard === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.callCard === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.callCard === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Калькулятор в карточке звонка</p>
+                  <p class="text-xs text-gray-500">Расчеты в карточке звонка</p>
+                </div>
+              </div>
+
+              <!-- Пользовательское поле -->
+              <div v-if="selectedPlacements.userField" class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="placementStatus.userField === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="placementStatus.userField === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="placementStatus.userField === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Пользовательское поле с калькулятором</p>
+                  <p class="text-xs text-gray-500">Поле с калькулятором в карточках CRM</p>
+                </div>
+              </div>
+
+              <!-- Настройка параметров системы -->
+              <div class="flex items-center">
+                <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                  <div v-if="settingsStatus === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
+                  <div v-else-if="settingsStatus === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
+                  <div v-else-if="settingsStatus === 'error'"><ErrorIcon class="w-4 h-4 md:w-5 md:h-5 text-red-500" /></div>
+                  <div v-else><div class="w-4 h-4 md:w-5 md:h-5 bg-gray-300 rounded-full"></div></div>
+                </div>
+                <div class="ml-2 md:ml-3">
+                  <p class="text-xs md:text-sm font-medium text-gray-900">Сохранение настроек</p>
+                  <p class="text-xs text-gray-500">Сохранение выбранных параметров приложения</p>
                 </div>
               </div>
             </div>
 
             <div class="flex justify-end gap-3 pt-6 border-t">
-              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад"  size="lg" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
+              <B24Button v-if="!installationComplete" @click="prevStep" label="Назад" size="lg" variant="outline" :disabled="isInstalling" :icon="ArrowLeftLIcon" />
               <B24Button v-if="installationComplete" @click="nextStep" label="Продолжить" size="lg" color="primary" :icon="ArrowRightLIcon" icon-position="right" />
             </div>
           </div>
@@ -646,33 +1267,40 @@ onUnmounted(() => {
             <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Установка завершена!</h2>
 
             <div class="space-y-4 md:space-y-6">
-              <p class="text-base md:text-lg text-gray-700">Система начала и завершения рабочего дня сотрудников успешно установлена и настроена.</p>
+              <p class="text-base md:text-lg text-gray-700">Приложение "Калькулятор под рукой" успешно установлено и настроено.</p>
 
               <B24PageCard variant="tinted">
-                <h3 class="text-lg font-bold text-gray-900 mb-2">Что дальше?</h3>
-                <p class="text-sm text-gray-600 mb-4">Система готова к использованию. Вы можете начать мониторинг активности сотрудников прямо сейчас.</p>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Что установлено?</h3>
 
                 <div class="space-y-2">
-                  <div v-if="selectedFeatures.workdayStart" class="flex items-start">
+                  <div v-if="selectedPlacements.pageBackgroundWorker" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Помощь в старте рабочего дня (способ: {{ configSettings.workdayStart.method }})</span>
+                    <span class="text-sm text-gray-700">Фоновая встройка для автоматического определения времени</span>
                   </div>
-                  <div v-if="selectedFeatures.workdayEnd" class="flex items-start">
+                  <div v-if="selectedPlacements.restAppUri" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Помощь в завершении рабочего дня (способ: {{ configSettings.workdayEnd.method }})</span>
+                    <span class="text-sm text-gray-700">Управление рабочим днем из уведомлений</span>
                   </div>
-                  <div v-if="selectedFeatures.weekendActivity" class="flex items-start">
+                  <div v-if="selectedPlacements.chatTextarea || selectedPlacements.chatSidebar" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Активность в выходные дни (включена)</span>
+                    <span class="text-sm text-gray-700">Калькулятор в чатах</span>
                   </div>
-                  <div v-else class="flex items-start">
-                    <CheckIcon class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-500">Активность в выходные дни (выключена)</span>
+                  <div v-if="selectedPlacements.taskSidebar || selectedPlacements.taskTab" class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-700">Калькулятор в задачах</span>
+                  </div>
+                  <div v-if="selectedPlacements.callCard" class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-700">Калькулятор в карточке звонка</span>
+                  </div>
+                  <div v-if="selectedPlacements.userField" class="flex items-start">
+                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <span class="text-sm text-gray-700">Пользовательское поле с калькулятором в карточках CRM</span>
                   </div>
                 </div>
 
                 <div class="mt-4">
-                  <B24Link href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Чистое время" target="_blank" is-action>
+                  <B24Link href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Калькулятор под рукой" target="_blank" is-action>
                     Техническая поддержка
                   </B24Link>
                 </div>
@@ -683,15 +1311,15 @@ onUnmounted(() => {
                 <ul class="space-y-2">
                   <li class="flex items-start text-gray-700">
                     <ArrowRightLIcon class="w-4 h-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm">Перейдите в приложение для просмотра данных мониторинга</span>
+                    <span class="text-sm">Откройте чат, задачу или карточку CRM, чтобы использовать калькулятор</span>
                   </li>
                   <li class="flex items-start text-gray-700">
                     <ArrowRightLIcon class="w-4 h-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm">Настройте дополнительные параметры в разделе "Настройки"</span>
+                    <span class="text-sm">Калькулятор появится в выбранных вами местах</span>
                   </li>
                   <li class="flex items-start text-gray-700">
                     <ArrowRightLIcon class="w-4 h-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm">Ознакомьте сотрудников с новыми возможностями системы</span>
+                    <span class="text-sm">Вы всегда можете изменить настройки в разделе "Настройки приложения"</span>
                   </li>
                 </ul>
               </B24PageCard>
@@ -719,5 +1347,19 @@ onUnmounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.hover\:shadow-lg:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 </style>
