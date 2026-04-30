@@ -311,6 +311,8 @@ const placementManager = {
   checkStatus: async (placementType: string, handler: string): Promise<boolean> => {
     try {
       const placements = await bitrixAPI.getPlacements()
+      console.log('Встройки')
+      console.log(placements)
       const placement = placements.find(p =>
           p.PLACEMENT === placementType && p.HANDLER === handler
       )
@@ -508,6 +510,7 @@ async function loadPlacementStatus(
       console.log(placementType)
       console.log(handler)
       isEnabled = await placementManager.checkStatus(placementType, handler)
+      console.log(isEnabled)
     }
     settings.value[key] = isEnabled
   } catch (error) {
