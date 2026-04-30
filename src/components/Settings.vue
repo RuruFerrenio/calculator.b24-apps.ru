@@ -516,6 +516,7 @@ async function loadPlacementStatus(
 async function loadAllSettings(): Promise<void> {
   if (!isBitrixLoaded.value || typeof BX24 === 'undefined') return
 
+  // Загружаем статусы для placement'ов
   await Promise.all([
     loadPlacementStatus('pageBackgroundWorker', 'PAGE_BACKGROUND_WORKER', HANDLERS.pageBackgroundWorker),
     loadPlacementStatus('restAppUri', 'REST_APP_URI', HANDLERS.restAppUri),
@@ -523,9 +524,16 @@ async function loadAllSettings(): Promise<void> {
     loadPlacementStatus('chatSidebar', 'IM_SIDEBAR', HANDLERS.chatSidebar),
     loadPlacementStatus('taskSidebar', 'TASK_VIEW_SIDEBAR', HANDLERS.taskSidebar),
     loadPlacementStatus('taskTab', 'TASK_VIEW_TAB', HANDLERS.taskTab),
-    loadPlacementStatus('callCard', 'CALL_CARD', HANDLERS.callCard),
-    loadPlacementStatus('userField', '', '', true)
+    loadPlacementStatus('callCard', 'CALL_CARD', HANDLERS.callCard)
   ])
+
+  // Загружаем статус пользовательского поля отдельно
+  try {
+    settings.value.userField = await userFieldManager.checkStatus()
+  } catch (error) {
+    console.error('Ошибка загрузки статуса userField:', error)
+    settings.value.userField = false
+  }
 }
 
 // Функции-обертки для каждого свитчера
