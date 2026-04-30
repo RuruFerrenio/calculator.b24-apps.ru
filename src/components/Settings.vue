@@ -192,7 +192,7 @@ const bitrixAPI = {
 
   getPlacements: async (): Promise<any[]> => {
     try {
-      const result = await bitrixAPI.call('placement.list', {})
+      const result = await bitrixAPI.call('placement.get', {})
       return Array.isArray(result) ? result : []
     } catch (error) {
       return []
