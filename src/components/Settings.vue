@@ -311,13 +311,17 @@ const placementManager = {
   checkStatus: async (placementType: string, handler: string): Promise<boolean> => {
     try {
       const placements = await bitrixAPI.getPlacements()
-      console.log('Встройки')
-      console.log(placements)
+      console.log('Встройки', placements)
+
+      // Исправлено: ищем по полям в нижнем регистре (placement, handler)
+      // так как Bitrix24 API возвращает их именно в таком формате
       const placement = placements.find(p =>
-          p.PLACEMENT === placementType && p.HANDLER === handler
+          p.placement === placementType && p.handler === handler
       )
+      console.log(`Поиск встройки ${placementType} с handler ${handler}:`, placement)
       return !!placement
     } catch (error) {
+      console.error(`Ошибка при проверке статуса встройки ${placementType}:`, error)
       return false
     }
   }
@@ -506,11 +510,9 @@ async function loadPlacementStatus(
     if (isUserField) {
       isEnabled = await userFieldManager.checkStatus()
     } else {
-      console.log('Проверяем встройки')
-      console.log(placementType)
-      console.log(handler)
+      console.log('Проверяем встройку', placementType, handler)
       isEnabled = await placementManager.checkStatus(placementType, handler)
-      console.log(isEnabled)
+      console.log(`Статус встройки ${placementType}:`, isEnabled)
     }
     settings.value[key] = isEnabled
   } catch (error) {
