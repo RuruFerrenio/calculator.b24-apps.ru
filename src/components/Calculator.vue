@@ -40,7 +40,7 @@
       <!-- Action Buttons -->
       <div class="flex items-center justify-between">
         <div class="flex space-x-2 w-full">
-          <B24Button size="sm" color="air-secondary" @click="copyToClipboard" class="text-xs w-full justify-center">
+          <B24Button size="sm" @click="copyToClipboard" class="text-xs w-full justify-center">
             Копировать
           </B24Button>
           <B24Button
