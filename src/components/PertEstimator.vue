@@ -1,49 +1,34 @@
 <template>
   <div class="w-full h-full flex flex-col space-y-4 p-4">
-    <!-- Header Card -->
+    <!-- Header Card with DescriptionList -->
     <B24Card class="flex-shrink-0">
-      <div class="p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-lg font-semibold text-b24-text-primary">PERT Оценка задачи</h2>
-            <p class="text-sm text-b24-text-secondary mt-1">Трехточечная оценка</p>
+      <B24DescriptionList
+          legend="PERT Оценка задачи"
+          text="Трехточечная оценка с автоматическим расчетом"
+          size="sm"
+          :items="descriptionItems"
+          :b24ui="{
+          container: 'mt-2',
+          labelWrapper: 'pt-2 sm:py-2',
+          descriptionWrapper: 'pb-2 pt-1 sm:py-2',
+          description: 'font-mono font-semibold'
+        }"
+      >
+        <template #footer>
+          <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border mt-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-b24-text-secondary">Стандартное отклонение:</span>
+              <span class="text-sm font-mono font-semibold">σ = {{ formatNumber(totalStdDeviation) }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
+              <span class="text-sm font-mono">
+                {{ formatNumber(totalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(totalPERT + 2 * totalStdDeviation) }}
+              </span>
+            </div>
           </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
-          <div class="bg-b24-surface-hover rounded-lg p-3">
-            <div class="text-xs text-b24-text-secondary">Общая PERT оценка</div>
-            <div class="text-xl font-bold text-b24-primary">{{ formatNumber(totalPERT) }}</div>
-          </div>
-          <div class="bg-b24-surface-hover rounded-lg p-3">
-            <div class="text-xs text-b24-text-secondary">Общая оптимистичная</div>
-            <div class="text-xl font-bold text-green-600">{{ formatNumber(totalOptimistic) }}</div>
-          </div>
-          <div class="bg-b24-surface-hover rounded-lg p-3">
-            <div class="text-xs text-b24-text-secondary">Общая реалистичная</div>
-            <div class="text-xl font-bold text-blue-600">{{ formatNumber(totalRealistic) }}</div>
-          </div>
-          <div class="bg-b24-surface-hover rounded-lg p-3">
-            <div class="text-xs text-b24-text-secondary">Общая пессимистичная</div>
-            <div class="text-xl font-bold text-red-600">{{ formatNumber(totalPessimistic) }}</div>
-          </div>
-        </div>
-
-        <!-- Std Deviation & Confidence -->
-        <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-b24-text-secondary">Стандартное отклонение:</span>
-            <span class="text-sm font-mono font-semibold">σ = {{ formatNumber(totalStdDeviation) }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
-            <span class="text-sm font-mono">
-              {{ formatNumber(totalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(totalPERT + 2 * totalStdDeviation) }}
-            </span>
-          </div>
-        </div>
-      </div>
+        </template>
+      </B24DescriptionList>
     </B24Card>
 
     <!-- Tasks Table -->
@@ -69,9 +54,9 @@
                     v-model="task.name"
                     type="text"
                     placeholder="Название задачи"
-                    class="w-full bg-transparent border-none outline-none text-sm focus:ring-0 p-0"
+                    class="w-full bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
                     :class="{ 'font-semibold': index === 0 }"
-                    @input="handleTaskUpdate(task)"
+                    @input="debouncedUpdate"
                 />
               </td>
 
@@ -84,7 +69,7 @@
                     min="0"
                     placeholder="—"
                     class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="handleTaskUpdate(task)"
+                    @input="debouncedUpdate"
                 />
               </td>
 
@@ -97,7 +82,7 @@
                     min="0"
                     placeholder="—"
                     class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="handleTaskUpdate(task)"
+                    @input="debouncedUpdate"
                 />
               </td>
 
@@ -110,7 +95,7 @@
                     min="0"
                     placeholder="—"
                     class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="handleTaskUpdate(task)"
+                    @input="debouncedUpdate"
                 />
               </td>
 
@@ -165,6 +150,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
+import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
+import TargetIcon from '@bitrix24/b24icons-vue/main/TargetIcon'
+import CheckCircleIcon from '@bitrix24/b24icons-vue/main/CheckCircleIcon'
+import ClockIcon from '@bitrix24/b24icons-vue/main/ClockIcon'
+import AlertIcon from '@bitrix24/b24icons-vue/main/AlertIcon'
 
 interface Props {
   sendButton?: boolean
@@ -184,6 +174,7 @@ export interface PertTask {
 
 const toast = useToast()
 let nextId = 1
+let updateTimeout: ReturnType<typeof setTimeout> | null = null
 
 const tasks = ref<PertTask[]>([])
 
@@ -261,6 +252,39 @@ const formatNumber = (value: number): string => {
   })
 }
 
+// DescriptionList items
+const descriptionItems = computed<DescriptionListItem[]>(() => [
+  {
+    label: 'PERT оценка',
+    description: formatNumber(totalPERT.value),
+    icon: TargetIcon,
+  },
+  {
+    label: 'Оптимистично',
+    description: formatNumber(totalOptimistic.value),
+    icon: CheckCircleIcon,
+  },
+  {
+    label: 'Реалистично',
+    description: formatNumber(totalRealistic.value),
+    icon: ClockIcon,
+  },
+  {
+    label: 'Пессимистично',
+    description: formatNumber(totalPessimistic.value),
+    icon: AlertIcon,
+  },
+])
+
+const debouncedUpdate = () => {
+  if (updateTimeout) {
+    clearTimeout(updateTimeout)
+  }
+  updateTimeout = setTimeout(() => {
+    saveToLocalStorage()
+  }, 300)
+}
+
 const addRow = () => {
   const newTask: PertTask = {
     id: generateId(),
@@ -273,16 +297,7 @@ const addRow = () => {
   saveToLocalStorage()
 }
 
-const handleTaskUpdate = (updatedTask: PertTask) => {
-  const index = tasks.value.findIndex(t => t.id === updatedTask.id)
-  if (index !== -1) {
-    tasks.value[index] = { ...updatedTask }
-    saveToLocalStorage()
-  }
-}
-
 const deleteTask = (taskId: string) => {
-  // Не удаляем первую строку
   if (tasks.value[0]?.id === taskId) {
     showNotification('Первую строку нельзя удалить', 'warning')
     return
@@ -372,7 +387,6 @@ const loadFromLocalStorage = () => {
         return
       }
     }
-    // Default demo data - только первая строка
     tasks.value = [
       {
         id: generateId(),
