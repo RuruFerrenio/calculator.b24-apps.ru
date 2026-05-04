@@ -38,10 +38,10 @@
           <table class="w-full">
             <thead>
             <tr class="bg-b24-surface-hover">
-              <th class="px-3 py-2 text-left min-w-[200px]">Задача</th>
-              <th class="px-3 py-2 text-left min-w-[120px]">Оптимистично (O)</th>
-              <th class="px-3 py-2 text-left min-w-[120px]">Реалистично (M)</th>
-              <th class="px-3 py-2 text-left min-w-[120px]">Пессимистично (P)</th>
+              <th class="px-3 py-2 text-left">Задача</th>
+              <th class="px-3 py-2 text-left">Оптимистично (O)</th>
+              <th class="px-3 py-2 text-left">Реалистично (M)</th>
+              <th class="px-3 py-2 text-left">Пессимистично (P)</th>
               <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
               <th class="px-3 py-2 text-center w-24">Действия</th>
             </tr>
