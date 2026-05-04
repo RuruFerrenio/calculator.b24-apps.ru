@@ -354,6 +354,7 @@ const createVoteData = () => {
 }
 
 // Get chat ID from placement info
+// Get chat ID from placement info
 const getChatIdFromPlacement = async (): Promise<number | null> => {
   return new Promise((resolve) => {
     if (window.BX24) {
@@ -362,25 +363,57 @@ const getChatIdFromPlacement = async (): Promise<number | null> => {
         const placementInfo = window.BX24.placement.info()
         console.log('Placement info:', placementInfo)
 
-        // Extract chat ID from options
+        // Extract dialog ID from options
         const options = placementInfo.options as Record<string, unknown>
+        const dialogId = options.dialogId as string
 
-        // Possible chat ID fields in placement info
-        const possibleChatIds = [
+        if (dialogId) {
+          // Parse chat ID from formats: "chat3", "chat_3", "3", "chat123"
+          let numericId: number | null = null
+
+          if (typeof dialogId === 'string') {
+            // Extract numbers from string (e.g., "chat3" -> 3, "chat_123" -> 123)
+            const match = dialogId.match(/\d+/)
+            if (match) {
+              numericId = parseInt(match[0], 10)
+            }
+          } else if (typeof dialogId === 'number') {
+            numericId = dialogId
+          }
+
+          if (numericId && !isNaN(numericId)) {
+            console.log('Extracted chat ID:', numericId, 'from dialogId:', dialogId)
+            resolve(numericId)
+            return
+          }
+        }
+
+        // Try other possible fields
+        const possibleIds = [
           options.chatId,
-          options.dialogId,
+          options.CHAT_ID,
           options.ID,
           options.id
         ]
 
-        for (const id of possibleChatIds) {
-          if (id && typeof id === 'number') {
-            resolve(id)
-            return
-          }
-          if (id && typeof id === 'string' && !isNaN(Number(id))) {
-            resolve(Number(id))
-            return
+        for (const id of possibleIds) {
+          if (id) {
+            let numericId: number | null = null
+
+            if (typeof id === 'string') {
+              const match = id.match(/\d+/)
+              if (match) {
+                numericId = parseInt(match[0], 10)
+              }
+            } else if (typeof id === 'number') {
+              numericId = id
+            }
+
+            if (numericId && !isNaN(numericId)) {
+              console.log('Found chat ID from alternative field:', numericId)
+              resolve(numericId)
+              return
+            }
           }
         }
 
