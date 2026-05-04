@@ -39,9 +39,9 @@
             <thead>
             <tr class="bg-b24-surface-hover">
               <th class="px-3 py-2 text-left min-w-[200px]">Задача</th>
-              <th class="px-3 py-2 text-right min-w-[100px]">Оптимистично (O)</th>
-              <th class="px-3 py-2 text-right min-w-[100px]">Реалистично (M)</th>
-              <th class="px-3 py-2 text-right min-w-[100px]">Пессимистично (P)</th>
+              <th class="px-3 py-2 text-right min-w-[120px]">Оптимистично (O)</th>
+              <th class="px-3 py-2 text-right min-w-[120px]">Реалистично (M)</th>
+              <th class="px-3 py-2 text-right min-w-[120px]">Пессимистично (P)</th>
               <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
               <th class="px-3 py-2 text-center w-24">Действия</th>
             </tr>
@@ -50,52 +50,58 @@
             <tr v-for="(task, index) in tasks" :key="task.id" :class="{ 'bg-b24-surface-hover/50': index % 2 === 1 }">
               <!-- Task name -->
               <td class="px-3 py-2 align-middle">
-                <input
+                <B24Input
                     v-model="task.name"
-                    type="text"
                     placeholder="Название задачи"
-                    class="w-full bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
+                    size="sm"
+                    no-border
                     :class="{ 'font-semibold': index === 0 }"
-                    @input="debouncedUpdate"
+                    @update:model-value="debouncedUpdate"
                 />
               </td>
 
               <!-- Optimistic (O) -->
-              <td class="px-3 py-2 text-right align-middle">
-                <input
+              <td class="px-3 py-2 align-middle">
+                <B24Input
                     v-model.number="task.optimistic"
                     type="number"
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="debouncedUpdate"
+                    size="sm"
+                    no-border
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
                 />
               </td>
 
               <!-- Realistic (M) -->
-              <td class="px-3 py-2 text-right align-middle">
-                <input
+              <td class="px-3 py-2 align-middle">
+                <B24Input
                     v-model.number="task.realistic"
                     type="number"
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="debouncedUpdate"
+                    size="sm"
+                    no-border
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
                 />
               </td>
 
               <!-- Pessimistic (P) -->
-              <td class="px-3 py-2 text-right align-middle">
-                <input
+              <td class="px-3 py-2 align-middle">
+                <B24Input
                     v-model.number="task.pessimistic"
                     type="number"
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
-                    @input="debouncedUpdate"
+                    size="sm"
+                    no-border
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
                 />
               </td>
 
@@ -152,10 +158,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
 import TargetIcon from '@bitrix24/b24icons-vue/main/TargetIcon'
-import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
-import ClockIcon from '@bitrix24/b24icons-vue/outline/ClockIcon'
-import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
-
+import CheckCircleIcon from '@bitrix24/b24icons-vue/main/CheckCircleIcon'
+import ClockIcon from '@bitrix24/b24icons-vue/main/ClockIcon'
+import AlertIcon from '@bitrix24/b24icons-vue/main/AlertIcon'
 
 interface Props {
   sendButton?: boolean
@@ -263,7 +268,7 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    icon: CircleCheckIcon,
+    icon: CheckCircleIcon,
   },
   {
     label: 'Реалистично',
