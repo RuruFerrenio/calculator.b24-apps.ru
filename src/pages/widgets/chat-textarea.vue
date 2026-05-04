@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import Calculator from '../../components/Calculator.vue'
+import Calculator from "../../components/Calculator.vue";
 </script>
 
 <template>
-  <div>
-    <!-- Компонент Setting -->
-    <Calculator />
+  <div class="mx-auto mb-8">
+    <Calculator
+        :send-button="true"
+        :keyboard-open="false"
+        :engineering-open="false"
+        :history-open="false"
+        :help-open="false"
+        container-padding="p-4"
+    />
   </div>
 </template>
