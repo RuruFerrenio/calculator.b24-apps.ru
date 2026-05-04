@@ -8,9 +8,6 @@
             <h2 class="text-lg font-semibold text-b24-text-primary">PERT Оценка задачи</h2>
             <p class="text-sm text-b24-text-secondary mt-1">Трехточечная оценка с декомпозицией до 3 уровней</p>
           </div>
-          <B24Button size="sm" @click="addRootTask" variant="outline">
-            + Добавить задачу
-          </B24Button>
         </div>
 
         <!-- Summary Cards -->
@@ -51,43 +48,38 @@
 
     <!-- Tasks Table -->
     <B24Card class="flex-1 overflow-hidden" :b24ui="{ body: 'p-0 sm:px-0 sm:py-0' }">
-      <B24TableWrapper
-          class="w-full"
-          size="sm"
-          bordered
-          row-hover
-      >
+      <B24TableWrapper class="w-full" size="sm" bordered row-hover>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
             <tr class="bg-b24-surface-hover">
-              <th class="w-8 px-3 py-2 text-left"></th>
-              <th class="px-3 py-2 text-left min-w-[250px]">Задача / Подзадача</th>
-              <th class="px-3 py-2 text-right min-w-[110px]">Оптимистично (O)</th>
-              <th class="px-3 py-2 text-right min-w-[110px]">Реалистично (M)</th>
-              <th class="px-3 py-2 text-right min-w-[110px]">Пессимистично (P)</th>
-              <th class="px-3 py-2 text-right min-w-[110px]">PERT оценка</th>
-              <th class="px-3 py-2 text-center w-24">Действия</th>
+              <th class="px-3 py-2 text-left min-w-[200px]">Задача</th>
+              <th class="px-3 py-2 text-right min-w-[100px]">Оптимистично (O)</th>
+              <th class="px-3 py-2 text-right min-w-[100px]">Реалистично (M)</th>
+              <th class="px-3 py-2 text-right min-w-[100px]">Пессимистично (P)</th>
+              <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
+              <th class="px-3 py-2 text-center w-32">Действия</th>
             </tr>
             </thead>
             <tbody>
             <template v-for="(task, index) in tasks" :key="task.id">
-              <TaskRow
+              <TaskRowComponent
                   :task="task"
                   :level="0"
-                  :index="index"
-                  :is-first="index === 0"
+                  :is-first-row="index === 0"
                   @update="handleTaskUpdate"
                   @delete="handleTaskDelete"
-                  @toggle-children="handleToggleChildren"
                   @add-subtask="handleAddSubtask"
+                  @decompose="handleDecompose"
               />
             </template>
             </tbody>
-            <tfoot v-if="tasks.length === 0">
+            <tfoot>
             <tr>
-              <td colspan="7" class="px-3 py-8 text-center text-b24-text-secondary">
-                Нет задач. Нажмите "Добавить задачу" чтобы начать.
+              <td colspan="6" class="px-3 py-2">
+                <B24Button size="sm" variant="outline" @click="addRow" class="w-full">
+                  + Добавить строку
+                </B24Button>
               </td>
             </tr>
             </tfoot>
@@ -99,23 +91,12 @@
     <!-- Action Buttons -->
     <div class="flex items-center justify-between gap-3 flex-shrink-0">
       <div class="flex gap-2">
-        <B24Button size="sm" variant="ghost" @click="expandAll">
-          Развернуть все
-        </B24Button>
-        <B24Button size="sm" variant="ghost" @click="collapseAll">
-          Свернуть все
-        </B24Button>
+        <B24Button size="sm" variant="ghost" @click="expandAll">Развернуть все</B24Button>
+        <B24Button size="sm" variant="ghost" @click="collapseAll">Свернуть все</B24Button>
       </div>
       <div class="flex gap-2">
-        <B24Button size="sm" @click="copyResults">
-          Копировать результаты
-        </B24Button>
-        <B24Button
-            v-if="showSendButton"
-            size="sm"
-            color="air-primary"
-            @click="sendToChat"
-        >
+        <B24Button size="sm" @click="copyResults">Копировать результаты</B24Button>
+        <B24Button v-if="showSendButton" size="sm" color="air-primary" @click="sendToChat">
           Отправить в чат
         </B24Button>
       </div>
@@ -125,19 +106,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import TaskRow from './TaskRow.vue'
+import TaskRowComponent from './TaskRowComponent.vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 
-// Props
 interface Props {
   sendButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sendButton: true
+  sendButton: true,
 })
 
-// Types
 export interface PertTask {
   id: string
   name: string
@@ -145,31 +124,15 @@ export interface PertTask {
   realistic: number | null
   pessimistic: number | null
   children: PertTask[]
-  showChildren: boolean
+  isExpanded: boolean
   level: number
 }
 
-// Global declarations
-declare global {
-  interface Window {
-    BX24?: {
-      init: (callback: () => void) => void
-      callMethod: (method: string, params: Record<string, unknown>, callback?: (result: unknown) => void) => Promise<unknown>
-      user?: {
-        id: string
-      }
-    }
-  }
-}
-
-// Utils
 const toast = useToast()
 let nextId = 1
 
-// State
 const tasks = ref<PertTask[]>([])
 
-// Helper functions
 const generateId = (): string => {
   return `${Date.now()}-${nextId++}`
 }
@@ -184,22 +147,9 @@ const calculateStdDeviation = (optimistic: number, pessimistic: number): number 
   return (pessimistic - optimistic) / 6
 }
 
-// Ensure task has all required properties
-const normalizeTask = (task: any, level: number = 0): PertTask => {
-  return {
-    id: task.id || generateId(),
-    name: task.name || `Задача`,
-    optimistic: task.optimistic !== undefined ? task.optimistic : null,
-    realistic: task.realistic !== undefined ? task.realistic : null,
-    pessimistic: task.pessimistic !== undefined ? task.pessimistic : null,
-    showChildren: task.showChildren === true,
-    level: task.level !== undefined ? task.level : level,
-    children: task.children ? task.children.map((child: any) => normalizeTask(child, level + 1)) : []
-  }
-}
-
-// Recursive task calculations
-const recalcTaskTotals = (task: PertTask): { pert: number; optimistic: number; realistic: number; pessimistic: number; stdDev: number } => {
+const recalcTaskTotals = (
+    task: PertTask
+): { pert: number; optimistic: number; realistic: number; pessimistic: number; stdDev: number } => {
   if (!task.children || task.children.length === 0) {
     const pert = calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
     const stdDev = calculateStdDeviation(task.optimistic ?? 0, task.pessimistic ?? 0)
@@ -208,7 +158,7 @@ const recalcTaskTotals = (task: PertTask): { pert: number; optimistic: number; r
       optimistic: task.optimistic ?? 0,
       realistic: task.realistic ?? 0,
       pessimistic: task.pessimistic ?? 0,
-      stdDev
+      stdDev,
     }
   }
 
@@ -232,11 +182,10 @@ const recalcTaskTotals = (task: PertTask): { pert: number; optimistic: number; r
     optimistic: totalOptimistic,
     realistic: totalRealistic,
     pessimistic: totalPessimistic,
-    stdDev: Math.sqrt(totalVariance)
+    stdDev: Math.sqrt(totalVariance),
   }
 }
 
-// Global totals
 const totalPERT = computed(() => {
   let total = 0
   for (const task of tasks.value) {
@@ -280,17 +229,15 @@ const totalStdDeviation = computed(() => {
 
 const showSendButton = computed(() => props.sendButton)
 
-// Formatting
 const formatNumber = (value: number): string => {
   if (isNaN(value)) return '0'
   return value.toLocaleString('ru-RU', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   })
 }
 
-// Task operations
-const addRootTask = () => {
+const addRow = () => {
   const newTask: PertTask = {
     id: generateId(),
     name: `Задача ${tasks.value.length + 1}`,
@@ -298,8 +245,8 @@ const addRootTask = () => {
     realistic: null,
     pessimistic: null,
     children: [],
-    showChildren: false,
-    level: 0
+    isExpanded: true,
+    level: 0,
   }
   tasks.value.push(newTask)
   saveToLocalStorage()
@@ -323,6 +270,12 @@ const handleTaskUpdate = (updatedTask: PertTask) => {
 }
 
 const handleTaskDelete = (taskId: string) => {
+  // Не удаляем первую строку
+  if (tasks.value[0]?.id === taskId) {
+    showNotification('Первую строку нельзя удалить', 'warning')
+    return
+  }
+
   const deleteFromTree = (tasksList: PertTask[]): boolean => {
     for (let i = 0; i < tasksList.length; i++) {
       if (tasksList[i].id === taskId) {
@@ -340,23 +293,6 @@ const handleTaskDelete = (taskId: string) => {
   showNotification('Задача удалена', 'info')
 }
 
-const handleToggleChildren = (taskId: string) => {
-  const toggleInTree = (tasksList: PertTask[]): boolean => {
-    for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === taskId) {
-        tasksList[i].showChildren = !tasksList[i].showChildren
-        return true
-      }
-      if (toggleInTree(tasksList[i].children)) {
-        return true
-      }
-    }
-    return false
-  }
-  toggleInTree(tasks.value)
-  saveToLocalStorage()
-}
-
 const handleAddSubtask = (parentTask: PertTask) => {
   if (parentTask.level >= 2) {
     showNotification('Максимальная глубина декомпозиции - 3 уровня', 'warning')
@@ -370,8 +306,8 @@ const handleAddSubtask = (parentTask: PertTask) => {
     realistic: null,
     pessimistic: null,
     children: [],
-    showChildren: false,
-    level: parentTask.level + 1
+    isExpanded: true,
+    level: parentTask.level + 1,
   }
 
   const addToParent = (tasksList: PertTask[]): boolean => {
@@ -388,54 +324,68 @@ const handleAddSubtask = (parentTask: PertTask) => {
   }
 
   addToParent(tasks.value)
-  // Auto-expand parent to show new subtask
-  const expandParent = (tasksList: PertTask[]): boolean => {
+  saveToLocalStorage()
+  showNotification('Подзадача добавлена', 'success')
+}
+
+const handleDecompose = (task: PertTask) => {
+  if (task.level >= 2) {
+    showNotification('Максимальная глубина декомпозиции - 3 уровня', 'warning')
+    return
+  }
+
+  // Создаем дочернюю задачу
+  const newSubtask: PertTask = {
+    id: generateId(),
+    name: `Декомпозиция ${task.children.length + 1}`,
+    optimistic: null,
+    realistic: null,
+    pessimistic: null,
+    children: [],
+    isExpanded: true,
+    level: task.level + 1,
+  }
+
+  const addToParent = (tasksList: PertTask[]): boolean => {
     for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === parentTask.id) {
-        tasksList[i].showChildren = true
+      if (tasksList[i].id === task.id) {
+        tasksList[i].children.push(newSubtask)
         return true
       }
-      if (expandParent(tasksList[i].children)) {
+      if (addToParent(tasksList[i].children)) {
         return true
       }
     }
     return false
   }
-  expandParent(tasks.value)
+
+  addToParent(tasks.value)
   saveToLocalStorage()
-  showNotification('Подзадача добавлена', 'success')
+  showNotification('Дочерняя задача создана', 'success')
 }
 
-// Expand / Collapse all
 const expandAll = () => {
   const expand = (task: PertTask) => {
-    if (task.children.length > 0) {
-      task.showChildren = true
-      task.children.forEach(expand)
-    }
+    task.isExpanded = true
+    task.children.forEach(expand)
   }
   tasks.value.forEach(expand)
-  saveToLocalStorage()
 }
 
 const collapseAll = () => {
   const collapse = (task: PertTask) => {
-    task.showChildren = false
+    task.isExpanded = false
     task.children.forEach(collapse)
   }
   tasks.value.forEach(collapse)
-  saveToLocalStorage()
 }
 
-// Format results for export
 const formatTaskTree = (task: PertTask, depth = 0): string => {
   const indent = '  '.repeat(depth)
   const totals = recalcTaskTotals(task)
   let result = `${indent}• ${task.name}\n`
-  if (task.optimistic !== null || task.realistic !== null || task.pessimistic !== null || task.children.length > 0) {
-    result += `${indent}  Оптимистично: ${formatNumber(totals.optimistic)} | Реалистично: ${formatNumber(totals.realistic)} | Пессимистично: ${formatNumber(totals.pessimistic)}\n`
-    result += `${indent}  PERT: ${formatNumber(totals.pert)} | σ: ${formatNumber(totals.stdDev)}\n`
-  }
+  result += `${indent}  Оптимистично: ${formatNumber(totals.optimistic)} | Реалистично: ${formatNumber(totals.realistic)} | Пессимистично: ${formatNumber(totals.pessimistic)}\n`
+  result += `${indent}  PERT: ${formatNumber(totals.pert)} | σ: ${formatNumber(totals.stdDev)}\n`
   for (const child of task.children) {
     result += formatTaskTree(child, depth + 1)
   }
@@ -475,7 +425,7 @@ const sendToChat = async () => {
     const message = getFormattedResults()
     if (window.BX24) {
       await window.BX24.callMethod('im.message.add', {
-        DIALOG_ID: window.BX24.user?.id,
+        DIALOG_ID: window.BX24?.user?.id,
         MESSAGE: message,
         SYSTEM: 'N',
       })
@@ -496,7 +446,6 @@ const showNotification = (message: string, variant: 'success' | 'error' | 'warni
   })
 }
 
-// Local Storage
 const STORAGE_KEY = 'pert_tasks_data'
 
 const saveToLocalStorage = () => {
@@ -513,49 +462,28 @@ const loadFromLocalStorage = () => {
     if (saved) {
       const parsed = JSON.parse(saved)
       if (Array.isArray(parsed) && parsed.length) {
-        tasks.value = parsed.map((task: any) => normalizeTask(task))
+        tasks.value = parsed
         return
       }
     }
-    // Default demo data - 3 rows
+    // Default demo data - только первая строка
     tasks.value = [
       {
         id: generateId(),
-        name: 'Разработка модуля авторизации',
+        name: 'Основная задача',
         optimistic: 5,
         realistic: 8,
         pessimistic: 15,
         children: [],
-        showChildren: false,
-        level: 0
+        isExpanded: true,
+        level: 0,
       },
-      {
-        id: generateId(),
-        name: 'Тестирование и отладка',
-        optimistic: 3,
-        realistic: 5,
-        pessimistic: 10,
-        children: [],
-        showChildren: false,
-        level: 0
-      },
-      {
-        id: generateId(),
-        name: 'Документация и обучение',
-        optimistic: 2,
-        realistic: 4,
-        pessimistic: 7,
-        children: [],
-        showChildren: false,
-        level: 0
-      }
     ]
   } catch (error) {
     console.error('Error loading from localStorage:', error)
   }
 }
 
-// Lifecycle
 onMounted(() => {
   loadFromLocalStorage()
   if (window.BX24) {
