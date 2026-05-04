@@ -1,6 +1,6 @@
 <template>
   <B24App>
-    <div class="w-full h-full space-y-4" :dir="direction">
+    <div class="w-full h-full px-4 space-y-4" :dir="direction">
       <!-- Display -->
       <B24Card class="overflow-hidden">
         <div class="p-3 relative">
