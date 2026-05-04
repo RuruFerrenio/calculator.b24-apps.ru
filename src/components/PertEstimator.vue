@@ -268,7 +268,7 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    icon: CheckCircleIcon,
+    icon: CircleCheckIcon,
   },
   {
     label: 'Реалистично',
