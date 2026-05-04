@@ -849,14 +849,6 @@ onUnmounted(() => {
               <ul class="space-y-2 md:space-y-3">
                 <li class="flex items-start">
                   <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Фоновая встройка для автоматического определения времени</span>
-                </li>
-                <li class="flex items-start">
-                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
-                  <span class="text-sm md:text-base text-gray-700">Управление рабочим днем через уведомления</span>
-                </li>
-                <li class="flex items-start">
-                  <CheckIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
                   <span class="text-sm md:text-base text-gray-700">Калькулятор в панели ввода сообщений чата</span>
                 </li>
                 <li class="flex items-start">
