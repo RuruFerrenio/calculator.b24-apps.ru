@@ -5,7 +5,7 @@
       <B24DescriptionList
           legend="PERT Оценка задачи"
           text="Трехточечная оценка с автоматическим расчетом"
-          size="sm"
+          size="lg"
           :items="descriptionItems"
           :b24ui="{
           container: 'mt-2',
@@ -33,17 +33,17 @@
 
     <!-- Tasks Table -->
     <B24Card class="flex-1 overflow-hidden" :b24ui="{ body: 'p-0 sm:px-0 sm:py-0' }">
-      <B24TableWrapper class="w-full" size="sm" bordered row-hover>
+      <B24TableWrapper class="w-full" size="lg" bordered row-hover>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
             <tr class="bg-b24-surface-hover">
               <th class="px-3 py-2 text-left">Задача</th>
-              <th class="px-3 py-2 text-left">Оптимистично (O)</th>
-              <th class="px-3 py-2 text-left">Реалистично (M)</th>
-              <th class="px-3 py-2 text-left">Пессимистично (P)</th>
-              <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
-              <th class="px-3 py-2 text-center w-24">Действия</th>
+              <th class="px-3 py-2 text-left">Оптимистично</th>
+              <th class="px-3 py-2 text-left">Реалистично</th>
+              <th class="px-3 py-2 text-left">Пессимистично</th>
+              <th class="px-3 py-2 text-left">PERT оценка</th>
+              <th class="px-3 py-2 text-left">Действия</th>
             </tr>
             </thead>
             <tbody>
@@ -53,7 +53,7 @@
                 <B24Input
                     v-model="task.name"
                     placeholder="Название задачи"
-                    size="sm"
+                    size="lg"
                     :class="{ 'font-semibold': index === 0 }"
                     @update:model-value="debouncedUpdate"
                 />
@@ -67,7 +67,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="sm"
+                    size="lg"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -81,7 +81,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="sm"
+                    size="lg"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -95,7 +95,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="sm"
+                    size="lg"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -111,7 +111,7 @@
                 <div class="flex items-center justify-center gap-1">
                   <B24Button
                       v-if="index !== 0"
-                      size="xs"
+                      size="lg"
                       variant="ghost"
                       @click="deleteTask(task.id)"
                       title="Удалить"
@@ -126,7 +126,7 @@
             <tfoot>
             <tr>
               <td colspan="6" class="px-3 py-2">
-                <B24Button size="sm" variant="outline" @click="addRow" class="w-full">
+                <B24Button size="lg" variant="outline" @click="addRow" class="w-full">
                   + Добавить строку
                 </B24Button>
               </td>
@@ -140,8 +140,8 @@
     <!-- Action Buttons -->
     <div class="flex items-center justify-end gap-3 flex-shrink-0">
       <div class="flex gap-2">
-        <B24Button size="sm" @click="copyResults">Копировать результаты</B24Button>
-        <B24Button v-if="showSendButton" size="sm" color="air-primary" @click="sendToChat">
+        <B24Button size="lg" @click="copyResults">Копировать результаты</B24Button>
+        <B24Button v-if="showSendButton" size="lg" color="air-primary" @click="sendToChat">
           Отправить в чат
         </B24Button>
       </div>
