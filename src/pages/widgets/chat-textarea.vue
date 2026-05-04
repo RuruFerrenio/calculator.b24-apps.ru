@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import Calculator from "../../components/Calculator.vue";
+import VoteForm from "../../components/VoteForm.vue";
 </script>
 
 <template>
   <div class="mx-auto mb-8">
-    <Calculator
-        :send-button="true"
-        :keyboard-open="false"
-        :engineering-open="false"
-        :history-open="false"
-        :help-open="false"
-        container-padding="p-4"
-    />
+    <VoteForm/>
   </div>
 </template>
