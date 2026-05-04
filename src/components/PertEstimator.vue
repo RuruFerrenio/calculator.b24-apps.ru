@@ -102,7 +102,7 @@
               </td>
 
               <!-- PERT calculated value -->
-              <td class="px-3 py-2 text-right align-middle font-mono font-medium">
+              <td class="px-3 py-2 text-left align-middle font-mono font-medium">
                 {{ calculatePERTValue(task) }}
               </td>
 
