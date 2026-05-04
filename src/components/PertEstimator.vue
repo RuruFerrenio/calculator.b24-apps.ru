@@ -158,9 +158,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
 import TargetIcon from '@bitrix24/b24icons-vue/main/TargetIcon'
-import CheckCircleIcon from '@bitrix24/b24icons-vue/main/CheckCircleIcon'
-import ClockIcon from '@bitrix24/b24icons-vue/main/ClockIcon'
-import AlertIcon from '@bitrix24/b24icons-vue/main/AlertIcon'
+import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
+import ClockIcon from '@bitrix24/b24icons-vue/outline/ClockIcon'
+import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
 
 interface Props {
   sendButton?: boolean
