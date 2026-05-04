@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import PertTable from "../../components/PertTable.vue";
+import PertEstimator from "../../components/PertEstimator.vue";
 </script>
 
 <template>
   <div class="mx-auto mb-8">
-    <PertTable/>
+    <PertEstimator/>
   </div>
 </template>
