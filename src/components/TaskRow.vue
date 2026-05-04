@@ -134,12 +134,20 @@ const emit = defineEmits<{
   (e: 'add-subtask', parentTask: PertTask): void
 }>()
 
-// Local reactive copy
-const localTask = ref<PertTask>({ ...props.task })
+// Local reactive copy with safe defaults
+const localTask = ref<PertTask>({
+  ...props.task,
+  showChildren: props.task.showChildren === true,
+  children: props.task.children || []
+})
 
 // Watch for external changes
 watch(() => props.task, (newTask) => {
-  localTask.value = { ...newTask }
+  localTask.value = {
+    ...newTask,
+    showChildren: newTask.showChildren === true,
+    children: newTask.children || []
+  }
 }, { deep: true })
 
 // Computed
