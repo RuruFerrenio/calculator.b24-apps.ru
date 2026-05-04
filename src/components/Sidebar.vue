@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import MailOutIcon from '@bitrix24/b24icons-vue/main/MailOutIcon'
 import StarIcon from '@bitrix24/b24icons-vue/outline/AiStarsQuestionIcon'
-import ShieldCheckIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
-import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
+import CalculatorIcon from '@bitrix24/b24icons-vue/main/CalculatorIcon'
 import SettingsIcon from '@bitrix24/b24icons-vue/outline/SettingsIcon'
 import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
 import DocumentUpdateIcon from '@bitrix24/b24icons-vue/outline/DocumentUpdateIcon'
@@ -119,7 +118,7 @@ onUnmounted(() => {
           <!-- Логотип и название -->
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <PowerIcon class="w-6 h-6 text-blue-600" />
+              <CalculatorIcon class="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <h3 class="text-lg font-semibold text-gray-900">Калькулятор под рукой</h3>

@@ -9,7 +9,7 @@ import RefreshIcon from '@bitrix24/b24icons-vue/main/RefreshIcon'
 import SuccessIcon from '@bitrix24/b24icons-vue/button/SuccessIcon'
 import ErrorIcon from '@bitrix24/b24icons-vue/main/UnavailableIcon'
 import LoadingIcon from '@bitrix24/b24icons-vue/animated/LoaderWaitIcon'
-import PowerIcon from '@bitrix24/b24icons-vue/outline/PowerIcon'
+import CalculatorIcon from '@bitrix24/b24icons-vue/main/CalculatorIcon'
 
 // Состояние
 const currentStep = ref(1)
@@ -802,7 +802,7 @@ onUnmounted(() => {
     <!-- Шапка с логотипом и заголовком -->
     <div class="text-center py-8 md:py-12">
       <div class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-2xl mb-4 md:mb-6">
-        <PowerIcon class="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
+        <CalculatorIcon class="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
       </div>
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3 px-2">
         Установка приложения "Калькулятор под рукой"

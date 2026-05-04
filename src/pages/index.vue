@@ -10,7 +10,7 @@ import Calculator from "../components/Calculator.vue";
         :engineering-open="false"
         :history-open="false"
         :help-open="false"
-        container-padding=""
+        container-padding="px-4"
     />
   </div>
 </template>
