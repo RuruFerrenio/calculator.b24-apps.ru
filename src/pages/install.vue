@@ -807,7 +807,7 @@ onUnmounted(() => {
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-3 px-2">
         Установка приложения "Калькулятор под рукой"
       </h1>
-      <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-4">
+      <p class="text-base md:text-lg text-gray-600 mx-auto px-4">
         Калькулятор всегда под рукой: в чатах, задачах, звонках и карточках CRM
       </p>
     </div>
@@ -905,7 +905,7 @@ onUnmounted(() => {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Фоновая встройка -->
-              <B24PageCard>
+              <B24PageCard class="hidden">
                 <div class="p-6">
                   <div class="flex items-start justify-between mb-4">
                     <div>
@@ -918,7 +918,7 @@ onUnmounted(() => {
               </B24PageCard>
 
               <!-- Встройка для управления из уведомлений -->
-              <B24PageCard>
+              <B24PageCard class="hidden">
                 <div class="p-6">
                   <div class="flex items-start justify-between mb-4">
                     <div>
@@ -953,7 +953,7 @@ onUnmounted(() => {
                       <transition name="fade" mode="out-in">
                         <div :key="chatImages[currentChatSlide]" class="absolute inset-0 flex items-center justify-center p-4">
                           <div class="text-center">
-                            <img :src="chatImages[currentChatSlide]" alt="Калькулятор в панели ввода сообщения" class="max-w-full max-h-full object-contain mx-auto" />
+                            <img :src="chatImages[currentChatSlide]" alt="Калькулятор в панели ввода сообщения" class="max-h-full object-contain mx-auto" />
                             <p class="text-xs text-gray-500 mt-2">
                               {{ currentChatSlide === 0 ? 'Калькулятор в панели ввода сообщения' : 'Калькулятор в боковой панели чата' }}
                             </p>
@@ -1008,7 +1008,7 @@ onUnmounted(() => {
                       <transition name="fade" mode="out-in">
                         <div :key="taskImages[currentTaskSlide]" class="absolute inset-0 flex items-center justify-center p-4">
                           <div class="text-center">
-                            <img :src="taskImages[currentTaskSlide]" alt="Калькулятор в задачах" class="max-w-full max-h-full object-contain mx-auto" />
+                            <img :src="taskImages[currentTaskSlide]" alt="Калькулятор в задачах" class="max-h-full object-contain mx-auto" />
                             <p class="text-xs text-gray-500 mt-2">Калькулятор в боковой панели задачи</p>
                           </div>
                         </div>
@@ -1041,7 +1041,7 @@ onUnmounted(() => {
                       <transition name="fade" mode="out-in">
                         <div :key="callCardImages[currentCallCardSlide]" class="absolute inset-0 flex items-center justify-center p-4">
                           <div class="text-center">
-                            <img :src="callCardImages[currentCallCardSlide]" alt="Калькулятор в карточке звонка" class="max-w-full max-h-full object-contain mx-auto" />
+                            <img :src="callCardImages[currentCallCardSlide]" alt="Калькулятор в карточке звонка" class="max-h-full object-contain mx-auto" />
                             <p class="text-xs text-gray-500 mt-2">Калькулятор в карточке звонка</p>
                           </div>
                         </div>
@@ -1074,7 +1074,7 @@ onUnmounted(() => {
                       <transition name="fade" mode="out-in">
                         <div :key="userFieldImages[currentUserFieldSlide]" class="absolute inset-0 flex items-center justify-center p-4">
                           <div class="text-center">
-                            <img :src="userFieldImages[currentUserFieldSlide]" alt="Пользовательское поле с калькулятором" class="max-w-full max-h-full object-contain mx-auto" />
+                            <img :src="userFieldImages[currentUserFieldSlide]" alt="Пользовательское поле с калькулятором" class="max-h-full object-contain mx-auto" />
                             <p class="text-xs text-gray-500 mt-2">Пользовательское поле с калькулятором</p>
                           </div>
                         </div>
@@ -1119,7 +1119,7 @@ onUnmounted(() => {
 
             <div class="space-y-3 md:space-y-4 mb-6 md:mb-8">
               <!-- Фоновая встройка -->
-              <div v-if="selectedPlacements.pageBackgroundWorker" class="flex items-center">
+              <div v-if="selectedPlacements.pageBackgroundWorker" class="flex items-center hidden">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="placementStatus.pageBackgroundWorker === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
                   <div v-else-if="placementStatus.pageBackgroundWorker === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
@@ -1133,7 +1133,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Встройка для управления из уведомлений -->
-              <div v-if="selectedPlacements.restAppUri" class="flex items-center">
+              <div v-if="selectedPlacements.restAppUri" class="flex items-center hidden">
                 <div class="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
                   <div v-if="placementStatus.restAppUri === 'loading'"><LoadingIcon class="animate-spin h-4 w-4 md:h-5 md:w-5 text-blue-600" /></div>
                   <div v-else-if="placementStatus.restAppUri === 'success'"><SuccessIcon class="w-4 h-4 md:w-5 md:h-5 text-green-500" /></div>
@@ -1273,14 +1273,6 @@ onUnmounted(() => {
                 <h3 class="text-lg font-bold text-gray-900 mb-2">Что установлено?</h3>
 
                 <div class="space-y-2">
-                  <div v-if="selectedPlacements.pageBackgroundWorker" class="flex items-start">
-                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Фоновая встройка для автоматического определения времени</span>
-                  </div>
-                  <div v-if="selectedPlacements.restAppUri" class="flex items-start">
-                    <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span class="text-sm text-gray-700">Управление рабочим днем из уведомлений</span>
-                  </div>
                   <div v-if="selectedPlacements.chatTextarea || selectedPlacements.chatSidebar" class="flex items-start">
                     <CheckIcon class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                     <span class="text-sm text-gray-700">Калькулятор в чатах</span>
