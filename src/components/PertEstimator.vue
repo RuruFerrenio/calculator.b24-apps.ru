@@ -42,7 +42,7 @@
               <th class="px-3 py-2 text-left">Оптимистично</th>
               <th class="px-3 py-2 text-left">Реалистично</th>
               <th class="px-3 py-2 text-left">Пессимистично</th>
-              <th class="px-3 py-2 text-left">PERT оценка</th>
+              <th class="px-3 py-2 text-center">PERT оценка</th>
               <th class="px-3 py-2 text-left">Действия</th>
             </tr>
             </thead>
