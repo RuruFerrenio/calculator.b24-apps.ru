@@ -54,7 +54,6 @@
                     v-model="task.name"
                     placeholder="Название задачи"
                     size="sm"
-                    no-border
                     :class="{ 'font-semibold': index === 0 }"
                     @update:model-value="debouncedUpdate"
                 />
@@ -69,7 +68,6 @@
                     min="0"
                     placeholder="—"
                     size="sm"
-                    no-border
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -84,7 +82,6 @@
                     min="0"
                     placeholder="—"
                     size="sm"
-                    no-border
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -99,7 +96,6 @@
                     min="0"
                     placeholder="—"
                     size="sm"
-                    no-border
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
