@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-semibold text-b24-text-primary">PERT Оценка задачи</h2>
-            <p class="text-sm text-b24-text-secondary mt-1">Трехточечная оценка с декомпозицией до 3 уровней</p>
+            <p class="text-sm text-b24-text-secondary mt-1">Трехточечная оценка</p>
           </div>
         </div>
 
@@ -58,21 +58,83 @@
               <th class="px-3 py-2 text-right min-w-[100px]">Реалистично (M)</th>
               <th class="px-3 py-2 text-right min-w-[100px]">Пессимистично (P)</th>
               <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
-              <th class="px-3 py-2 text-center w-32">Действия</th>
+              <th class="px-3 py-2 text-center w-24">Действия</th>
             </tr>
             </thead>
             <tbody>
-            <template v-for="(task, index) in tasks" :key="task.id">
-              <TaskRowComponent
-                  :task="task"
-                  :level="0"
-                  :is-first-row="index === 0"
-                  @update="handleTaskUpdate"
-                  @delete="handleTaskDelete"
-                  @add-subtask="handleAddSubtask"
-                  @decompose="handleDecompose"
-              />
-            </template>
+            <tr v-for="(task, index) in tasks" :key="task.id" :class="{ 'bg-b24-surface-hover/50': index % 2 === 1 }">
+              <!-- Task name -->
+              <td class="px-3 py-2 align-middle">
+                <input
+                    v-model="task.name"
+                    type="text"
+                    placeholder="Название задачи"
+                    class="w-full bg-transparent border-none outline-none text-sm focus:ring-0 p-0"
+                    :class="{ 'font-semibold': index === 0 }"
+                    @input="handleTaskUpdate(task)"
+                />
+              </td>
+
+              <!-- Optimistic (O) -->
+              <td class="px-3 py-2 text-right align-middle">
+                <input
+                    v-model.number="task.optimistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
+                    @input="handleTaskUpdate(task)"
+                />
+              </td>
+
+              <!-- Realistic (M) -->
+              <td class="px-3 py-2 text-right align-middle">
+                <input
+                    v-model.number="task.realistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
+                    @input="handleTaskUpdate(task)"
+                />
+              </td>
+
+              <!-- Pessimistic (P) -->
+              <td class="px-3 py-2 text-right align-middle">
+                <input
+                    v-model.number="task.pessimistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    class="w-24 text-right bg-transparent border border-b24-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-b24-primary"
+                    @input="handleTaskUpdate(task)"
+                />
+              </td>
+
+              <!-- PERT calculated value -->
+              <td class="px-3 py-2 text-right align-middle font-mono font-medium">
+                {{ calculatePERTValue(task) }}
+              </td>
+
+              <!-- Actions -->
+              <td class="px-3 py-2 text-center align-middle whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1">
+                  <B24Button
+                      v-if="index !== 0"
+                      size="xs"
+                      variant="ghost"
+                      @click="deleteTask(task.id)"
+                      title="Удалить"
+                      color="red"
+                  >
+                    🗑
+                  </B24Button>
+                </div>
+              </td>
+            </tr>
             </tbody>
             <tfoot>
             <tr>
@@ -89,11 +151,7 @@
     </B24Card>
 
     <!-- Action Buttons -->
-    <div class="flex items-center justify-between gap-3 flex-shrink-0">
-      <div class="flex gap-2">
-        <B24Button size="sm" variant="ghost" @click="expandAll">Развернуть все</B24Button>
-        <B24Button size="sm" variant="ghost" @click="collapseAll">Свернуть все</B24Button>
-      </div>
+    <div class="flex items-center justify-end gap-3 flex-shrink-0">
       <div class="flex gap-2">
         <B24Button size="sm" @click="copyResults">Копировать результаты</B24Button>
         <B24Button v-if="showSendButton" size="sm" color="air-primary" @click="sendToChat">
@@ -106,7 +164,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import TaskRowComponent from './TaskRowComponent.vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 
 interface Props {
@@ -123,9 +180,6 @@ export interface PertTask {
   optimistic: number | null
   realistic: number | null
   pessimistic: number | null
-  children: PertTask[]
-  isExpanded: boolean
-  level: number
 }
 
 const toast = useToast()
@@ -147,49 +201,19 @@ const calculateStdDeviation = (optimistic: number, pessimistic: number): number 
   return (pessimistic - optimistic) / 6
 }
 
-const recalcTaskTotals = (
-    task: PertTask
-): { pert: number; optimistic: number; realistic: number; pessimistic: number; stdDev: number } => {
-  if (!task.children || task.children.length === 0) {
-    const pert = calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
-    const stdDev = calculateStdDeviation(task.optimistic ?? 0, task.pessimistic ?? 0)
-    return {
-      pert,
-      optimistic: task.optimistic ?? 0,
-      realistic: task.realistic ?? 0,
-      pessimistic: task.pessimistic ?? 0,
-      stdDev,
-    }
-  }
-
-  let totalPert = 0
-  let totalOptimistic = 0
-  let totalRealistic = 0
-  let totalPessimistic = 0
-  let totalVariance = 0
-
-  for (const child of task.children) {
-    const childTotals = recalcTaskTotals(child)
-    totalPert += childTotals.pert
-    totalOptimistic += childTotals.optimistic
-    totalRealistic += childTotals.realistic
-    totalPessimistic += childTotals.pessimistic
-    totalVariance += Math.pow(childTotals.stdDev, 2)
-  }
-
-  return {
-    pert: totalPert,
-    optimistic: totalOptimistic,
-    realistic: totalRealistic,
-    pessimistic: totalPessimistic,
-    stdDev: Math.sqrt(totalVariance),
-  }
+const calculatePERTValue = (task: PertTask): string => {
+  const o = task.optimistic ?? 0
+  const m = task.realistic ?? 0
+  const p = task.pessimistic ?? 0
+  if (o === 0 && m === 0 && p === 0) return '—'
+  const pert = (o + 4 * m + p) / 6
+  return pert.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 const totalPERT = computed(() => {
   let total = 0
   for (const task of tasks.value) {
-    total += recalcTaskTotals(task).pert
+    total += calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
   }
   return total
 })
@@ -197,7 +221,7 @@ const totalPERT = computed(() => {
 const totalOptimistic = computed(() => {
   let total = 0
   for (const task of tasks.value) {
-    total += recalcTaskTotals(task).optimistic
+    total += task.optimistic ?? 0
   }
   return total
 })
@@ -205,7 +229,7 @@ const totalOptimistic = computed(() => {
 const totalRealistic = computed(() => {
   let total = 0
   for (const task of tasks.value) {
-    total += recalcTaskTotals(task).realistic
+    total += task.realistic ?? 0
   }
   return total
 })
@@ -213,7 +237,7 @@ const totalRealistic = computed(() => {
 const totalPessimistic = computed(() => {
   let total = 0
   for (const task of tasks.value) {
-    total += recalcTaskTotals(task).pessimistic
+    total += task.pessimistic ?? 0
   }
   return total
 })
@@ -221,8 +245,8 @@ const totalPessimistic = computed(() => {
 const totalStdDeviation = computed(() => {
   let totalVariance = 0
   for (const task of tasks.value) {
-    const taskTotals = recalcTaskTotals(task)
-    totalVariance += Math.pow(taskTotals.stdDev, 2)
+    const stdDev = calculateStdDeviation(task.optimistic ?? 0, task.pessimistic ?? 0)
+    totalVariance += Math.pow(stdDev, 2)
   }
   return Math.sqrt(totalVariance)
 })
@@ -244,160 +268,41 @@ const addRow = () => {
     optimistic: null,
     realistic: null,
     pessimistic: null,
-    children: [],
-    isExpanded: true,
-    level: 0,
   }
   tasks.value.push(newTask)
   saveToLocalStorage()
 }
 
 const handleTaskUpdate = (updatedTask: PertTask) => {
-  const updateInTree = (tasksList: PertTask[]): boolean => {
-    for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === updatedTask.id) {
-        tasksList[i] = { ...updatedTask, children: tasksList[i].children }
-        return true
-      }
-      if (updateInTree(tasksList[i].children)) {
-        return true
-      }
-    }
-    return false
+  const index = tasks.value.findIndex(t => t.id === updatedTask.id)
+  if (index !== -1) {
+    tasks.value[index] = { ...updatedTask }
+    saveToLocalStorage()
   }
-  updateInTree(tasks.value)
-  saveToLocalStorage()
 }
 
-const handleTaskDelete = (taskId: string) => {
+const deleteTask = (taskId: string) => {
   // Не удаляем первую строку
   if (tasks.value[0]?.id === taskId) {
     showNotification('Первую строку нельзя удалить', 'warning')
     return
   }
 
-  const deleteFromTree = (tasksList: PertTask[]): boolean => {
-    for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === taskId) {
-        tasksList.splice(i, 1)
-        return true
-      }
-      if (deleteFromTree(tasksList[i].children)) {
-        return true
-      }
-    }
-    return false
-  }
-  deleteFromTree(tasks.value)
+  tasks.value = tasks.value.filter(t => t.id !== taskId)
   saveToLocalStorage()
   showNotification('Задача удалена', 'info')
 }
 
-const handleAddSubtask = (parentTask: PertTask) => {
-  if (parentTask.level >= 2) {
-    showNotification('Максимальная глубина декомпозиции - 3 уровня', 'warning')
-    return
-  }
-
-  const newSubtask: PertTask = {
-    id: generateId(),
-    name: `Подзадача ${parentTask.children.length + 1}`,
-    optimistic: null,
-    realistic: null,
-    pessimistic: null,
-    children: [],
-    isExpanded: true,
-    level: parentTask.level + 1,
-  }
-
-  const addToParent = (tasksList: PertTask[]): boolean => {
-    for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === parentTask.id) {
-        tasksList[i].children.push(newSubtask)
-        return true
-      }
-      if (addToParent(tasksList[i].children)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  addToParent(tasks.value)
-  saveToLocalStorage()
-  showNotification('Подзадача добавлена', 'success')
-}
-
-const handleDecompose = (task: PertTask) => {
-  if (task.level >= 2) {
-    showNotification('Максимальная глубина декомпозиции - 3 уровня', 'warning')
-    return
-  }
-
-  // Создаем дочернюю задачу
-  const newSubtask: PertTask = {
-    id: generateId(),
-    name: `Декомпозиция ${task.children.length + 1}`,
-    optimistic: null,
-    realistic: null,
-    pessimistic: null,
-    children: [],
-    isExpanded: true,
-    level: task.level + 1,
-  }
-
-  const addToParent = (tasksList: PertTask[]): boolean => {
-    for (let i = 0; i < tasksList.length; i++) {
-      if (tasksList[i].id === task.id) {
-        tasksList[i].children.push(newSubtask)
-        return true
-      }
-      if (addToParent(tasksList[i].children)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  addToParent(tasks.value)
-  saveToLocalStorage()
-  showNotification('Дочерняя задача создана', 'success')
-}
-
-const expandAll = () => {
-  const expand = (task: PertTask) => {
-    task.isExpanded = true
-    task.children.forEach(expand)
-  }
-  tasks.value.forEach(expand)
-}
-
-const collapseAll = () => {
-  const collapse = (task: PertTask) => {
-    task.isExpanded = false
-    task.children.forEach(collapse)
-  }
-  tasks.value.forEach(collapse)
-}
-
-const formatTaskTree = (task: PertTask, depth = 0): string => {
-  const indent = '  '.repeat(depth)
-  const totals = recalcTaskTotals(task)
-  let result = `${indent}• ${task.name}\n`
-  result += `${indent}  Оптимистично: ${formatNumber(totals.optimistic)} | Реалистично: ${formatNumber(totals.realistic)} | Пессимистично: ${formatNumber(totals.pessimistic)}\n`
-  result += `${indent}  PERT: ${formatNumber(totals.pert)} | σ: ${formatNumber(totals.stdDev)}\n`
-  for (const child of task.children) {
-    result += formatTaskTree(child, depth + 1)
-  }
-  return result
-}
-
 const getFormattedResults = (): string => {
   let result = '📊 PERT Оценка задачи\n\n'
+
   for (const task of tasks.value) {
-    result += formatTaskTree(task)
-    result += '\n'
+    const pert = calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
+    result += `• ${task.name}\n`
+    result += `  Оптимистично: ${formatNumber(task.optimistic ?? 0)} | Реалистично: ${formatNumber(task.realistic ?? 0)} | Пессимистично: ${formatNumber(task.pessimistic ?? 0)}\n`
+    result += `  PERT: ${formatNumber(pert)}\n\n`
   }
+
   result += '─'.repeat(40) + '\n'
   result += `📈 ИТОГО:\n`
   result += `  Оптимистично: ${formatNumber(totalOptimistic.value)}\n`
@@ -406,6 +311,7 @@ const getFormattedResults = (): string => {
   result += `  PERT оценка: ${formatNumber(totalPERT.value)}\n`
   result += `  Стандартное отклонение: σ = ${formatNumber(totalStdDeviation.value)}\n`
   result += `  95% Доверительный интервал: ${formatNumber(totalPERT.value - 2 * totalStdDeviation.value)} – ${formatNumber(totalPERT.value + 2 * totalStdDeviation.value)}\n`
+
   return result
 }
 
@@ -474,9 +380,6 @@ const loadFromLocalStorage = () => {
         optimistic: 5,
         realistic: 8,
         pessimistic: 15,
-        children: [],
-        isExpanded: true,
-        level: 0,
       },
     ]
   } catch (error) {
