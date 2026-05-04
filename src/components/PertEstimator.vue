@@ -33,106 +33,108 @@
 
     <!-- Tasks Table -->
     <B24Card class="flex-1 overflow-hidden" :b24ui="{ body: 'p-0 sm:px-0 sm:py-0' }">
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead class="bg-b24-surface-hover">
-          <tr>
-            <th class="px-3 py-2 text-left w-[min(30%,200px)]">Задача</th>
-            <th class="px-3 py-2 text-right w-[min(20%,120px)]">Оптимистично (O)</th>
-            <th class="px-3 py-2 text-right w-[min(20%,120px)]">Реалистично (M)</th>
-            <th class="px-3 py-2 text-right w-[min(20%,120px)]">Пессимистично (P)</th>
-            <th class="px-3 py-2 text-right w-[min(20%,100px)]">PERT оценка</th>
-            <th class="px-3 py-2 text-center w-24">Действия</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="(task, index) in tasks" :key="task.id" :class="{ 'bg-b24-surface-hover/50': index % 2 === 1 }">
-            <!-- Task name -->
-            <td class="px-3 py-2">
-              <B24Input
-                  v-model="task.name"
-                  placeholder="Название задачи"
-                  size="sm"
-                  :class="{ 'font-semibold': index === 0 }"
-                  @update:model-value="debouncedUpdate"
-              />
-            </td>
+      <B24TableWrapper class="w-full" size="sm" bordered row-hover>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+            <tr class="bg-b24-surface-hover">
+              <th class="px-3 py-2 text-left min-w-[200px]">Задача</th>
+              <th class="px-3 py-2 text-center min-w-[120px]">Оптимистично (O)</th>
+              <th class="px-3 py-2 text-center min-w-[120px]">Реалистично (M)</th>
+              <th class="px-3 py-2 text-center min-w-[120px]">Пессимистично (P)</th>
+              <th class="px-3 py-2 text-right min-w-[100px]">PERT оценка</th>
+              <th class="px-3 py-2 text-center w-24">Действия</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(task, index) in tasks" :key="task.id" :class="{ 'bg-b24-surface-hover/50': index % 2 === 1 }">
+              <!-- Task name -->
+              <td class="px-3 py-2 align-middle">
+                <B24Input
+                    v-model="task.name"
+                    placeholder="Название задачи"
+                    size="sm"
+                    :class="{ 'font-semibold': index === 0 }"
+                    @update:model-value="debouncedUpdate"
+                />
+              </td>
 
-            <!-- Optimistic (O) -->
-            <td class="px-3 py-2">
-              <B24Input
-                  v-model.number="task.optimistic"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="—"
-                  size="sm"
-                  class="text-right"
-                  @update:model-value="debouncedUpdate"
-              />
-            </td>
+              <!-- Optimistic (O) -->
+              <td class="px-3 py-2 align-middle">
+                <B24Input
+                    v-model.number="task.optimistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    size="sm"
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
+                />
+              </td>
 
-            <!-- Realistic (M) -->
-            <td class="px-3 py-2">
-              <B24Input
-                  v-model.number="task.realistic"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="—"
-                  size="sm"
-                  class="text-right"
-                  @update:model-value="debouncedUpdate"
-              />
-            </td>
+              <!-- Realistic (M) -->
+              <td class="px-3 py-2 align-middle">
+                <B24Input
+                    v-model.number="task.realistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    size="sm"
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
+                />
+              </td>
 
-            <!-- Pessimistic (P) -->
-            <td class="px-3 py-2">
-              <B24Input
-                  v-model.number="task.pessimistic"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="—"
-                  size="sm"
-                  class="text-right"
-                  @update:model-value="debouncedUpdate"
-              />
-            </td>
+              <!-- Pessimistic (P) -->
+              <td class="px-3 py-2 align-middle">
+                <B24Input
+                    v-model.number="task.pessimistic"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="—"
+                    size="sm"
+                    class="text-right"
+                    @update:model-value="debouncedUpdate"
+                />
+              </td>
 
-            <!-- PERT calculated value -->
-            <td class="px-3 py-2 text-right font-mono font-medium">
-              {{ calculatePERTValue(task) }}
-            </td>
+              <!-- PERT calculated value -->
+              <td class="px-3 py-2 text-right align-middle font-mono font-medium">
+                {{ calculatePERTValue(task) }}
+              </td>
 
-            <!-- Actions -->
-            <td class="px-3 py-2 text-center whitespace-nowrap">
-              <div class="flex items-center justify-center gap-1">
-                <B24Button
-                    v-if="index !== 0"
-                    size="xs"
-                    variant="ghost"
-                    @click="deleteTask(task.id)"
-                    title="Удалить"
-                    color="red"
-                >
-                  🗑
+              <!-- Actions -->
+              <td class="px-3 py-2 text-center align-middle whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1">
+                  <B24Button
+                      v-if="index !== 0"
+                      size="xs"
+                      variant="ghost"
+                      @click="deleteTask(task.id)"
+                      title="Удалить"
+                      color="red"
+                  >
+                    🗑
+                  </B24Button>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+              <td colspan="6" class="px-3 py-2">
+                <B24Button size="sm" variant="outline" @click="addRow" class="w-full">
+                  + Добавить строку
                 </B24Button>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-          <tfoot>
-          <tr>
-            <td colspan="6" class="px-3 py-2">
-              <B24Button size="sm" variant="outline" @click="addRow" class="w-full">
-                + Добавить строку
-              </B24Button>
-            </td>
-          </tr>
-          </tfoot>
-        </table>
-      </div>
+              </td>
+            </tr>
+            </tfoot>
+          </table>
+        </div>
+      </B24TableWrapper>
     </B24Card>
 
     <!-- Action Buttons -->
@@ -410,16 +412,3 @@ onMounted(() => {
   }
 })
 </script>
-
-<style scoped>
-/* Убираем лишние отступы, которые могли мешать */
-table {
-  table-layout: fixed;
-}
-
-/* Обеспечиваем, чтобы Input занимал всю доступную ширину */
-td .b24-input,
-td :deep(.b24-input) {
-  width: 100%;
-}
-</style>
