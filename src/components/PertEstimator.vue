@@ -218,7 +218,7 @@
             <tr>
               <td colspan="6" class="px-3 py-2">
                 <B24Button size="lg" variant="outline" @click="addRow" class="w-full">
-                  + Добавить строку
+                  <AddToChecklistIcon class="w-3 h-3" />
                 </B24Button>
               </td>
             </tr>
@@ -245,6 +245,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
 import Cross30Icon from '@bitrix24/b24icons-vue/actions/Cross30Icon'
+import AddToChecklistIcon from '@bitrix24/b24icons-vue/main/AddToChecklistIcon'
 
 
 interface Props {
