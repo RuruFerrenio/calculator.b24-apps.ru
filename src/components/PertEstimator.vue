@@ -84,7 +84,7 @@
               />
               <B24InputNumber
                   v-model="settings.managementMarkupValue"
-                  :step="0.15"
+                  :step="0.25"
                   :min="0"
                   size="sm"
                   class="w-24"
@@ -104,7 +104,7 @@
             </div>
             <B24InputNumber
                 v-model="settings.stepValue"
-                :step="0.15"
+                :step="0.25"
                 size="sm"
                 class="w-24"
                 :min="0"
