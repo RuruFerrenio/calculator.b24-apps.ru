@@ -188,7 +188,7 @@
                       title="Удалить"
                       color="red"
                   >
-                    🗑
+                    <Cross30Icon class="w-3 h-3 text-red-600" />
                   </B24Button>
                 </div>
               </td>
@@ -224,6 +224,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
+import Cross30Icon from '@bitrix24/b24icons-vue/actions/Cross30Icon'
 
 interface Props {
   sendButton?: boolean
