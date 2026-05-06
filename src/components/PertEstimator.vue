@@ -59,7 +59,7 @@
                   v-model="settings.testingMarkupPercent"
                   :min="0"
                   :max="100"
-                  :step="1"
+                  :step="0.01"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.testingMarkupEnabled"
@@ -387,17 +387,14 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    class: 'text-emerald-600 dark:text-emerald-400',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
-    class: 'text-blue-600 dark:text-blue-400',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
-    class: 'text-orange-600 dark:text-orange-400',
   },
 ])
 
