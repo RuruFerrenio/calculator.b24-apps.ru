@@ -1,35 +1,115 @@
 <template>
   <div class="w-full h-full flex flex-col space-y-4 p-4">
-    <!-- Header Card with DescriptionList -->
-    <B24Card class="flex-shrink-0">
-      <B24DescriptionList
-          legend="PERT Оценка задачи"
-          text="Трехточечная оценка с автоматическим расчетом"
-          size="lg"
-          :items="descriptionItems"
-          :b24ui="{
-          container: 'mt-2',
-          labelWrapper: 'pt-2 sm:py-2',
-          descriptionWrapper: 'pb-2 pt-1 sm:py-2',
-          description: 'font-mono font-semibold'
-        }"
-      >
-        <template #footer>
-          <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border mt-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-b24-text-secondary">Стандартное отклонение:</span>
-              <span class="text-sm font-mono font-semibold">σ = {{ formatNumber(totalStdDeviation) }}</span>
+    <!-- Two-column layout for top section -->
+    <div class="flex flex-col lg:flex-row gap-4 flex-shrink-0">
+      <!-- Left Column: PERT Summary Card -->
+      <B24Card class="flex-1">
+        <B24DescriptionList
+            legend="PERT Оценка задачи"
+            text="Трехточечная оценка с автоматическим расчетом"
+            size="lg"
+            :items="descriptionItems"
+            :b24ui="{
+              container: 'mt-2',
+              labelWrapper: 'pt-2 sm:py-2',
+              descriptionWrapper: 'pb-2 pt-1 sm:py-2',
+              description: 'font-mono font-semibold'
+            }"
+        >
+          <template #footer>
+            <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border mt-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-b24-text-secondary">Стандартное отклонение:</span>
+                <span class="text-sm font-mono font-semibold">σ = {{ formatNumber(totalStdDeviation) }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
+                <span class="text-sm font-mono">
+                  {{ formatNumber(totalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(totalPERT + 2 * totalStdDeviation) }}
+                </span>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
-              <span class="text-sm font-mono">
-                {{ formatNumber(totalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(totalPERT + 2 * totalStdDeviation) }}
-              </span>
-            </div>
+          </template>
+        </B24DescriptionList>
+      </B24Card>
+
+      <!-- Right Column: Settings Card -->
+      <B24Card class="flex-1">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <span class="text-base font-semibold">Настройки формулы PERT</span>
           </div>
         </template>
-      </B24DescriptionList>
-    </B24Card>
+        <div class="space-y-4">
+          <!-- Testing Markup Setting -->
+          <div class="flex items-center justify-between py-2 border-b border-b24-border">
+            <div>
+              <h4 class="text-sm font-medium">Наценка на тестирование</h4>
+              <p class="text-xs text-b24-text-secondary">Добавить процент к итоговой PERT оценке</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <B24Switch
+                  v-model="settings.testingMarkupEnabled"
+                  @update:model-value="handleSettingsChange"
+              />
+              <B24Input
+                  v-model.number="settings.testingMarkupPercent"
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="100"
+                  size="sm"
+                  class="w-24"
+                  :disabled="!settings.testingMarkupEnabled"
+                  placeholder="%"
+                  @update:model-value="handleSettingsChange"
+              >
+                <template #suffix>%</template>
+              </B24Input>
+            </div>
+          </div>
+
+          <!-- Management Overhead Setting -->
+          <div class="flex items-center justify-between py-2 border-b border-b24-border">
+            <div>
+              <h4 class="text-sm font-medium">Наценка на управление задачами</h4>
+              <p class="text-xs text-b24-text-secondary">Добавить фиксированное значение к итоговой PERT оценке</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <B24Switch
+                  v-model="settings.managementMarkupEnabled"
+                  @update:model-value="handleSettingsChange"
+              />
+              <B24Input
+                  v-model.number="settings.managementMarkupValue"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  size="sm"
+                  class="w-24"
+                  :disabled="!settings.managementMarkupEnabled"
+                  placeholder="ч"
+                  @update:model-value="handleSettingsChange"
+              >
+                <template #suffix>ч</template>
+              </B24Input>
+            </div>
+          </div>
+
+          <!-- Additional Info -->
+          <div class="mt-4 pt-2 text-xs text-b24-text-secondary">
+            <div class="flex items-center justify-between">
+              <span>Базовая PERT оценка:</span>
+              <span class="font-mono">{{ formatNumber(totalPERT) }}</span>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+              <span>Итоговая оценка с наценками:</span>
+              <span class="font-mono font-semibold text-b24-text-primary">{{ formatNumber(finalTotalPERT) }}</span>
+            </div>
+          </div>
+        </div>
+      </B24Card>
+    </div>
 
     <!-- Tasks Table -->
     <B24Card class="flex-1 overflow-hidden" :b24ui="{ body: 'p-0 sm:px-0 sm:py-0' }">
@@ -150,13 +230,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
-import TargetIcon from '@bitrix24/b24icons-vue/main/TargetIcon'
-import CircleCheckIcon from '@bitrix24/b24icons-vue/outline/CircleCheckIcon'
-import ClockIcon from '@bitrix24/b24icons-vue/outline/ClockIcon'
-import AlertIcon from '@bitrix24/b24icons-vue/outline/AlertIcon'
 
 interface Props {
   sendButton?: boolean
@@ -174,11 +250,24 @@ export interface PertTask {
   pessimistic: number | null
 }
 
+interface Settings {
+  testingMarkupEnabled: boolean
+  testingMarkupPercent: number
+  managementMarkupEnabled: boolean
+  managementMarkupValue: number
+}
+
 const toast = useToast()
 let nextId = 1
 let updateTimeout: ReturnType<typeof setTimeout> | null = null
 
 const tasks = ref<PertTask[]>([])
+const settings = ref<Settings>({
+  testingMarkupEnabled: false,
+  testingMarkupPercent: 20,
+  managementMarkupEnabled: false,
+  managementMarkupValue: 0,
+})
 
 const generateId = (): string => {
   return `${Date.now()}-${nextId++}`
@@ -209,6 +298,23 @@ const totalPERT = computed(() => {
     total += calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
   }
   return total
+})
+
+// Final PERT with markups applied
+const finalTotalPERT = computed(() => {
+  let result = totalPERT.value
+
+  // Apply testing markup (percentage)
+  if (settings.value.testingMarkupEnabled) {
+    result += result * (settings.value.testingMarkupPercent / 100)
+  }
+
+  // Apply management markup (fixed value)
+  if (settings.value.managementMarkupEnabled) {
+    result += settings.value.managementMarkupValue
+  }
+
+  return result
 })
 
 const totalOptimistic = computed(() => {
@@ -254,29 +360,28 @@ const formatNumber = (value: number): string => {
   })
 }
 
-// DescriptionList items
+// DescriptionList items - using finalTotalPERT with markups
 const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'PERT оценка',
-    description: formatNumber(totalPERT.value),
+    description: formatNumber(finalTotalPERT.value),
   },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    color: 'air-primary-success',
+    class: 'text-emerald-600 dark:text-emerald-400',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
-    color: 'air-primary',
+    class: 'text-blue-600 dark:text-blue-400',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
-    color: 'air-primary-alert',
+    class: 'text-orange-600 dark:text-orange-400',
   },
 ])
-
 
 const debouncedUpdate = () => {
   if (updateTimeout) {
@@ -285,6 +390,10 @@ const debouncedUpdate = () => {
   updateTimeout = setTimeout(() => {
     saveToLocalStorage()
   }, 300)
+}
+
+const handleSettingsChange = () => {
+  saveToLocalStorage()
 }
 
 const addRow = () => {
@@ -326,8 +435,20 @@ const getFormattedResults = (): string => {
   result += `  Реалистично: ${formatNumber(totalRealistic.value)}\n`
   result += `  Пессимистично: ${formatNumber(totalPessimistic.value)}\n`
   result += `  PERT оценка: ${formatNumber(totalPERT.value)}\n`
-  result += `  Стандартное отклонение: σ = ${formatNumber(totalStdDeviation.value)}\n`
-  result += `  95% Доверительный интервал: ${formatNumber(totalPERT.value - 2 * totalStdDeviation.value)} – ${formatNumber(totalPERT.value + 2 * totalStdDeviation.value)}\n`
+
+  if (settings.value.testingMarkupEnabled || settings.value.managementMarkupEnabled) {
+    result += `\n📈 НАЦЕНКИ:\n`
+    if (settings.value.testingMarkupEnabled) {
+      result += `  Тестирование (+${settings.value.testingMarkupPercent}%): ${formatNumber(totalPERT.value * settings.value.testingMarkupPercent / 100)}\n`
+    }
+    if (settings.value.managementMarkupEnabled) {
+      result += `  Управление задачами (+${formatNumber(settings.value.managementMarkupValue)}): ${formatNumber(settings.value.managementMarkupValue)}\n`
+    }
+    result += `  ИТОГО с наценками: ${formatNumber(finalTotalPERT.value)}\n`
+  }
+
+  result += `\n  Стандартное отклонение: σ = ${formatNumber(totalStdDeviation.value)}\n`
+  result += `  95% Доверительный интервал: ${formatNumber(finalTotalPERT.value - 2 * totalStdDeviation.value)} – ${formatNumber(finalTotalPERT.value + 2 * totalStdDeviation.value)}\n`
 
   return result
 }
@@ -370,10 +491,12 @@ const showNotification = (message: string, variant: 'success' | 'error' | 'warni
 }
 
 const STORAGE_KEY = 'pert_tasks_data'
+const SETTINGS_STORAGE_KEY = 'pert_settings_data'
 
 const saveToLocalStorage = () => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks.value))
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings.value))
   } catch (error) {
     console.error('Error saving to localStorage:', error)
   }
@@ -381,26 +504,46 @@ const saveToLocalStorage = () => {
 
 const loadFromLocalStorage = () => {
   try {
+    // Load tasks
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
       if (Array.isArray(parsed) && parsed.length) {
         tasks.value = parsed
-        return
+      } else {
+        setDefaultTasks()
+      }
+    } else {
+      setDefaultTasks()
+    }
+
+    // Load settings
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (savedSettings) {
+      const parsedSettings = JSON.parse(savedSettings)
+      settings.value = {
+        testingMarkupEnabled: parsedSettings.testingMarkupEnabled ?? false,
+        testingMarkupPercent: parsedSettings.testingMarkupPercent ?? 20,
+        managementMarkupEnabled: parsedSettings.managementMarkupEnabled ?? false,
+        managementMarkupValue: parsedSettings.managementMarkupValue ?? 0,
       }
     }
-    tasks.value = [
-      {
-        id: generateId(),
-        name: 'Основная задача',
-        optimistic: 5,
-        realistic: 8,
-        pessimistic: 15,
-      },
-    ]
   } catch (error) {
     console.error('Error loading from localStorage:', error)
+    setDefaultTasks()
   }
+}
+
+const setDefaultTasks = () => {
+  tasks.value = [
+    {
+      id: generateId(),
+      name: 'Основная задача',
+      optimistic: 5,
+      realistic: 8,
+      pessimistic: 15,
+    },
+  ]
 }
 
 onMounted(() => {
