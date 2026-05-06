@@ -28,7 +28,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
                 <span class="text-sm font-mono">
-                  {{ formatNumber(totalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(totalPERT + 2 * totalStdDeviation) }}
+                  {{ formatNumber(finalTotalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(finalTotalPERT + 2 * totalStdDeviation) }}
                 </span>
               </div>
             </div>
@@ -44,6 +44,27 @@
           </div>
         </template>
         <div class="space-y-4">
+          <!-- Step Setting -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium">Шаг изменения значений</h4>
+              <p class="text-xs text-b24-text-secondary">Шаг для кнопок +/– в числовых полях</p>
+            </div>
+            <B24InputNumber
+                v-model="settings.stepValue"
+                :min="0.5"
+                :max="10"
+                :step="0.5"
+                size="sm"
+                class="w-24"
+                :format-options="{
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+              }"
+                @update:model-value="handleSettingsChange"
+            />
+          </div>
+
           <!-- Testing Markup Setting -->
           <div class="flex items-center justify-between py-2">
             <div>
@@ -55,20 +76,21 @@
                   v-model="settings.testingMarkupEnabled"
                   @update:model-value="handleSettingsChange"
               />
-              <B24Input
-                  v-model.number="settings.testingMarkupPercent"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="100"
+              <B24InputNumber
+                  v-model="settings.testingMarkupPercent"
+                  :min="0"
+                  :max="100"
+                  :step="1"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.testingMarkupEnabled"
-                  placeholder="%"
+                  :format-options="{
+                    style: 'percent',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }"
                   @update:model-value="handleSettingsChange"
-              >
-                <template #suffix>%</template>
-              </B24Input>
+              />
             </div>
           </div>
 
@@ -83,19 +105,21 @@
                   v-model="settings.managementMarkupEnabled"
                   @update:model-value="handleSettingsChange"
               />
-              <B24Input
-                  v-model.number="settings.managementMarkupValue"
-                  type="number"
-                  step="0.5"
-                  min="0"
+              <B24InputNumber
+                  v-model="settings.managementMarkupValue"
+                  :min="0"
+                  :step="0.5"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.managementMarkupEnabled"
-                  placeholder="ч"
+                  :format-options="{
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1
+                  }"
                   @update:model-value="handleSettingsChange"
               >
                 <template #suffix>ч</template>
-              </B24Input>
+              </B24InputNumber>
             </div>
           </div>
         </div>
@@ -132,11 +156,10 @@
 
               <!-- Optimistic (O) -->
               <td class="px-3 py-2 align-middle">
-                <B24Input
-                    v-model.number="task.optimistic"
-                    type="number"
-                    step="0.5"
-                    min="0"
+                <B24InputNumber
+                    v-model="task.optimistic"
+                    :min="0"
+                    :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
@@ -146,11 +169,10 @@
 
               <!-- Realistic (M) -->
               <td class="px-3 py-2 align-middle">
-                <B24Input
-                    v-model.number="task.realistic"
-                    type="number"
-                    step="0.5"
-                    min="0"
+                <B24InputNumber
+                    v-model="task.realistic"
+                    :min="0"
+                    :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
@@ -160,11 +182,10 @@
 
               <!-- Pessimistic (P) -->
               <td class="px-3 py-2 align-middle">
-                <B24Input
-                    v-model.number="task.pessimistic"
-                    type="number"
-                    step="0.5"
-                    min="0"
+                <B24InputNumber
+                    v-model="task.pessimistic"
+                    :min="0"
+                    :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
@@ -186,7 +207,6 @@
                       variant="ghost"
                       @click="deleteTask(task.id)"
                       title="Удалить"
-                      color="red"
                   >
                     <Cross30Icon class="w-3 h-3 text-red-600" />
                   </B24Button>
@@ -226,6 +246,7 @@ import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
 import Cross30Icon from '@bitrix24/b24icons-vue/actions/Cross30Icon'
 
+
 interface Props {
   sendButton?: boolean
 }
@@ -243,6 +264,7 @@ export interface PertTask {
 }
 
 interface Settings {
+  stepValue: number
   testingMarkupEnabled: boolean
   testingMarkupPercent: number
   managementMarkupEnabled: boolean
@@ -255,8 +277,9 @@ let updateTimeout: ReturnType<typeof setTimeout> | null = null
 
 const tasks = ref<PertTask[]>([])
 const settings = ref<Settings>({
+  stepValue: 0.5,
   testingMarkupEnabled: false,
-  testingMarkupPercent: 20,
+  testingMarkupPercent: 0.2,
   managementMarkupEnabled: false,
   managementMarkupValue: 0,
 })
@@ -298,7 +321,7 @@ const finalTotalPERT = computed(() => {
 
   // Apply testing markup (percentage)
   if (settings.value.testingMarkupEnabled) {
-    result += result * (settings.value.testingMarkupPercent / 100)
+    result += result * settings.value.testingMarkupPercent
   }
 
   // Apply management markup (fixed value)
@@ -432,7 +455,7 @@ const getFormattedResults = (): string => {
   if (settings.value.testingMarkupEnabled || settings.value.managementMarkupEnabled) {
     result += `\n📈 НАЦЕНКИ:\n`
     if (settings.value.testingMarkupEnabled) {
-      result += `  Тестирование (+${settings.value.testingMarkupPercent}%): ${formatNumber(totalPERT.value * settings.value.testingMarkupPercent / 100)}\n`
+      result += `  Тестирование (+${Math.round(settings.value.testingMarkupPercent * 100)}%): ${formatNumber(totalPERT.value * settings.value.testingMarkupPercent)}\n`
     }
     if (settings.value.managementMarkupEnabled) {
       result += `  Управление задачей (+${formatNumber(settings.value.managementMarkupValue)}): ${formatNumber(settings.value.managementMarkupValue)}\n`
@@ -515,8 +538,9 @@ const loadFromLocalStorage = () => {
     if (savedSettings) {
       const parsedSettings = JSON.parse(savedSettings)
       settings.value = {
+        stepValue: parsedSettings.stepValue ?? 0.5,
         testingMarkupEnabled: parsedSettings.testingMarkupEnabled ?? false,
-        testingMarkupPercent: parsedSettings.testingMarkupPercent ?? 20,
+        testingMarkupPercent: parsedSettings.testingMarkupPercent ?? 0.2,
         managementMarkupEnabled: parsedSettings.managementMarkupEnabled ?? false,
         managementMarkupValue: parsedSettings.managementMarkupValue ?? 0,
       }
