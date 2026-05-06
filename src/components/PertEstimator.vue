@@ -95,18 +95,6 @@
               </B24Input>
             </div>
           </div>
-
-          <!-- Additional Info -->
-          <div class="mt-4 pt-2 text-xs text-b24-text-secondary">
-            <div class="flex items-center justify-between">
-              <span>Базовая PERT оценка:</span>
-              <span class="font-mono">{{ formatNumber(totalPERT) }}</span>
-            </div>
-            <div class="flex items-center justify-between mt-1">
-              <span>Итоговая оценка с наценками:</span>
-              <span class="font-mono font-semibold text-b24-text-primary">{{ formatNumber(finalTotalPERT) }}</span>
-            </div>
-          </div>
         </div>
       </B24Card>
     </div>
@@ -363,8 +351,9 @@ const formatNumber = (value: number): string => {
 // DescriptionList items - using finalTotalPERT with markups
 const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
-    label: 'PERT оценка',
+    label: 'Итоговая оценка',
     description: formatNumber(finalTotalPERT.value),
+    class: 'font-bold',
   },
   {
     label: 'Оптимистично',
