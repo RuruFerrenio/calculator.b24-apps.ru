@@ -44,27 +44,6 @@
           </div>
         </template>
         <div class="space-y-4">
-          <!-- Step Setting -->
-          <div class="flex items-center justify-between py-2">
-            <div>
-              <h4 class="text-sm font-medium">Шаг изменения значений</h4>
-              <p class="text-xs text-b24-text-secondary">Шаг для кнопок +/– в числовых полях</p>
-            </div>
-            <B24InputNumber
-                v-model="settings.stepValue"
-                :min="0.5"
-                :max="10"
-                :step="0.5"
-                size="sm"
-                class="w-24"
-                :format-options="{
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              }"
-                @update:model-value="handleSettingsChange"
-            />
-          </div>
-
           <!-- Testing Markup Setting -->
           <div class="flex items-center justify-between py-2">
             <div>
@@ -121,6 +100,27 @@
                 <template #suffix>ч</template>
               </B24InputNumber>
             </div>
+          </div>
+
+          <!-- Step Setting -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium">Шаг изменения значений (в часах)</h4>
+              <p class="text-xs text-b24-text-secondary">Шаг для кнопок +/– в числовых полях</p>
+            </div>
+            <B24InputNumber
+                v-model="settings.stepValue"
+                :min="0.25"
+                :max="100"
+                :step="0.05"
+                size="sm"
+                class="w-24"
+                :format-options="{
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+              }"
+                @update:model-value="handleSettingsChange"
+            />
           </div>
         </div>
       </B24Card>
