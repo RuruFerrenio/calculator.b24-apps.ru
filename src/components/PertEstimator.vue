@@ -57,8 +57,6 @@
               />
               <B24InputNumber
                   v-model="settings.testingMarkupPercent"
-                  :min="0"
-                  :max="100"
                   :step="0.01"
                   size="sm"
                   class="w-24"
@@ -86,7 +84,6 @@
               />
               <B24InputNumber
                   v-model="settings.managementMarkupValue"
-                  :min="0"
                   :step="0.05"
                   size="sm"
                   class="w-24"
@@ -110,7 +107,6 @@
             </div>
             <B24InputNumber
                 v-model="settings.stepValue"
-                :min="0.05"
                 :step="0.05"
                 size="sm"
                 class="w-24"
