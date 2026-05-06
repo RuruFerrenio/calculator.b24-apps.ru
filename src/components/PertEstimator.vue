@@ -4,9 +4,12 @@
     <div class="flex flex-col lg:flex-row gap-4 flex-shrink-0">
       <!-- Left Column: PERT Summary Card -->
       <B24Card class="flex-1">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <span class="text-base font-semibold">Оценка задачи по PERT</span>
+          </div>
+        </template>
         <B24DescriptionList
-            legend="PERT Оценка задачи"
-            text="Трехточечная оценка с автоматическим расчетом"
             size="lg"
             :items="descriptionItems"
             :b24ui="{
@@ -42,7 +45,7 @@
         </template>
         <div class="space-y-4">
           <!-- Testing Markup Setting -->
-          <div class="flex items-center justify-between py-2 border-b border-b24-border">
+          <div class="flex items-center justify-between py-2">
             <div>
               <h4 class="text-sm font-medium">Наценка на тестирование</h4>
               <p class="text-xs text-b24-text-secondary">Добавить процент к итоговой PERT оценке</p>
@@ -70,7 +73,7 @@
           </div>
 
           <!-- Management Overhead Setting -->
-          <div class="flex items-center justify-between py-2 border-b border-b24-border">
+          <div class="flex items-center justify-between py-2">
             <div>
               <h4 class="text-sm font-medium">Затраты на управление задачей</h4>
               <p class="text-xs text-b24-text-secondary">Добавить фиксированное значение к итоговой PERT оценке</p>
