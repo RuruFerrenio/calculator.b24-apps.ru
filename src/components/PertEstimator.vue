@@ -57,7 +57,7 @@
               />
               <B24InputNumber
                   v-model="settings.testingMarkupPercent"
-                  :step="0.01"
+                  :step="0.05"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.testingMarkupEnabled"
