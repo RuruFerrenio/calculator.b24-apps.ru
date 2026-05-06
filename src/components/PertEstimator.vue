@@ -259,22 +259,21 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'PERT оценка',
     description: formatNumber(totalPERT.value),
-    class: 'text-b24-primary',
   },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    class: 'text-air-primary-success',
+    class: 'air-primary-success',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
-    class: 'text-air-primary',
+    class: 'air-primary',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
-    class: 'text-air-primary-warning',
+    class: 'air-primary-alert',
   },
 ])
 
