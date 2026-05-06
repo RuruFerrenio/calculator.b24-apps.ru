@@ -85,13 +85,10 @@
               <B24InputNumber
                   v-model="settings.managementMarkupValue"
                   :step="0.05"
+                  :min="0"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.managementMarkupEnabled"
-                  :format-options="{
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1
-                  }"
                   @update:model-value="handleSettingsChange"
               >
                 <template #suffix>ч</template>
@@ -110,10 +107,7 @@
                 :step="0.05"
                 size="sm"
                 class="w-24"
-                :format-options="{
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              }"
+                :min="0"
                 @update:model-value="handleSettingsChange"
             />
           </div>
