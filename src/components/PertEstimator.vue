@@ -263,17 +263,17 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    class: 'air-primary-success',
+    color: 'air-primary-success',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
-    class: 'air-primary',
+    color: 'air-primary',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
-    class: 'air-primary-alert',
+    color: 'air-primary-alert',
   },
 ])
 
