@@ -207,7 +207,7 @@
                       variant="ghost"
                       @click="deleteTask(task.id)"
                       title="Удалить"
-                      color="air-secondary-no-accent"
+                      color="air-tertiary-no-accent"
                   >
                     <Cross30Icon class="w-3 h-3 text-red-600" />
                   </B24Button>
@@ -219,7 +219,7 @@
             <tr>
               <td colspan="6" class="px-3 py-2">
                 <B24Button size="lg" variant="outline" @click="addRow" class="w-full">
-                  <AddToChecklistIcon class="w-3 h-3" />
+                  <AddToChecklistIcon class="w-6 h-6" />
                 </B24Button>
               </td>
             </tr>
