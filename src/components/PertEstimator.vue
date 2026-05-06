@@ -72,7 +72,7 @@
           <!-- Management Overhead Setting -->
           <div class="flex items-center justify-between py-2 border-b border-b24-border">
             <div>
-              <h4 class="text-sm font-medium">Наценка на управление задачами</h4>
+              <h4 class="text-sm font-medium">Затраты на управление задачей</h4>
               <p class="text-xs text-b24-text-secondary">Добавить фиксированное значение к итоговой PERT оценке</p>
             </div>
             <div class="flex items-center gap-3">
@@ -118,7 +118,7 @@
           <table class="w-full">
             <thead>
             <tr class="bg-b24-surface-hover">
-              <th class="px-3 py-2 text-left">Задача</th>
+              <th class="px-3 py-2 text-left">Подзадача</th>
               <th class="px-3 py-2 text-left">Оптимистично</th>
               <th class="px-3 py-2 text-left">Реалистично</th>
               <th class="px-3 py-2 text-left">Пессимистично</th>
@@ -399,7 +399,7 @@ const handleSettingsChange = () => {
 const addRow = () => {
   const newTask: PertTask = {
     id: generateId(),
-    name: `Задача ${tasks.value.length + 1}`,
+    name: `Подзадача ${tasks.value.length + 1}`,
     optimistic: null,
     realistic: null,
     pessimistic: null,
@@ -416,7 +416,7 @@ const deleteTask = (taskId: string) => {
 
   tasks.value = tasks.value.filter(t => t.id !== taskId)
   saveToLocalStorage()
-  showNotification('Задача удалена', 'info')
+  showNotification('Подзадача удалена', 'info')
 }
 
 const getFormattedResults = (): string => {
@@ -442,7 +442,7 @@ const getFormattedResults = (): string => {
       result += `  Тестирование (+${settings.value.testingMarkupPercent}%): ${formatNumber(totalPERT.value * settings.value.testingMarkupPercent / 100)}\n`
     }
     if (settings.value.managementMarkupEnabled) {
-      result += `  Управление задачами (+${formatNumber(settings.value.managementMarkupValue)}): ${formatNumber(settings.value.managementMarkupValue)}\n`
+      result += `  Управление задачей (+${formatNumber(settings.value.managementMarkupValue)}): ${formatNumber(settings.value.managementMarkupValue)}\n`
     }
     result += `  ИТОГО с наценками: ${formatNumber(finalTotalPERT.value)}\n`
   }
