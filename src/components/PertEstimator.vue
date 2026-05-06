@@ -107,7 +107,7 @@
                 :step="0.25"
                 size="sm"
                 class="w-24"
-                :min="0"
+                :min="0.25"
                 @update:model-value="handleSettingsChange"
             />
           </div>
