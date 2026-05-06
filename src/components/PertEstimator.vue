@@ -11,9 +11,21 @@
           container: 'mt-2',
           labelWrapper: 'pt-2 sm:py-2',
           descriptionWrapper: 'pb-2 pt-1 sm:py-2',
-          description: 'font-mono font-semibold'
         }"
       >
+        <!-- Кастомный слот для description с иконкой и текстом -->
+        <template #description="{ item }">
+          <div class="flex items-center gap-2">
+            <component
+                :is="item.icon"
+                :class="['w-4 h-4', item.iconClass || 'text-b24-text-secondary']"
+            />
+            <span :class="item.class || 'text-b24-text-primary'" class="font-mono font-semibold">
+              {{ item.description }}
+            </span>
+          </div>
+        </template>
+
         <template #footer>
           <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border mt-2">
             <div class="flex items-center gap-2">
@@ -260,24 +272,29 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
     label: 'PERT оценка',
     description: formatNumber(totalPERT.value),
     icon: TargetIcon,
+    iconClass: 'text-purple-500 dark:text-purple-400',
+    class: 'text-purple-600 dark:text-purple-400 font-semibold',
   },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
     icon: ClockIcon,
-    class: 'text-emerald-600 dark:text-emerald-400',
+    iconClass: 'text-emerald-500 dark:text-emerald-400',
+    class: 'text-emerald-600 dark:text-emerald-400 font-semibold',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
     icon: ClockIcon,
-    class: 'text-blue-600 dark:text-blue-400',
+    iconClass: 'text-blue-500 dark:text-blue-400',
+    class: 'text-blue-600 dark:text-blue-400 font-semibold',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
     icon: ClockIcon,
-    class: 'text-orange-600 dark:text-orange-400',
+    iconClass: 'text-orange-500 dark:text-orange-400',
+    class: 'text-orange-600 dark:text-orange-400 font-semibold',
   },
 ])
 
