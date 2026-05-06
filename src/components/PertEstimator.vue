@@ -207,6 +207,7 @@
                       variant="ghost"
                       @click="deleteTask(task.id)"
                       title="Удалить"
+                      color="air-secondary-no-accent"
                   >
                     <Cross30Icon class="w-3 h-3 text-red-600" />
                   </B24Button>
