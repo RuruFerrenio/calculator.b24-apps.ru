@@ -259,24 +259,25 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'PERT оценка',
     description: formatNumber(totalPERT.value),
-    icon: TargetIcon,
+    class: 'text-b24-primary',
   },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
-    class: 'text-emerald-600 dark:text-emerald-400',
+    class: 'text-air-primary-success',
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
-    class: 'text-blue-600 dark:text-blue-400',
+    class: 'text-air-primary',
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
-    class: 'text-orange-600 dark:text-orange-400',
+    class: 'text-air-primary-warning',
   },
 ])
+
 
 const debouncedUpdate = () => {
   if (updateTimeout) {
