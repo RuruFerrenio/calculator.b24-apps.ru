@@ -47,7 +47,7 @@
           <!-- Testing Markup Setting -->
           <div class="flex items-center justify-between py-2">
             <div>
-              <h4 class="text-sm font-medium">Наценка на тестирование</h4>
+              <h4 class="text-sm font-medium">Наценка на проверку</h4>
               <p class="text-xs text-b24-text-secondary">Добавить процент к итоговой PERT оценке</p>
             </div>
             <div class="flex items-center gap-3">
@@ -152,7 +152,8 @@
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    :class="{ 'border-red-500 ring-red-500': validationErrors[task.id]?.optimistic }"
+                    @update:model-value="(val) => handleValueChange(task, 'optimistic', val)"
                 />
               </td>
 
@@ -165,7 +166,8 @@
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    :class="{ 'border-red-500 ring-red-500': validationErrors[task.id]?.realistic }"
+                    @update:model-value="(val) => handleValueChange(task, 'realistic', val)"
                 />
               </td>
 
@@ -178,7 +180,8 @@
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    :class="{ 'border-red-500 ring-red-500': validationErrors[task.id]?.pessimistic }"
+                    @update:model-value="(val) => handleValueChange(task, 'pessimistic', val)"
                 />
               </td>
 
@@ -236,6 +239,10 @@ import { useToast } from '@bitrix24/b24ui-nuxt/composables/useToast'
 import type { DescriptionListItem } from '@bitrix24/b24ui-nuxt'
 import Cross30Icon from '@bitrix24/b24icons-vue/actions/Cross30Icon'
 import AddToChecklistIcon from '@bitrix24/b24icons-vue/main/AddToChecklistIcon'
+import TargetTimerIcon from '@bitrix24/b24icons-vue/main/TargetTimerIcon'
+import SmileIcon from '@bitrix24/b24icons-vue/outline/SmileIcon'
+import NeutralIcon from '@bitrix24/b24icons-vue/outline/NeutralIcon'
+import SadIcon from '@bitrix24/b24icons-vue/outline/SadIcon'
 
 
 interface Props {
@@ -262,6 +269,12 @@ interface Settings {
   managementMarkupValue: number
 }
 
+interface ValidationError {
+  optimistic?: string
+  realistic?: string
+  pessimistic?: string
+}
+
 const toast = useToast()
 let nextId = 1
 let updateTimeout: ReturnType<typeof setTimeout> | null = null
@@ -275,8 +288,78 @@ const settings = ref<Settings>({
   managementMarkupValue: 0,
 })
 
+const validationErrors = ref<Record<string, ValidationError>>({})
+
 const generateId = (): string => {
   return `${Date.now()}-${nextId++}`
+}
+
+// Валидация одной задачи
+const validateTask = (task: PertTask): ValidationError => {
+  const errors: ValidationError = {}
+  const { optimistic, realistic, pessimistic } = task
+
+  // Проверка: если хотя бы одно поле заполнено, то все должны быть заполнены
+  const hasAnyValue = optimistic !== null || realistic !== null || pessimistic !== null
+  const hasAllValues = optimistic !== null && realistic !== null && pessimistic !== null
+
+  if (hasAnyValue && !hasAllValues) {
+    if (optimistic === null) errors.optimistic = 'Заполните все оценки'
+    if (realistic === null) errors.realistic = 'Заполните все оценки'
+    if (pessimistic === null) errors.pessimistic = 'Заполните все оценки'
+  }
+
+  // Проверка соотношения: оптимистичная <= реалистичная <= пессимистичная
+  if (optimistic !== null && realistic !== null && optimistic > realistic) {
+    errors.optimistic = 'Оптимистичная оценка не может быть больше реалистичной'
+    errors.realistic = 'Реалистичная оценка должна быть больше оптимистичной'
+  }
+
+  if (realistic !== null && pessimistic !== null && realistic > pessimistic) {
+    errors.realistic = 'Реалистичная оценка не может быть больше пессимистичной'
+    errors.pessimistic = 'Пессимистичная оценка должна быть больше реалистичной'
+  }
+
+  if (optimistic !== null && pessimistic !== null && optimistic > pessimistic) {
+    errors.optimistic = 'Оптимистичная оценка не может быть больше пессимистичной'
+    errors.pessimistic = 'Пессимистичная оценка должна быть больше оптимистичной'
+  }
+
+  return errors
+}
+
+// Валидация всех задач
+const validateAllTasks = () => {
+  const newErrors: Record<string, ValidationError> = {}
+  let hasErrors = false
+
+  for (const task of tasks.value) {
+    const errors = validateTask(task)
+    if (Object.keys(errors).length > 0) {
+      newErrors[task.id] = errors
+      hasErrors = true
+    }
+  }
+
+  validationErrors.value = newErrors
+  return !hasErrors
+}
+
+// Обработчик изменения значения
+const handleValueChange = (task: PertTask, field: keyof Pick<PertTask, 'optimistic' | 'realistic' | 'pessimistic'>, value: number | null) => {
+  task[field] = value
+
+  // Если поле очистили, проверяем нужно ли очистить остальные
+  if (value === null) {
+    const hasAnyValue = task.optimistic !== null || task.realistic !== null || task.pessimistic !== null
+    if (!hasAnyValue) {
+      // Если все поля пустые, просто валидируем
+      validateTask(task)
+    }
+  }
+
+  validateAllTasks()
+  debouncedUpdate()
 }
 
 const calculatePERT = (optimistic: number, realistic: number, pessimistic: number): number => {
@@ -301,7 +384,10 @@ const calculatePERTValue = (task: PertTask): string => {
 const totalPERT = computed(() => {
   let total = 0
   for (const task of tasks.value) {
-    total += calculatePERT(task.optimistic ?? 0, task.realistic ?? 0, task.pessimistic ?? 0)
+    // Используем только валидные значения для расчета
+    if (task.optimistic !== null && task.realistic !== null && task.pessimistic !== null) {
+      total += calculatePERT(task.optimistic, task.realistic, task.pessimistic)
+    }
   }
   return total
 })
@@ -350,8 +436,10 @@ const totalPessimistic = computed(() => {
 const totalStdDeviation = computed(() => {
   let totalVariance = 0
   for (const task of tasks.value) {
-    const stdDev = calculateStdDeviation(task.optimistic ?? 0, task.pessimistic ?? 0)
-    totalVariance += Math.pow(stdDev, 2)
+    if (task.optimistic !== null && task.pessimistic !== null) {
+      const stdDev = calculateStdDeviation(task.optimistic, task.pessimistic)
+      totalVariance += Math.pow(stdDev, 2)
+    }
   }
   return Math.sqrt(totalVariance)
 })
@@ -372,18 +460,23 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
     label: 'Итоговая оценка',
     description: formatNumber(finalTotalPERT.value),
     class: 'font-bold',
+    icon: TargetTimerIcon
   },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
+    icon: SmileIcon
+
   },
   {
     label: 'Реалистично',
     description: formatNumber(totalRealistic.value),
+    icon: NeutralIcon
   },
   {
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
+    icon: SadIcon
   },
 ])
 
@@ -419,6 +512,8 @@ const deleteTask = (taskId: string) => {
   }
 
   tasks.value = tasks.value.filter(t => t.id !== taskId)
+  // Удаляем ошибки валидации для удаленной задачи
+  delete validationErrors.value[taskId]
   saveToLocalStorage()
   showNotification('Подзадача удалена', 'info')
 }
@@ -553,6 +648,7 @@ const setDefaultTasks = () => {
 
 onMounted(() => {
   loadFromLocalStorage()
+  validateAllTasks()
   if (window.BX24) {
     window.BX24.init(() => {
       console.log('Bitrix24 SDK initialized')
