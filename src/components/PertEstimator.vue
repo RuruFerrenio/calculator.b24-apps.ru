@@ -124,7 +124,7 @@
                 <B24Input
                     v-model="task.name"
                     placeholder="Название задачи"
-                    size="lg"
+                    size="md"
                     :class="{ 'font-semibold': index === 0 }"
                     @update:model-value="debouncedUpdate"
                 />
@@ -138,7 +138,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="lg"
+                    size="md"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -152,7 +152,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="lg"
+                    size="md"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -166,7 +166,7 @@
                     step="0.5"
                     min="0"
                     placeholder="—"
-                    size="lg"
+                    size="md"
                     class="text-right"
                     @update:model-value="debouncedUpdate"
                 />
@@ -182,7 +182,7 @@
                 <div class="flex items-center justify-center gap-1">
                   <B24Button
                       v-if="index !== 0"
-                      size="lg"
+                      size="md"
                       variant="ghost"
                       @click="deleteTask(task.id)"
                       title="Удалить"
