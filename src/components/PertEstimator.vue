@@ -18,22 +18,7 @@
               descriptionWrapper: 'pb-2 pt-1 sm:py-2',
               description: 'font-mono font-semibold'
             }"
-        >
-          <template #footer>
-            <div class="flex flex-wrap gap-4 pt-2 border-t border-b24-border mt-2">
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-b24-text-secondary">Стандартное отклонение:</span>
-                <span class="text-sm font-mono font-semibold">σ = {{ formatNumber(totalStdDeviation) }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-b24-text-secondary">95% Доверительный интервал:</span>
-                <span class="text-sm font-mono">
-                  {{ formatNumber(finalTotalPERT - 2 * totalStdDeviation) }} – {{ formatNumber(finalTotalPERT + 2 * totalStdDeviation) }}
-                </span>
-              </div>
-            </div>
-          </template>
-        </B24DescriptionList>
+        />
       </B24Card>
 
       <!-- Right Column: Settings Card -->
@@ -387,6 +372,14 @@ const totalStdDeviation = computed(() => {
   return Math.sqrt(totalVariance)
 })
 
+const lowerConfidence = computed(() => {
+  return finalTotalPERT.value - 2 * totalStdDeviation.value
+})
+
+const upperConfidence = computed(() => {
+  return finalTotalPERT.value + 2 * totalStdDeviation.value
+})
+
 const showSendButton = computed(() => props.sendButton)
 
 const formatNumber = (value: number): string => {
@@ -397,14 +390,8 @@ const formatNumber = (value: number): string => {
   })
 }
 
-// DescriptionList items - using finalTotalPERT with markups
+// DescriptionList items - теперь включает стандартное отклонение и доверительный интервал
 const descriptionItems = computed<DescriptionListItem[]>(() => [
-  {
-    label: 'Итоговая оценка',
-    description: formatNumber(finalTotalPERT.value),
-    class: 'font-bold',
-    icon: TargetTimerIcon
-  },
   {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
@@ -419,6 +406,22 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
     label: 'Пессимистично',
     description: formatNumber(totalPessimistic.value),
     icon: SadIcon
+  },
+  {
+    label: 'Стандартное отклонение (σ)',
+    description: formatNumber(totalStdDeviation.value),
+    icon: TargetTimerIcon
+  },
+  {
+    label: '95% Доверительный интервал',
+    description: `${formatNumber(lowerConfidence.value)} – ${formatNumber(upperConfidence.value)}`,
+    icon: TargetTimerIcon
+  },
+  {
+    label: 'Итоговая оценка (с наценками)',
+    description: formatNumber(finalTotalPERT.value),
+    class: 'font-bold',
+    icon: TargetTimerIcon
   },
 ])
 
@@ -474,6 +477,8 @@ const getFormattedResults = (): string => {
   result += `  Реалистично: ${formatNumber(totalRealistic.value)}\n`
   result += `  Пессимистично: ${formatNumber(totalPessimistic.value)}\n`
   result += `  PERT оценка: ${formatNumber(totalPERT.value)}\n`
+  result += `  Стандартное отклонение: σ = ${formatNumber(totalStdDeviation.value)}\n`
+  result += `  95% Доверительный интервал: ${formatNumber(lowerConfidence.value)} – ${formatNumber(upperConfidence.value)}\n`
 
   const markupsAdded = settings.value.testingMarkupEnabled ||
       settings.value.managementMarkupEnabled ||
@@ -492,9 +497,6 @@ const getFormattedResults = (): string => {
     }
     result += `  ИТОГО с наценками: ${formatNumber(finalTotalPERT.value)}\n`
   }
-
-  result += `\n  Стандартное отклонение: σ = ${formatNumber(totalStdDeviation.value)}\n`
-  result += `  95% Доверительный интервал: ${formatNumber(finalTotalPERT.value - 2 * totalStdDeviation.value)} – ${formatNumber(finalTotalPERT.value + 2 * totalStdDeviation.value)}\n`
 
   return result
 }
