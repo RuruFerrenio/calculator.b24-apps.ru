@@ -71,29 +71,29 @@
         >
           <template #body="{ item }">
             <div class="grid grid-cols-4 gap-2 mt-1">
-              <B24Button size="lg" variant="secondary" @click="clear" class="calc-btn">C</B24Button>
-              <B24Button size="lg" variant="secondary" @click="backspace" class="calc-btn">⌫</B24Button>
-              <B24Button size="lg" variant="secondary" @click="addPercentage" class="calc-btn">%</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('/')" class="calc-btn calc-btn-operation">÷</B24Button>
+              <B24Button size="lg" variant="secondary" @click="clear" class="calc-btn" color="air-primary-alert">C</B24Button>
+              <B24Button size="lg" variant="secondary" @click="backspace" class="calc-btn" color="air-primary-alert">⌫</B24Button>
+              <B24Button size="lg" variant="secondary" @click="addPercentage" class="calc-btn" color="air-secondary-accent">%</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('/')" class="calc-btn calc-btn-operation" color="air-secondary-accent">÷</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('7')" class="calc-btn calc-btn-number">7</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('8')" class="calc-btn calc-btn-number">8</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('9')" class="calc-btn calc-btn-number">9</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('*')" class="calc-btn calc-btn-operation">×</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('*')" class="calc-btn calc-btn-operation" color="air-secondary-accent">×</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('4')" class="calc-btn calc-btn-number">4</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('5')" class="calc-btn calc-btn-number">5</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('6')" class="calc-btn calc-btn-number">6</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('-')" class="calc-btn calc-btn-operation">−</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('-')" class="calc-btn calc-btn-operation" color="air-secondary-accent">−</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('1')" class="calc-btn calc-btn-number">1</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('2')" class="calc-btn calc-btn-number">2</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('3')" class="calc-btn calc-btn-number">3</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('+')" class="calc-btn calc-btn-operation">+</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('+')" class="calc-btn calc-btn-operation" color="air-secondary-accent">+</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('0')" class="calc-btn calc-btn-number col-span-2">0</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('.')" class="calc-btn calc-btn-number">,</B24Button>
-              <B24Button size="lg" @click="calculate" class="calc-btn calc-btn-equals">=</B24Button>
+              <B24Button size="lg" @click="calculate" class="calc-btn calc-btn-equals" color="air-primary-success">=</B24Button>
             </div>
 
             <div class="grid grid-cols-4 gap-2 mt-2">
