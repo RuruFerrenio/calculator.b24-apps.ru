@@ -667,16 +667,30 @@ const restoreFromHistory = (item: HistoryItem): void => {
   showNotification('Выражение восстановлено', 'success')
 }
 
-// Interaction
-const copyToClipboard = async (): Promise<void> => {
-  try {
-    const textToCopy = formattedResult.value !== '...' && formattedResult.value !== '' ? formattedResult.value : '0'
-    await navigator.clipboard.writeText(textToCopy)
-    showNotification('Скопировано в буфер обмена', 'success')
-  } catch (error) {
-    console.error('Copy error:', error)
-    showNotification('Не удалось скопировать', 'error')
+const copyToClipboard = async (text) => {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch (err) {
+      return fallbackCopy(text)
+    }
   }
+
+  return fallbackCopy(text)
+}
+
+const fallbackCopy = (text) => {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.cssText = 'position:fixed;top:0;left:0;opacity:0;'
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  const success = document.execCommand('copy')
+  document.body.removeChild(textarea)
+
+  return success
 }
 
 const sendToChat = async (): Promise<void> => {
