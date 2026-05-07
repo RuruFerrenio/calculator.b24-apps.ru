@@ -316,20 +316,25 @@ declare global {
     BX24?: {
       init: (callback: () => void) => void
       fitWindow: () => void
-      callMethod: (method: string, params: Record<string, unknown>, callback?: (result: unknown) => void) => Promise<unknown>
-      user?: {
-        id: string
+      placement: {
+        info: () => { placement: string; options: Record<string, unknown> }
       }
+      callMethod: (
+          method: string,
+          params: Record<string, unknown>,
+          callback?: (result: { error: () => string; data: () => unknown }) => void
+      ) => Promise<unknown>
     }
   }
 }
 
-// Utils
+// Composables
 const toast = useToast()
 
 // Data from Bitrix
 const bitrixData: BitrixData = window.bitrixData || {}
 const dialogId = ref<string | undefined>(bitrixData.dialogId)
+const chatId = ref<number | undefined>()
 
 // Reactive state
 const currentExpression = ref<string>('')
@@ -415,6 +420,72 @@ const focusInput = () => {
 
 const updateAccordionState = (key: 'keyboard' | 'engineering' | 'history' | 'help', value: any) => {
   accordionState.value[key] = value
+}
+
+// Get chat ID from placement info
+const getChatIdFromPlacement = async (): Promise<number | null> => {
+  return new Promise((resolve) => {
+    if (window.BX24) {
+      try {
+        const placementInfo = window.BX24.placement.info()
+        console.log('Placement info:', placementInfo)
+
+        const options = placementInfo.options as Record<string, unknown>
+        const dialogIdFromPlacement = options.dialogId as string
+
+        if (dialogIdFromPlacement) {
+          let numericId: number | null = null
+
+          if (typeof dialogIdFromPlacement === 'string') {
+            const match = dialogIdFromPlacement.match(/\d+/)
+            if (match) {
+              numericId = parseInt(match[0], 10)
+            }
+          } else if (typeof dialogIdFromPlacement === 'number') {
+            numericId = dialogIdFromPlacement
+          }
+
+          if (numericId && !isNaN(numericId)) {
+            console.log('Extracted chat ID:', numericId)
+            resolve(numericId)
+            return
+          }
+        }
+
+        const possibleIds = [options.chatId, options.CHAT_ID, options.ID, options.id]
+
+        for (const id of possibleIds) {
+          if (id) {
+            let numericId: number | null = null
+
+            if (typeof id === 'string') {
+              const match = id.match(/\d+/)
+              if (match) {
+                numericId = parseInt(match[0], 10)
+              }
+            } else if (typeof id === 'number') {
+              numericId = id
+            }
+
+            if (numericId && !isNaN(numericId)) {
+              console.log('Found chat ID from alternative field:', numericId)
+              resolve(numericId)
+              return
+            }
+          }
+        }
+
+        console.warn('Chat ID not found in placement info')
+        resolve(null)
+      } catch (error) {
+        console.error('Error getting placement info:', error)
+        resolve(null)
+      }
+    } else {
+      console.warn('BX24 not available')
+      resolve(null)
+    }
+  })
 }
 
 // Safe evaluation with math.js
@@ -697,33 +768,73 @@ const copyToClipboard = async (): Promise<void> => {
   }
 }
 
+// Send to chat function using im.message.add
 const sendToChat = async (): Promise<void> => {
   try {
-    const expression =
-        previousExpression.value ||
+    // Prepare message text
+    const messageText = previousExpression.value ||
         (currentExpression.value && result.value !== '...' && result.value !== ''
             ? `${currentExpression.value} = ${formattedResult.value}`
             : formattedResult.value || '0')
 
-    const currentDialogId = dialogId.value || window.BX24?.user?.id
+    // Get chat ID if not already available
+    let targetChatId = chatId.value
+    let targetDialogId = dialogId.value
 
-    if (!currentDialogId) {
-      throw new Error('Не удалось определить чат')
+    if (!targetChatId && !targetDialogId) {
+      const placementChatId = await getChatIdFromPlacement()
+      if (placementChatId) {
+        targetChatId = placementChatId
+        chatId.value = placementChatId
+      }
     }
 
-    if (window.BX24) {
-      await window.BX24.callMethod('im.message.add', {
-        DIALOG_ID: currentDialogId,
-        MESSAGE: expression,
-        SYSTEM: 'N',
-      })
-      showNotification('Отправлено в чат', 'success')
-    } else {
-      showNotification('Bitrix24 SDK не доступен', 'error')
+    // Format dialog ID for chat (add 'chat' prefix if it's a numeric ID)
+    let finalDialogId: string | number = targetDialogId || ''
+
+    if (targetChatId && !finalDialogId) {
+      finalDialogId = `chat${targetChatId}`
     }
+
+    if (!finalDialogId) {
+      throw new Error('Не удалось определить чат для отправки')
+    }
+
+    if (!window.BX24) {
+      throw new Error('Bitrix24 SDK не доступен')
+    }
+
+    console.log('Sending message with params:', {
+      DIALOG_ID: finalDialogId,
+      MESSAGE: messageText,
+      SYSTEM: 'N',
+    })
+
+    // Send message using im.message.add
+    await window.BX24.callMethod('im.message.add', {
+      DIALOG_ID: finalDialogId,
+      MESSAGE: messageText,
+      SYSTEM: 'N',
+    })
+
+    showNotification('Результат отправлен в чат!', 'success')
   } catch (error) {
     console.error('Send error:', error)
-    showNotification('Ошибка отправки', 'error')
+
+    let errorMessage = 'Ошибка при отправке'
+
+    if (error instanceof Error) {
+      const errorMsg = error.message
+      if (errorMsg.includes('Access denied') || errorMsg.includes('403')) {
+        errorMessage = 'Недостаточно прав для отправки сообщения'
+      } else if (errorMsg.includes('DIALOG_ID')) {
+        errorMessage = 'Не удалось определить чат для отправки'
+      } else {
+        errorMessage = errorMsg
+      }
+    }
+
+    showNotification(errorMessage, 'error')
   }
 }
 
@@ -834,7 +945,7 @@ const formattedResult = computed<string>(() => {
 })
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   loadHistory()
 
   if (bitrixData && typeof bitrixData.sendBtnActive !== 'undefined') {
@@ -846,7 +957,7 @@ onMounted(() => {
   }
 
   if (typeof window.BX24 !== 'undefined') {
-    window.BX24.init(() => {
+    window.BX24.init(async () => {
       console.log('Bitrix24 SDK initialized')
       if (fitWindow.value) {
         try {
@@ -855,9 +966,17 @@ onMounted(() => {
           console.error('Error calling fitWindow:', error)
         }
       }
+
+      // Try to get chat ID from placement
+      const placementChatId = await getChatIdFromPlacement()
+      if (placementChatId) {
+        chatId.value = placementChatId
+        console.log('Chat ID obtained:', placementChatId)
+      }
     })
   } else {
     console.warn('Bitrix24 SDK not found')
+    showNotification('Bitrix24 SDK не найден. Проверьте окружение.', 'warning')
   }
 
   document.addEventListener('keydown', handleKeyDown)
