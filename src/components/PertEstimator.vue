@@ -247,6 +247,10 @@ import TargetTimerIcon from '@bitrix24/b24icons-vue/main/TargetTimerIcon'
 import SmileIcon from '@bitrix24/b24icons-vue/outline/SmileIcon'
 import NeutralIcon from '@bitrix24/b24icons-vue/outline/NeutralIcon'
 import SadIcon from '@bitrix24/b24icons-vue/outline/SadIcon'
+import GraphsDiagramIcon from '@bitrix24/b24icons-vue/outline/GraphsDiagramIcon'
+import ShieldCheckedIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
+
+
 
 
 interface Props {
@@ -393,6 +397,12 @@ const formatNumber = (value: number): string => {
 // DescriptionList items - теперь включает стандартное отклонение и доверительный интервал
 const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
+    label: 'Итоговая оценка (с наценками)',
+    description: formatNumber(finalTotalPERT.value),
+    class: 'font-bold',
+    icon: TargetTimerIcon
+  },
+  {
     label: 'Оптимистично',
     description: formatNumber(totalOptimistic.value),
     icon: SmileIcon
@@ -410,18 +420,12 @@ const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Стандартное отклонение (σ)',
     description: formatNumber(totalStdDeviation.value),
-    icon: TargetTimerIcon
+    icon: GraphsDiagramIcon
   },
   {
     label: '95% Доверительный интервал',
     description: `${formatNumber(lowerConfidence.value)} – ${formatNumber(upperConfidence.value)}`,
-    icon: TargetTimerIcon
-  },
-  {
-    label: 'Итоговая оценка (с наценками)',
-    description: formatNumber(finalTotalPERT.value),
-    class: 'font-bold',
-    icon: TargetTimerIcon
+    icon: ShieldCheckedIcon
   },
 ])
 
