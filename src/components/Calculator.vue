@@ -44,8 +44,7 @@
             <B24Button
                 size="sm"
                 @click="copyToClipboard"
-                class="text-xs justify-center"
-                :class="showSendButton ? 'w-full' : 'w-full'"
+                class="text-xs justify-center w-full"
             >
               Копировать
             </B24Button>
@@ -54,6 +53,7 @@
                 size="sm"
                 color="air-primary"
                 @click="sendToChat"
+                :disabled="!canSend"
                 class="text-xs w-full justify-center"
             >
               Отправить
@@ -346,6 +346,7 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const sendBtnActive = ref<boolean>(true)
 const fitWindow = ref<boolean>(true)
 const lastSavedExpression = ref<string | null>(null)
+const isSending = ref<boolean>(false)
 
 // Accordion state
 const accordionState = ref({
@@ -357,6 +358,19 @@ const accordionState = ref({
 
 // Computed
 const showSendButton = computed(() => props.sendButton && sendBtnActive.value)
+
+// Проверка, можно ли отправить результат
+const canSend = computed(() => {
+  // Результат не должен быть пустым, не должен быть '...' и не должен быть ошибкой
+  const resultValue = formattedResult.value
+  return resultValue &&
+      resultValue !== '...' &&
+      resultValue !== '0' &&
+      !resultValue.includes('Деление на ноль') &&
+      resultValue !== '∞' &&
+      resultValue !== '-∞' &&
+      !isSending.value
+})
 
 const containerPaddingClass = computed(() => {
   return props.containerPadding
@@ -768,14 +782,19 @@ const copyToClipboard = async (): Promise<void> => {
   }
 }
 
-// Send to chat function using im.message.add
+// Send to chat function - отправляет только результат
 const sendToChat = async (): Promise<void> => {
+  // Проверяем, можно ли отправить
+  if (!canSend.value) {
+    showNotification('Нет результата для отправки', 'warning')
+    return
+  }
+
+  isSending.value = true
+
   try {
-    // Prepare message text
-    const messageText = previousExpression.value ||
-        (currentExpression.value && result.value !== '...' && result.value !== ''
-            ? `${currentExpression.value} = ${formattedResult.value}`
-            : formattedResult.value || '0')
+    // Отправляем только результат, без выражения
+    const resultToSend = formattedResult.value
 
     // Get chat ID if not already available
     let targetChatId = chatId.value
@@ -804,20 +823,16 @@ const sendToChat = async (): Promise<void> => {
       throw new Error('Bitrix24 SDK не доступен')
     }
 
-    console.log('Sending message with params:', {
-      DIALOG_ID: finalDialogId,
-      MESSAGE: messageText,
-      SYSTEM: 'N',
-    })
+    console.log('Sending result to chat:', resultToSend)
 
-    // Send message using im.message.add
+    // Send only the result using im.message.add
     await window.BX24.callMethod('im.message.add', {
       DIALOG_ID: finalDialogId,
-      MESSAGE: messageText,
+      MESSAGE: resultToSend,
       SYSTEM: 'N',
     })
 
-    showNotification('Результат отправлен в чат!', 'success')
+    showNotification(`Результат "${resultToSend}" отправлен в чат!`, 'success')
   } catch (error) {
     console.error('Send error:', error)
 
@@ -835,6 +850,8 @@ const sendToChat = async (): Promise<void> => {
     }
 
     showNotification(errorMessage, 'error')
+  } finally {
+    isSending.value = false
   }
 }
 
@@ -906,7 +923,7 @@ const onInputBlur = (): void => {
 // Computed
 const formattedResult = computed<string>(() => {
   if (!result.value || result.value === '...') {
-    return result.value || '0'
+    return ''
   }
 
   if (result.value === 'Деление на ноль' || result.value === '∞' || result.value === '-∞') {
@@ -1116,5 +1133,10 @@ onUnmounted(() => {
 [dir='rtl'] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
   margin-left: 0;
   margin-right: 0.5rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
