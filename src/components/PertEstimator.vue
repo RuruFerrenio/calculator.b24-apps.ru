@@ -71,11 +71,11 @@
             </div>
           </div>
 
-          <!-- Management Overhead Setting -->
+          <!-- Management Overhead Setting (Percentage) -->
           <div class="flex items-center justify-between py-2">
             <div>
               <h4 class="text-sm font-medium">Затраты на управление задачей</h4>
-              <p class="text-xs text-b24-text-secondary">Добавить фиксированное значение к итоговой PERT оценке</p>
+              <p class="text-xs text-b24-text-secondary">Добавить процент к итоговой PERT оценке</p>
             </div>
             <div class="flex items-center gap-3">
               <B24Switch
@@ -83,12 +83,34 @@
                   @update:model-value="handleSettingsChange"
               />
               <B24InputNumber
-                  v-model="settings.managementMarkupValue"
-                  :step="0.25"
-                  :min="0"
+                  v-model="settings.managementMarkupPercent"
+                  :step="0.05"
                   size="sm"
                   class="w-24"
                   :disabled="!settings.managementMarkupEnabled"
+                  :format-options="{
+                    style: 'percent',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }"
+                  @update:model-value="handleSettingsChange"
+              />
+            </div>
+          </div>
+
+          <!-- Fixed Time for Preparation -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium">Время на подготовку оценки</h4>
+              <p class="text-xs text-b24-text-secondary">Добавить фиксированное значение к итоговой PERT оценке</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <B24InputNumber
+                  v-model="settings.preparationTimeValue"
+                  :step="settings.stepValue"
+                  :min="0"
+                  size="sm"
+                  class="w-24"
                   @update:model-value="handleSettingsChange"
               >
                 <template #suffix>ч</template>
@@ -263,7 +285,8 @@ interface Settings {
   testingMarkupEnabled: boolean
   testingMarkupPercent: number
   managementMarkupEnabled: boolean
-  managementMarkupValue: number
+  managementMarkupPercent: number
+  preparationTimeValue: number
 }
 
 const toast = useToast()
@@ -276,7 +299,8 @@ const settings = ref<Settings>({
   testingMarkupEnabled: false,
   testingMarkupPercent: 0.2,
   managementMarkupEnabled: false,
-  managementMarkupValue: 0,
+  managementMarkupPercent: 0.1,
+  preparationTimeValue: 0.5,
 })
 
 const generateId = (): string => {
@@ -319,10 +343,13 @@ const finalTotalPERT = computed(() => {
     result += result * settings.value.testingMarkupPercent
   }
 
-  // Apply management markup (fixed value)
+  // Apply management markup (percentage)
   if (settings.value.managementMarkupEnabled) {
-    result += settings.value.managementMarkupValue
+    result += result * settings.value.managementMarkupPercent
   }
+
+  // Apply preparation time (fixed value)
+  result += settings.value.preparationTimeValue
 
   return result
 })
@@ -448,13 +475,20 @@ const getFormattedResults = (): string => {
   result += `  Пессимистично: ${formatNumber(totalPessimistic.value)}\n`
   result += `  PERT оценка: ${formatNumber(totalPERT.value)}\n`
 
-  if (settings.value.testingMarkupEnabled || settings.value.managementMarkupEnabled) {
+  const markupsAdded = settings.value.testingMarkupEnabled ||
+      settings.value.managementMarkupEnabled ||
+      settings.value.preparationTimeValue > 0
+
+  if (markupsAdded) {
     result += `\n📈 НАЦЕНКИ:\n`
     if (settings.value.testingMarkupEnabled) {
       result += `  Тестирование (+${Math.round(settings.value.testingMarkupPercent * 100)}%): ${formatNumber(totalPERT.value * settings.value.testingMarkupPercent)}\n`
     }
     if (settings.value.managementMarkupEnabled) {
-      result += `  Управление задачей (+${formatNumber(settings.value.managementMarkupValue)}): ${formatNumber(settings.value.managementMarkupValue)}\n`
+      result += `  Управление задачей (+${Math.round(settings.value.managementMarkupPercent * 100)}%): ${formatNumber(totalPERT.value * settings.value.managementMarkupPercent)}\n`
+    }
+    if (settings.value.preparationTimeValue > 0) {
+      result += `  Время на подготовку оценки (+${formatNumber(settings.value.preparationTimeValue)}): ${formatNumber(settings.value.preparationTimeValue)}\n`
     }
     result += `  ИТОГО с наценками: ${formatNumber(finalTotalPERT.value)}\n`
   }
@@ -538,7 +572,8 @@ const loadFromLocalStorage = () => {
         testingMarkupEnabled: parsedSettings.testingMarkupEnabled ?? false,
         testingMarkupPercent: parsedSettings.testingMarkupPercent ?? 0.2,
         managementMarkupEnabled: parsedSettings.managementMarkupEnabled ?? false,
-        managementMarkupValue: parsedSettings.managementMarkupValue ?? 0,
+        managementMarkupPercent: parsedSettings.managementMarkupPercent ?? 0.1,
+        preparationTimeValue: parsedSettings.preparationTimeValue ?? 0.5,
       }
     }
   } catch (error) {
