@@ -103,6 +103,30 @@
             </div>
           </div>
 
+          <!-- Rounding Precision Setting -->
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h4 class="text-sm font-medium">Точность округления</h4>
+              <p class="text-xs text-b24-text-secondary">Округлить итоговую оценку до указанного количества знаков</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <B24Switch
+                  v-model="settings.roundingEnabled"
+                  @update:model-value="handleSettingsChange"
+              />
+              <B24InputNumber
+                  v-model="settings.roundingPrecision"
+                  :min="0"
+                  :max="4"
+                  :step="1"
+                  size="sm"
+                  class="w-24"
+                  :disabled="!settings.roundingEnabled"
+                  @update:model-value="handleSettingsChange"
+              />
+            </div>
+          </div>
+
           <!-- Step Setting -->
           <div class="flex items-center justify-between py-2">
             <div>
@@ -276,6 +300,8 @@ interface Settings {
   managementMarkupEnabled: boolean
   managementMarkupPercent: number
   preparationTimeValue: number
+  roundingEnabled: boolean
+  roundingPrecision: number
 }
 
 const toast = useToast()
@@ -290,6 +316,8 @@ const settings = ref<Settings>({
   managementMarkupEnabled: false,
   managementMarkupPercent: 0.1,
   preparationTimeValue: 0.5,
+  roundingEnabled: false,
+  roundingPrecision: 1,
 })
 
 const generateId = (): string => {
@@ -323,7 +351,7 @@ const totalPERT = computed(() => {
   return total
 })
 
-// Final PERT with markups applied
+// Final PERT with markups applied and rounding
 const finalTotalPERT = computed(() => {
   let result = totalPERT.value
 
@@ -339,6 +367,13 @@ const finalTotalPERT = computed(() => {
 
   // Apply preparation time (fixed value)
   result += settings.value.preparationTimeValue
+
+  // Apply rounding
+  if (settings.value.roundingEnabled) {
+    const precision = settings.value.roundingPrecision
+    const multiplier = Math.pow(10, precision)
+    result = Math.round(result * multiplier) / multiplier
+  }
 
   return result
 })
@@ -377,20 +412,36 @@ const totalStdDeviation = computed(() => {
 })
 
 const lowerConfidence = computed(() => {
-  return finalTotalPERT.value - 2 * totalStdDeviation.value
+  let value = finalTotalPERT.value - 2 * totalStdDeviation.value
+  // Apply rounding to confidence interval if enabled
+  if (settings.value.roundingEnabled) {
+    const precision = settings.value.roundingPrecision
+    const multiplier = Math.pow(10, precision)
+    value = Math.round(value * multiplier) / multiplier
+  }
+  return value
 })
 
 const upperConfidence = computed(() => {
-  return finalTotalPERT.value + 2 * totalStdDeviation.value
+  let value = finalTotalPERT.value + 2 * totalStdDeviation.value
+  // Apply rounding to confidence interval if enabled
+  if (settings.value.roundingEnabled) {
+    const precision = settings.value.roundingPrecision
+    const multiplier = Math.pow(10, precision)
+    value = Math.round(value * multiplier) / multiplier
+  }
+  return value
 })
 
 const showSendButton = computed(() => props.sendButton)
 
 const formatNumber = (value: number): string => {
   if (isNaN(value)) return '0'
+  // Determine precision based on rounding settings
+  const precision = settings.value.roundingEnabled ? settings.value.roundingPrecision : 2
   return value.toLocaleString('ru-RU', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: precision,
   })
 }
 
@@ -502,6 +553,11 @@ const getFormattedResults = (): string => {
     result += `  ИТОГО с наценками: ${formatNumber(finalTotalPERT.value)}\n`
   }
 
+  if (settings.value.roundingEnabled) {
+    result += `\n🎯 ОКРУГЛЕНИЕ:\n`
+    result += `  Точность: ${settings.value.roundingPrecision} знак(а) после запятой\n`
+  }
+
   return result
 }
 
@@ -580,6 +636,8 @@ const loadFromLocalStorage = () => {
         managementMarkupEnabled: parsedSettings.managementMarkupEnabled ?? false,
         managementMarkupPercent: parsedSettings.managementMarkupPercent ?? 0.1,
         preparationTimeValue: parsedSettings.preparationTimeValue ?? 0.5,
+        roundingEnabled: parsedSettings.roundingEnabled ?? false,
+        roundingPrecision: parsedSettings.roundingPrecision ?? 1,
       }
     }
   } catch (error) {
