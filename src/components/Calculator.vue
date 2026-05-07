@@ -79,28 +79,28 @@
               <B24Button size="lg" variant="ghost" @click="addToExpression('7')" class="calc-btn calc-btn-number">7</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('8')" class="calc-btn calc-btn-number">8</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('9')" class="calc-btn calc-btn-number">9</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('*')" class="calc-btn calc-btn-operation" color="air-secondary-accent">×</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('*')" class="calc-btn calc-btn-operation" color="air-secondary-accent-2">×</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('4')" class="calc-btn calc-btn-number">4</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('5')" class="calc-btn calc-btn-number">5</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('6')" class="calc-btn calc-btn-number">6</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('-')" class="calc-btn calc-btn-operation" color="air-secondary-accent">−</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('-')" class="calc-btn calc-btn-operation" color="air-secondary-accent-2">−</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('1')" class="calc-btn calc-btn-number">1</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('2')" class="calc-btn calc-btn-number">2</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('3')" class="calc-btn calc-btn-number">3</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('+')" class="calc-btn calc-btn-operation" color="air-secondary-accent">+</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('+')" class="calc-btn calc-btn-operation" color="air-secondary-accent-2">+</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('0')" class="calc-btn calc-btn-number col-span-2">0</B24Button>
-              <B24Button size="lg" variant="ghost" @click="addToExpression('.')" class="calc-btn calc-btn-number">,</B24Button>
+              <B24Button size="lg" variant="ghost" @click="addToExpression('.')" class="calc-btn calc-btn-number" color="air-secondary-accent-2">,</B24Button>
               <B24Button size="lg" @click="calculate" class="calc-btn calc-btn-equals" color="air-primary-success">=</B24Button>
             </div>
 
             <div class="grid grid-cols-4 gap-2 mt-2">
-              <B24Button size="sm" variant="ghost" @click="addParenthesis('(')" class="calc-btn">(</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addParenthesis(')')" class="calc-btn">)</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addToExpression('^')" class="calc-btn">xʸ</B24Button>
-              <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn">π</B24Button>
+              <B24Button size="sm" variant="ghost" @click="addParenthesis('(')" class="calc-btn" color="air-secondary-accent-2">(</B24Button>
+              <B24Button size="sm" variant="ghost" @click="addParenthesis(')')" class="calc-btn" color="air-secondary-accent-2">)</B24Button>
+              <B24Button size="sm" variant="ghost" @click="addToExpression('^')" class="calc-btn" color="air-secondary-accent-2">xʸ</B24Button>
+              <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn" color="air-secondary-accent-2">π</B24Button>
             </div>
           </template>
         </B24Accordion>
@@ -118,44 +118,44 @@
               <!-- Trigonometry -->
               <div class="mb-4">
                 <div class="grid grid-cols-3 gap-2 mb-3">
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sin')" class="calc-btn-engineering">sin</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('cos')" class="calc-btn-engineering">cos</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('tan')" class="calc-btn-engineering">tan</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sin')" class="calc-btn-engineering" color="air-secondary-accent-2">sin</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('cos')" class="calc-btn-engineering" color="air-secondary-accent-2">cos</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('tan')" class="calc-btn-engineering" color="air-secondary-accent-2">tan</B24Button>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('asin')" class="calc-btn-engineering">asin</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('acos')" class="calc-btn-engineering">acos</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('atan')" class="calc-btn-engineering">atan</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('asin')" class="calc-btn-engineering" color="air-secondary-accent-2">asin</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('acos')" class="calc-btn-engineering" color="air-secondary-accent-2">acos</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('atan')" class="calc-btn-engineering" color="air-secondary-accent-2">atan</B24Button>
                 </div>
               </div>
 
               <!-- Mathematics -->
               <div class="mb-4">
                 <div class="grid grid-cols-3 gap-2">
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sqrt')" class="calc-btn-engineering">√</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="addPower(2)" class="calc-btn-engineering">x²</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="addPower('y')" class="calc-btn-engineering">xʸ</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('ln')" class="calc-btn-engineering">ln</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('log10')" class="calc-btn-engineering">log₁₀</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('exp')" class="calc-btn-engineering">eˣ</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sqrt')" class="calc-btn-engineering" color="air-secondary-accent-2">√</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="addPower(2)" class="calc-btn-engineering" color="air-secondary-accent-2">x²</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="addPower('y')" class="calc-btn-engineering" color="air-secondary-accent-2">xʸ</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('ln')" class="calc-btn-engineering" color="air-secondary-accent-2">ln</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('log10')" class="calc-btn-engineering" color="air-secondary-accent-2">log₁₀</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('exp')" class="calc-btn-engineering" color="air-secondary-accent-2">eˣ</B24Button>
                 </div>
               </div>
 
               <!-- Constants & Factorial -->
               <div class="mb-4">
                 <div class="grid grid-cols-3 gap-2">
-                  <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn-engineering">π</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="addConstant('e')" class="calc-btn-engineering">e</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('factorial')" class="calc-btn-engineering">n!</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn-engineering" color="air-secondary-accent-2">π</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="addConstant('e')" class="calc-btn-engineering" color="air-secondary-accent-2">e</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('factorial')" class="calc-btn-engineering" color="air-secondary-accent-2">n!</B24Button>
                 </div>
               </div>
 
               <!-- Additional -->
               <div>
                 <div class="grid grid-cols-3 gap-2">
-                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('abs')" class="calc-btn-engineering">|x|</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="addReciprocal" class="calc-btn-engineering">1/x</B24Button>
-                  <B24Button size="sm" variant="ghost" @click="toggleAngleMode" class="calc-btn-engineering">
+                  <B24Button size="sm" variant="ghost" @click="wrapWithFunction('abs')" class="calc-btn-engineering" color="air-secondary-accent-2">|x|</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="addReciprocal" class="calc-btn-engineering" color="air-secondary-accent-2">1/x</B24Button>
+                  <B24Button size="sm" variant="ghost" @click="toggleAngleMode" class="calc-btn-engineering" color="air-secondary-accent-2">
                     {{ angleMode === 'deg' ? 'DEG' : 'RAD' }}
                   </B24Button>
                 </div>
