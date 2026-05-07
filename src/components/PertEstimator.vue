@@ -179,11 +179,12 @@
                 <B24InputNumber
                     v-model="task.optimistic"
                     :min="0"
+                    :max="task.realistic ?? undefined"
                     :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    @update:model-value="handleOptimisticChange(task, $event)"
                 />
               </td>
 
@@ -191,12 +192,13 @@
               <td class="px-3 py-2 align-middle">
                 <B24InputNumber
                     v-model="task.realistic"
-                    :min="0"
+                    :min="task.optimistic ?? 0"
+                    :max="task.pessimistic ?? undefined"
                     :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    @update:model-value="handleRealisticChange(task, $event)"
                 />
               </td>
 
@@ -204,12 +206,12 @@
               <td class="px-3 py-2 align-middle">
                 <B24InputNumber
                     v-model="task.pessimistic"
-                    :min="0"
+                    :min="task.realistic ?? 0"
                     :step="settings.stepValue"
                     placeholder="—"
                     size="md"
                     class="text-right"
-                    @update:model-value="debouncedUpdate"
+                    @update:model-value="handlePessimisticChange(task, $event)"
                 />
               </td>
 
@@ -273,9 +275,6 @@ import NeutralIcon from '@bitrix24/b24icons-vue/outline/NeutralIcon'
 import SadIcon from '@bitrix24/b24icons-vue/outline/SadIcon'
 import GraphsDiagramIcon from '@bitrix24/b24icons-vue/outline/GraphsDiagramIcon'
 import ShieldCheckedIcon from '@bitrix24/b24icons-vue/outline/ShieldCheckedIcon'
-
-
-
 
 interface Props {
   sendButton?: boolean
@@ -341,6 +340,38 @@ const calculatePERTValue = (task: PertTask): string => {
   if (o === 0 && m === 0 && p === 0) return '—'
   const pert = (o + 4 * m + p) / 6
   return pert.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+// Handlers for maintaining value constraints
+const handleOptimisticChange = (task: PertTask, value: number | null) => {
+  task.optimistic = value
+  // If realistic is less than optimistic, update realistic
+  if (task.realistic !== null && value !== null && task.realistic < value) {
+    task.realistic = value
+  }
+  debouncedUpdate()
+}
+
+const handleRealisticChange = (task: PertTask, value: number | null) => {
+  task.realistic = value
+  // Update optimistic if needed
+  if (task.optimistic !== null && value !== null && task.optimistic > value) {
+    task.optimistic = value
+  }
+  // Update pessimistic if needed
+  if (task.pessimistic !== null && value !== null && task.pessimistic < value) {
+    task.pessimistic = value
+  }
+  debouncedUpdate()
+}
+
+const handlePessimisticChange = (task: PertTask, value: number | null) => {
+  task.pessimistic = value
+  // If realistic is greater than pessimistic, update realistic
+  if (task.realistic !== null && value !== null && task.realistic > value) {
+    task.realistic = value
+  }
+  debouncedUpdate()
 }
 
 const totalPERT = computed(() => {
@@ -445,7 +476,7 @@ const formatNumber = (value: number): string => {
   })
 }
 
-// DescriptionList items - теперь включает стандартное отклонение и доверительный интервал
+// DescriptionList items - включает стандартное отклонение и доверительный интервал
 const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
     label: 'Итоговая оценка',
