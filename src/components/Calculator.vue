@@ -72,8 +72,8 @@
           <template #body="{ item }">
             <div class="grid grid-cols-4 gap-2 mt-1">
               <B24Button size="lg" variant="secondary" @click="clear" class="calc-btn" color="air-primary-alert">C</B24Button>
-              <B24Button size="lg" variant="secondary" @click="backspace" class="calc-btn" color="air-primary-alert">⌫</B24Button>
-              <B24Button size="lg" variant="secondary" @click="addPercentage" class="calc-btn" color="air-secondary-accent">%</B24Button>
+              <B24Button size="lg" variant="secondary" @click="backspace" class="calc-btn" color="air-secondary-alert">⌫</B24Button>
+              <B24Button size="lg" variant="secondary" @click="addPercentage" class="calc-btn" color="air-secondary-accent-1">%</B24Button>
               <B24Button size="lg" variant="ghost" @click="addToExpression('/')" class="calc-btn calc-btn-operation" color="air-secondary-accent">÷</B24Button>
 
               <B24Button size="lg" variant="ghost" @click="addToExpression('7')" class="calc-btn calc-btn-number">7</B24Button>
