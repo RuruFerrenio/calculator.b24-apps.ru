@@ -397,7 +397,7 @@ const formatNumber = (value: number): string => {
 // DescriptionList items - теперь включает стандартное отклонение и доверительный интервал
 const descriptionItems = computed<DescriptionListItem[]>(() => [
   {
-    label: 'Итоговая оценка (с наценками)',
+    label: 'Итоговая оценка',
     description: formatNumber(finalTotalPERT.value),
     class: 'font-bold',
     icon: TargetTimerIcon
