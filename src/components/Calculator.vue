@@ -117,7 +117,6 @@
             <div>
               <!-- Trigonometry -->
               <div class="mb-4">
-                <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Тригонометрия</h4>
                 <div class="grid grid-cols-3 gap-2 mb-3">
                   <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sin')" class="calc-btn-engineering">sin</B24Button>
                   <B24Button size="sm" variant="ghost" @click="wrapWithFunction('cos')" class="calc-btn-engineering">cos</B24Button>
@@ -132,7 +131,6 @@
 
               <!-- Mathematics -->
               <div class="mb-4">
-                <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Математические</h4>
                 <div class="grid grid-cols-3 gap-2">
                   <B24Button size="sm" variant="ghost" @click="wrapWithFunction('sqrt')" class="calc-btn-engineering">√</B24Button>
                   <B24Button size="sm" variant="ghost" @click="addPower(2)" class="calc-btn-engineering">x²</B24Button>
@@ -145,7 +143,6 @@
 
               <!-- Constants & Factorial -->
               <div class="mb-4">
-                <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Константы</h4>
                 <div class="grid grid-cols-3 gap-2">
                   <B24Button size="sm" variant="ghost" @click="addConstant('pi')" class="calc-btn-engineering">π</B24Button>
                   <B24Button size="sm" variant="ghost" @click="addConstant('e')" class="calc-btn-engineering">e</B24Button>
@@ -155,7 +152,6 @@
 
               <!-- Additional -->
               <div>
-                <h4 class="text-xs font-semibold text-b24-text-secondary mb-2 px-1">Дополнительно</h4>
                 <div class="grid grid-cols-3 gap-2">
                   <B24Button size="sm" variant="ghost" @click="wrapWithFunction('abs')" class="calc-btn-engineering">|x|</B24Button>
                   <B24Button size="sm" variant="ghost" @click="addReciprocal" class="calc-btn-engineering">1/x</B24Button>
