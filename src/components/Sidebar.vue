@@ -10,20 +10,16 @@ import SolutionsSlider from './SolutionsSlider.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
-// (function(w: Window, d: Document, u: string) {
-//   var s = d.createElement('script');
-//   s.async = true;
-//   s.src = u + '?' + (Date.now() / 60000 | 0);
-//   var h = d.getElementsByTagName('script')[0];
-//   h.parentNode.insertBefore(s, h);
-// })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
-
 const router = useRouter()
 const route = useRoute()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
 let intervalId: number | null = null
+
+// Состояние для SDK
+const ysdk = ref<any>(null)
+const isSDKReady = ref(false)
 
 // Функция проверки активного маршрута
 const isRouteActive = (path: string): boolean => {
@@ -81,9 +77,152 @@ const checkAdminRights = () => {
   }
 }
 
-// Инициализация и запуск периодической проверки
-const initialize = () => {
+// Загрузка SDK Яндекс Игр
+const loadYandexSDK = () => {
+  return new Promise((resolve, reject) => {
+    // Проверяем, загружен ли уже SDK
+    if (typeof (window as any).YaGames !== 'undefined') {
+      console.log('Yandex SDK уже загружен')
+      resolve(true)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://yandex.ru/games/sdk/v2'  // Правильный URL для SDK Яндекс Игр [citation:2][citation:10]
+    script.async = true
+    script.onload = () => {
+      console.log('✅ Yandex Games SDK загружен')
+      resolve(true)
+    }
+    script.onerror = () => {
+      console.error('❌ Ошибка загрузки Yandex SDK')
+      reject(false)
+    }
+    document.head.appendChild(script)
+  })
+}
+
+// Инициализация SDK
+const initYandexSDK = async () => {
+  try {
+    await loadYandexSDK()
+
+    // Инициализация через YaGames [citation:2]
+    if (typeof (window as any).YaGames !== 'undefined') {
+      const sdk = await (window as any).YaGames.init()
+      ysdk.value = sdk
+      isSDKReady.value = true
+      console.log('✅ Яндекс SDK инициализирован успешно')
+
+      // Сообщаем SDK, что игра готова [citation:10]
+      if (sdk && sdk.ready) {
+        sdk.ready()
+      }
+
+      // Показываем стикер-баннер (он включается в консоли разработчика, но можно и через API)
+      showStickyBanner()
+    }
+  } catch (error) {
+    console.error('❌ Ошибка инициализации Яндекс SDK:', error)
+    isSDKReady.value = false
+  }
+}
+
+// Показать стикер-баннер (если включен в консоли)
+const showStickyBanner = () => {
+  if (ysdk.value && ysdk.value.adv) {
+    try {
+      // В Яндекс Играх стикер-баннер обычно настраивается в консоли разработчика,
+      // но можно управлять через API: показать/скрыть [citation:4][citation:7]
+      if (ysdk.value.adv.showStickyBanner) {
+        ysdk.value.adv.showStickyBanner()
+        console.log('Стикер-баннер показан')
+      }
+    } catch (error) {
+      console.error('Ошибка показа стикер-баннера:', error)
+    }
+  }
+}
+
+// Скрыть стикер-баннер
+const hideStickyBanner = () => {
+  if (ysdk.value && ysdk.value.adv && ysdk.value.adv.hideStickyBanner) {
+    try {
+      ysdk.value.adv.hideStickyBanner()
+      console.log('Стикер-баннер скрыт')
+    } catch (error) {
+      console.error('Ошибка скрытия стикер-баннера:', error)
+    }
+  }
+}
+
+// Показать полноэкранную рекламу [citation:2][citation:6]
+const showFullscreenAd = () => {
+  if (!ysdk.value || !ysdk.value.adv) {
+    console.warn('SDK не инициализирован')
+    return
+  }
+
+  try {
+    ysdk.value.adv.showFullscreenAdv({
+      callbacks: {
+        onOpen: () => {
+          console.log('📺 Fullscreen реклама открылась')
+        },
+        onClose: (wasShown: boolean) => {
+          console.log('📺 Fullscreen реклама закрылась, была показана:', wasShown)
+          // Здесь можно добавить логику после закрытия рекламы
+          if (wasShown) {
+            // Реклама была показана и закрыта
+          }
+        },
+        onError: (error: any) => {
+          console.error('❌ Ошибка Fullscreen рекламы:', error)
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Ошибка вызова Fullscreen рекламы:', error)
+  }
+}
+
+// Показать рекламу с наградой [citation:2][citation:6]
+const showRewardedAd = () => {
+  if (!ysdk.value || !ysdk.value.adv) {
+    console.warn('SDK не инициализирован')
+    return
+  }
+
+  try {
+    ysdk.value.adv.showRewardedVideo({
+      callbacks: {
+        onOpen: () => {
+          console.log('🎁 Rewarded реклама открылась')
+        },
+        onRewarded: () => {
+          console.log('🎁 Награда за просмотр рекламы!')
+          // Здесь выдаем награду игроку
+          // Например: добавить монеты, бонусы и т.д.
+        },
+        onClose: () => {
+          console.log('🎁 Rewarded реклама закрылась')
+        },
+        onError: (error: any) => {
+          console.error('❌ Ошибка Rewarded рекламы:', error)
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Ошибка вызова Rewarded рекламы:', error)
+  }
+}
+
+// Инициализация
+const initialize = async () => {
   checkAdminRights()
+
+  // Загружаем и инициализируем SDK Яндекс Игр
+  await initYandexSDK()
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
@@ -92,7 +231,7 @@ const initialize = () => {
   }
 }
 
-// Очистка интервала при размонтировании компонента
+// Очистка при размонтировании
 const cleanup = () => {
   if (intervalId !== null) {
     clearInterval(intervalId)
