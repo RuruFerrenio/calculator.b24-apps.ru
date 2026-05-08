@@ -194,6 +194,14 @@ onUnmounted(() => {
       </div>
     </B24Card>
 
+    <!-- Рекламный блок РСЯ -->
+    <B24Card>
+      <div class="p-4">
+        <!-- Yandex.RTB R-A-19243375-1 -->
+        <div id="yandex_rtb_R-A-19243375-1"></div>
+      </div>
+    </B24Card>
+
     <!-- Слайдер с другими решениями -->
     <SolutionsSlider />
   </div>
