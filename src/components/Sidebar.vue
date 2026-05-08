@@ -10,24 +10,52 @@ import SolutionsSlider from './SolutionsSlider.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
-// (function(w: Window, d: Document, u: string) {
-//   var s = d.createElement('script');
-//   s.async = true;
-//   s.src = u + '?' + (Date.now() / 60000 | 0);
-//   var h = d.getElementsByTagName('script')[0];
-//   h.parentNode.insertBefore(s, h);
-// })(window, document, 'https://cdn-ru.bitrix24.ru/b37550306/crm/site_button/loader_1_bt7q7g.js');
-
 const router = useRouter()
 const route = useRoute()
 
 // Состояние для проверки прав администратора
 const isAdmin = ref(false)
 let intervalId: number | null = null
+let richAdsScript: HTMLScriptElement | null = null // Для хранения ссылки на скрипт
 
 // Функция проверки активного маршрута
 const isRouteActive = (path: string): boolean => {
   return route.path === path
+}
+
+// Функция для загрузки RichAds скрипта
+const loadRichAdsScript = (): void => {
+  // Проверяем, не загружен ли уже скрипт
+  if (document.querySelector('script[src*="richads-ob.js"]')) {
+    console.log('RichAds script already loaded')
+    return
+  }
+
+  // Создаем элемент скрипта
+  const script = document.createElement('script')
+  script.src = 'https://richinfo.co/richpartners/in-page/js/richads-ob.js?pubid=1010982&siteid=396371'
+  script.async = true
+
+  // Обработчики событий для отслеживания загрузки
+  script.onload = () => {
+    console.log('RichAds script loaded successfully')
+  }
+
+  script.onerror = (error) => {
+    console.error('Failed to load RichAds script:', error)
+  }
+
+  // Добавляем скрипт в документ
+  document.head.appendChild(script)
+  richAdsScript = script
+}
+
+// Функция для удаления скрипта при размонтировании (опционально)
+const removeRichAdsScript = (): void => {
+  if (richAdsScript && document.head.contains(richAdsScript)) {
+    document.head.removeChild(richAdsScript)
+    richAdsScript = null
+  }
 }
 
 const handleReview = (): void => {
@@ -84,6 +112,7 @@ const checkAdminRights = () => {
 // Инициализация и запуск периодической проверки
 const initialize = () => {
   checkAdminRights()
+  loadRichAdsScript() // Загружаем RichAds скрипт
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
@@ -98,6 +127,8 @@ const cleanup = () => {
     clearInterval(intervalId)
     intervalId = null
   }
+  // Опционально: удалить скрипт при размонтировании
+  // removeRichAdsScript()
 }
 
 onMounted(() => {
@@ -191,14 +222,6 @@ onUnmounted(() => {
             </nav>
           </div>
         </div>
-      </div>
-    </B24Card>
-
-    <!-- Рекламный блок РСЯ -->
-    <B24Card>
-      <div class="p-4">
-        <!-- Yandex.RTB R-A-19243375-1 -->
-        <div id="yandex_rtb_R-A-19243375-1"></div>
       </div>
     </B24Card>
 

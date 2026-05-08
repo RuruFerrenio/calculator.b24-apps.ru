@@ -1,4 +1,4 @@
-<!-- app.vue (исправленный с рекламой) -->
+<!-- app.vue (исправленный) -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -34,25 +34,6 @@ const showSidebar = computed(() => {
       route.path === '/instructions'
 })
 
-// Функция загрузки Яндекс.Рекламы
-const loadYandexAds = () => {
-  // Проверяем, не загружен ли уже скрипт
-  if (document.querySelector('script[src="https://yandex.ru/ads/system/context.js"]')) {
-    return
-  }
-
-  // Добавляем контекст для Яндекс.Рекламы
-  if (!(window as any).yaContextCb) {
-    (window as any).yaContextCb = []
-  }
-
-  // Создаем и добавляем скрипт загрузчика рекламы
-  const script = document.createElement('script')
-  script.src = 'https://yandex.ru/ads/system/context.js'
-  script.async = true
-  document.head.appendChild(script)
-}
-
 onMounted(() => {
   // Читаем куки при загрузке
   const mode = getCookie('open_app_mode')
@@ -68,24 +49,15 @@ onMounted(() => {
   }
   isLoading.value = false
 
-  // Загружаем скрипт Bitrix24
   const script = document.createElement('script')
   script.src = '//api.bitrix24.com/api/v1/'
   script.async = true
   document.head.appendChild(script)
-
-  // Загружаем Яндекс.Рекламу
-  loadYandexAds()
 })
 </script>
 
 <template>
   <div v-if="!isLoading">
-    <!-- Загрузчик Яндекс.Рекламы (head) -->
-    <template v-if="typeof window !== 'undefined'">
-      <script>window.yaContextCb = window.yaContextCb || []</script>
-    </template>
-
     <Suspense>
       <B24App>
         <div class="p-0 md:p-6">
