@@ -7,7 +7,7 @@ import HomeIcon from '@bitrix24/b24icons-vue/outline/HomeIcon'
 import DocumentUpdateIcon from '@bitrix24/b24icons-vue/outline/DocumentUpdateIcon'
 
 import SolutionsSlider from './SolutionsSlider.vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
@@ -21,6 +21,9 @@ let intervalId: number | null = null
 const ysdk = ref<any>(null)
 const isSDKReady = ref(false)
 const isBannerShowing = ref(false)
+
+// Флаг разработки - используем константу, а не import.meta в шаблоне
+const isDevMode = import.meta.env.DEV
 
 // Функция проверки активного маршрута
 const isRouteActive = (path: string): boolean => {
@@ -313,9 +316,9 @@ const setupPostMessageInterceptor = () => {
 // Проверка окружения
 const checkYandexGamesEnvironment = (): boolean => {
   // Всегда возвращаем true для разработки
-  const isDevMode = import.meta.env.DEV || window.location.hostname === 'localhost'
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost'
 
-  if (isDevMode) {
+  if (isDev) {
     console.log('🎮 [Mock] Режим разработки, используем мок-окружение')
     return true
   }
@@ -365,8 +368,8 @@ const initYandexSDK = async () => {
   }
 
   // Настраиваем мок-окружение для разработки
-  const isDevMode = import.meta.env.DEV || window.location.hostname === 'localhost'
-  if (isDevMode) {
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost'
+  if (isDev) {
     setupYandexGamesMockEnvironment()
     const cleanupInterceptor = setupPostMessageInterceptor()
         // Сохраняем cleanup для использования при размонтировании
@@ -679,7 +682,7 @@ defineExpose({
           </div>
 
           <!-- Индикатор статуса SDK (только для разработки) -->
-          <div v-if="import.meta.env.DEV" class="mt-4 pt-4 border-t border-gray-200">
+          <div v-if="isDevMode" class="mt-4 pt-4 border-t border-gray-200">
             <div class="text-xs text-gray-500">
               SDK Status:
               <span :class="isSDKReady ? 'text-green-600' : 'text-yellow-600'">
