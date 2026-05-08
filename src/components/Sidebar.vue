@@ -21,6 +21,32 @@ let intervalId: number | null = null
 const ysdk = ref<any>(null)
 const isSDKReady = ref(false)
 
+// Данные из реального iframe
+const IFRAME_DATA = {
+  appId: '494640',
+  originHash: '65nr7x2k6wfif3g7nn2j34pe5maxnluw',
+  sdkPath: '/sdk/_/v2.ddbf1fbb7b41988ff84e.js',
+  yclid: '792744691842940927',
+  deviceType: 'desktop',
+  originSrc: 'https://app-494640.games.s3.yandex.net/494640/65nr7x2k6wfif3g7nn2j34pe5maxnluw/index.html',
+  environmentData: {
+    sdkBackendURL: 'https://games-backend.yandex.ru',
+    APP_VERSION: 'production',
+    i18n: { lang: 'ru', langs: ['ru', 'en', 'tr', 'kk'] },
+    isTelegram: false,
+    isVK: false,
+    isYandexApp: false,
+    serverTime: Date.now(),
+    parentTimeOrigin: Date.now(),
+    useLSWrapper: true
+  },
+  optionsData: {
+    hasAuth: true,
+    features: { gamepads: false, vibration: false },
+    deviceType: 'desktop'
+  }
+}
+
 // Функция проверки активного маршрута
 const isRouteActive = (path: string): boolean => {
   return route.path === path
@@ -77,18 +103,194 @@ const checkAdminRights = () => {
   }
 }
 
+// Настройка параметров URL как в реальном iframe
+const setupUrlParams = () => {
+  const currentUrl = new URL(window.location.href)
+
+  // Добавляем yclid параметр
+  if (!currentUrl.searchParams.has('yclid')) {
+    currentUrl.searchParams.set('yclid', IFRAME_DATA.yclid)
+  }
+
+  // Добавляем sdk параметр
+  if (!currentUrl.searchParams.has('sdk')) {
+    currentUrl.searchParams.set('sdk', IFRAME_DATA.sdkPath)
+  }
+
+  // Обновляем hash с origin, app-id, device-type
+  const newHash = `#origin=${encodeURIComponent('https://yandex.ru')}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}`
+  if (window.location.hash !== newHash) {
+    window.location.hash = newHash
+  }
+
+  // Обновляем URL без перезагрузки
+  window.history.replaceState({}, '', currentUrl.toString())
+}
+
+// Эмуляция родительского окна для ответов на postMessage
+const setupParentWindowEmulator = () => {
+  console.log('🎮 Настройка эмулятора родительского окна для Яндекс SDK')
+
+  // Сохраняем оригинальный postMessage
+  const originalPostMessage = window.parent.postMessage
+
+  // Создаем обработчик для подделки ответов
+  const messageHandler = (event: MessageEvent) => {
+    let data: any
+
+    // Парсим сообщение
+    try {
+      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+    } catch {
+      return // Не JSON сообщение
+    }
+
+    // Проверяем, что это сообщение от SDK
+    if (data && data.source === 'YandexGamesSDK') {
+      console.log('🎮 Получено сообщение от SDK:', data.actionName, data)
+
+      // Обработка GET_IFRAME_ORIGIN_SRC - самый важный запрос
+      if (data.actionName === 'GET_IFRAME_ORIGIN_SRC') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          payload: `${IFRAME_DATA.originSrc}?yclid=${IFRAME_DATA.yclid}&sdk=${IFRAME_DATA.sdkPath}#origin=${encodeURIComponent('https://yandex.ru')}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}`
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на GET_IFRAME_ORIGIN_SRC')
+        }, 10)
+        return
+      }
+
+      // Обработка запроса окружения (loadEnvironment)
+      if (data.actionName === 'GET_ENVIRONMENT') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: {
+            enviroment: IFRAME_DATA.environmentData,
+            options: IFRAME_DATA.optionsData
+          }
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на GET_ENVIRONMENT')
+        }, 10)
+        return
+      }
+
+      // Получение опций
+      if (data.actionName === 'GET_OPTIONS') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: IFRAME_DATA.optionsData
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на GET_OPTIONS')
+        }, 10)
+        return
+      }
+
+      // Получение статуса стики-баннера
+      if (data.actionName === 'GET_BANNER_ADV_STATUS') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: {
+            stickyAdvIsShowing: false
+          }
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на GET_BANNER_ADV_STATUS')
+        }, 10)
+        return
+      }
+
+      // Показ стики-баннера
+      if (data.actionName === 'SHOW_BANNER_ADV') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: {
+            stickyAdvIsShowing: true
+          }
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на SHOW_BANNER_ADV')
+        }, 10)
+        return
+      }
+
+      // Скрытие стики-баннера
+      if (data.actionName === 'HIDE_BANNER_ADV') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: {
+            stickyAdvIsShowing: false
+          }
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на HIDE_BANNER_ADV')
+        }, 10)
+        return
+      }
+
+      // Проверка доступности методов
+      if (data.actionName === 'CHECK_AVAILABILITY') {
+        const response = {
+          source: 'YandexGamesSDK',
+          messageId: data.messageId,
+          data: {
+            isAvailable: true
+          }
+        }
+
+        setTimeout(() => {
+          event.source?.postMessage(JSON.stringify(response), '*')
+          console.log('✅ Отправлен ответ на CHECK_AVAILABILITY')
+        }, 10)
+        return
+      }
+    }
+  }
+
+  window.addEventListener('message', messageHandler)
+
+  // Эмулируем глобальную переменную loadEnvironmentPromise
+  ;(window as any).loadEnvironmentPromise = Promise.resolve({
+    enviroment: IFRAME_DATA.environmentData,
+    options: IFRAME_DATA.optionsData
+  })
+
+  ;(window as any).YandexGamesSDKEnvironment = IFRAME_DATA.environmentData
+
+  return () => window.removeEventListener('message', messageHandler)
+}
+
 // Загрузка SDK Яндекс Игр
 const loadYandexSDK = () => {
   return new Promise((resolve, reject) => {
-    // Проверяем, загружен ли уже SDK
     if (typeof (window as any).YaGames !== 'undefined') {
-      console.log('Yandex SDK уже загружен')
+      console.log('✅ Yandex SDK уже загружен')
       resolve(true)
       return
     }
 
     const script = document.createElement('script')
-    script.src = 'https://yandex.ru/games/sdk/v2'  // Правильный URL для SDK Яндекс Игр [citation:2][citation:10]
+    script.src = 'https://yandex.ru/games/sdk/v2'
     script.async = true
     script.onload = () => {
       console.log('✅ Yandex Games SDK загружен')
@@ -104,118 +306,141 @@ const loadYandexSDK = () => {
 
 // Инициализация SDK
 const initYandexSDK = async () => {
+  // Настраиваем URL параметры как в реальном iframe
+  setupUrlParams()
+
+  // Настраиваем эмулятор родительского окна
+  const cleanupEmulator = setupParentWindowEmulator()
+
   try {
     await loadYandexSDK()
 
-    // Инициализация через YaGames [citation:2]
     if (typeof (window as any).YaGames !== 'undefined') {
+      console.log('🎮 Инициализация Яндекс SDK...')
+
       const sdk = await (window as any).YaGames.init()
       ysdk.value = sdk
       isSDKReady.value = true
       console.log('✅ Яндекс SDK инициализирован успешно')
 
-      // Сообщаем SDK, что игра готова [citation:10]
       if (sdk && sdk.ready) {
-        sdk.ready()
+        await sdk.ready()
+        console.log('✅ SDK готов к работе')
       }
 
-      // Показываем стикер-баннер (он включается в консоли разработчика, но можно и через API)
-      showStickyBanner()
+      // Пытаемся показать стикер-баннер (если настроен)
+      try {
+        await showStickyBanner()
+      } catch (e) {
+        console.log('ℹ️ Стики-баннер не настроен')
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Ошибка инициализации Яндекс SDK:', error)
     isSDKReady.value = false
+
+    // Даже при ошибке, эмулятор останется для последующих вызовов
   }
+
+  return cleanupEmulator
 }
 
-// Показать стикер-баннер (если включен в консоли)
-const showStickyBanner = () => {
-  console.log('Показ стикер баннера!')
-  if (ysdk.value && ysdk.value.adv) {
-    try {
-      // В Яндекс Играх стикер-баннер обычно настраивается в консоли разработчика,
-      // но можно управлять через API: показать/скрыть [citation:4][citation:7]
-      if (ysdk.value.adv.showStickyBanner) {
-        ysdk.value.adv.showStickyBanner()
-        console.log('Стикер-баннер показан')
-      }
-    } catch (error) {
-      console.error('Ошибка показа стикер-баннера:', error)
+// Показать стикер-баннер (используя правильные методы)
+const showStickyBanner = async () => {
+  if (!ysdk.value || !ysdk.value.adv) {
+    console.warn('⚠️ SDK не инициализирован для показа баннера')
+    return
+  }
+
+  try {
+    // Используем правильный метод showBannerAdv (не showStickyBanner)
+    if (ysdk.value.adv.showBannerAdv) {
+      const result = await ysdk.value.adv.showBannerAdv()
+      console.log('📺 Стики-баннер показан:', result)
+    } else if (ysdk.value.adv.showStickyBanner) {
+      // Fallback для старых версий
+      ysdk.value.adv.showStickyBanner()
+      console.log('📺 Стики-баннер показан (старый метод)')
     }
+  } catch (error) {
+    console.error('❌ Ошибка показа стики-баннера:', error)
   }
 }
 
 // Скрыть стикер-баннер
-const hideStickyBanner = () => {
-  if (ysdk.value && ysdk.value.adv && ysdk.value.adv.hideStickyBanner) {
-    try {
+const hideStickyBanner = async () => {
+  if (!ysdk.value || !ysdk.value.adv) return
+
+  try {
+    if (ysdk.value.adv.hideBannerAdv) {
+      const result = await ysdk.value.adv.hideBannerAdv()
+      console.log('🔽 Стики-баннер скрыт:', result)
+    } else if (ysdk.value.adv.hideStickyBanner) {
       ysdk.value.adv.hideStickyBanner()
-      console.log('Стикер-баннер скрыт')
-    } catch (error) {
-      console.error('Ошибка скрытия стикер-баннера:', error)
+      console.log('🔽 Стики-баннер скрыт (старый метод)')
     }
+  } catch (error) {
+    console.error('❌ Ошибка скрытия стики-баннера:', error)
   }
 }
 
-// Показать полноэкранную рекламу [citation:2][citation:6]
+// Показать полноэкранную рекламу
 const showFullscreenAd = () => {
   if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа полноэкранной рекламы')
     return
   }
 
-  try {
-    ysdk.value.adv.showFullscreenAdv({
-      callbacks: {
-        onOpen: () => {
-          console.log('📺 Fullscreen реклама открылась')
-        },
-        onClose: (wasShown: boolean) => {
-          console.log('📺 Fullscreen реклама закрылась, была показана:', wasShown)
-          // Здесь можно добавить логику после закрытия рекламы
-          if (wasShown) {
-            // Реклама была показана и закрыта
-          }
-        },
-        onError: (error: any) => {
-          console.error('❌ Ошибка Fullscreen рекламы:', error)
+  console.log('📺 Запрос на показ полноэкранной рекламы')
+
+  ysdk.value.adv.showFullscreenAdv({
+    callbacks: {
+      onOpen: () => {
+        console.log('📺 Полноэкранная реклама открыта')
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Полноэкранная реклама показана и закрыта')
+        } else {
+          console.log('ℹ️ Полноэкранная реклама не показана (возможно, слишком частый вызов)')
         }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе полноэкранной рекламы:', error)
       }
-    })
-  } catch (error) {
-    console.error('Ошибка вызова Fullscreen рекламы:', error)
-  }
+    }
+  })
 }
 
-// Показать рекламу с наградой [citation:2][citation:6]
+// Показать рекламу с вознаграждением
 const showRewardedAd = () => {
   if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа rewarded видео')
     return
   }
 
-  try {
-    ysdk.value.adv.showRewardedVideo({
-      callbacks: {
-        onOpen: () => {
-          console.log('🎁 Rewarded реклама открылась')
-        },
-        onRewarded: () => {
-          console.log('🎁 Награда за просмотр рекламы!')
-          // Здесь выдаем награду игроку
-          // Например: добавить монеты, бонусы и т.д.
-        },
-        onClose: () => {
-          console.log('🎁 Rewarded реклама закрылась')
-        },
-        onError: (error: any) => {
-          console.error('❌ Ошибка Rewarded рекламы:', error)
+  console.log('🎁 Запрос на показ рекламы с вознаграждением')
+
+  ysdk.value.adv.showRewardedVideo({
+    callbacks: {
+      onOpen: () => {
+        console.log('🎁 Rewarded реклама открыта')
+      },
+      onRewarded: () => {
+        console.log('🎉 Пользователь получил награду за просмотр рекламы!')
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Rewarded реклама показана и закрыта')
+        } else {
+          console.log('ℹ️ Rewarded реклама не показана')
         }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе rewarded рекламы:', error)
       }
-    })
-  } catch (error) {
-    console.error('Ошибка вызова Rewarded рекламы:', error)
-  }
+    }
+  })
 }
 
 // Инициализация
@@ -223,7 +448,10 @@ const initialize = async () => {
   checkAdminRights()
 
   // Загружаем и инициализируем SDK Яндекс Игр
-  await initYandexSDK()
+  const cleanupEmulator = await initYandexSDK()
+
+      // Сохраняем cleanup для использования при размонтировании
+  ;(window as any).__yandexCleanup = cleanupEmulator
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
@@ -238,6 +466,13 @@ const cleanup = () => {
     clearInterval(intervalId)
     intervalId = null
   }
+
+  hideStickyBanner()
+
+  // Очищаем эмулятор
+  if ((window as any).__yandexCleanup) {
+    (window as any).__yandexCleanup()
+  }
 }
 
 onMounted(() => {
@@ -246,6 +481,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanup()
+})
+
+// Экспортируем методы для использования в других компонентах
+defineExpose({
+  showFullscreenAd,
+  showRewardedAd,
+  showStickyBanner,
+  hideStickyBanner,
+  isSDKReady
 })
 </script>
 
@@ -313,7 +557,7 @@ onUnmounted(() => {
 
               <!-- Техническая поддержка -->
               <a
-                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Удобное начало и завершение рабочего дня"
+                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
               >
                 <MailOutIcon class="w-5 h-5 mr-3 text-gray-500" />
