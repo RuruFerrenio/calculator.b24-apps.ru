@@ -20,8 +20,9 @@ let intervalId: number | null = null
 // Состояние для SDK
 const ysdk = ref<any>(null)
 const isSDKReady = ref(false)
+let messageHandlerCleanup: (() => void) | null = null
 
-// Данные из реального iframe
+// Данные из реального iframe игры с ID 494640
 const IFRAME_DATA = {
   appId: '494640',
   originHash: '65nr7x2k6wfif3g7nn2j34pe5maxnluw',
@@ -29,21 +30,63 @@ const IFRAME_DATA = {
   yclid: '792744691842940927',
   deviceType: 'desktop',
   originSrc: 'https://app-494640.games.s3.yandex.net/494640/65nr7x2k6wfif3g7nn2j34pe5maxnluw/index.html',
+
+  // Полное окружение, которое ожидает SDK (структура из кода)
   environmentData: {
     sdkBackendURL: 'https://games-backend.yandex.ru',
     APP_VERSION: 'production',
-    i18n: { lang: 'ru', langs: ['ru', 'en', 'tr', 'kk'] },
+    i18n: {
+      lang: 'ru',
+      langs: ['ru', 'en', 'tr', 'kk']
+    },
     isTelegram: false,
     isVK: false,
     isYandexApp: false,
     serverTime: Date.now(),
     parentTimeOrigin: Date.now(),
-    useLSWrapper: true
+    useLSWrapper: true,
+    useLSWrapperWithLoad: false,
+    // Структура app из кода SDK
+    app: {
+      id: '494640'
+    },
+    // Структура request с experiments (то, что вызывало ошибку)
+    request: {
+      experiments: {
+        test1212Payments: false,
+        signed: false,
+        enableNewAds: true,
+        enableRewardedVideo: true,
+        enableFullscreenAdv: true,
+        enableStickyBanner: true
+      }
+    },
+    // Дополнительные поля, которые могут понадобиться
+    features: {
+      gamepads: false,
+      vibration: false
+    },
+    deviceInfo: {
+      type: 'desktop',
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true
+    },
+    isIframe: true,
+    parentOrigin: 'https://yandex.ru'
   },
+
+  // Опции для инициализации
   optionsData: {
     hasAuth: true,
-    features: { gamepads: false, vibration: false },
-    deviceType: 'desktop'
+    features: {
+      gamepads: false,
+      vibration: false,
+      adv: true
+    },
+    deviceType: 'desktop',
+    appId: '494640',
+    signed: false
   }
 }
 
@@ -107,180 +150,136 @@ const checkAdminRights = () => {
 const setupUrlParams = () => {
   const currentUrl = new URL(window.location.href)
 
-  // Добавляем yclid параметр
   if (!currentUrl.searchParams.has('yclid')) {
     currentUrl.searchParams.set('yclid', IFRAME_DATA.yclid)
   }
 
-  // Добавляем sdk параметр
   if (!currentUrl.searchParams.has('sdk')) {
     currentUrl.searchParams.set('sdk', IFRAME_DATA.sdkPath)
   }
 
-  // Обновляем hash с origin, app-id, device-type
+  if (!currentUrl.searchParams.has('app-id')) {
+    currentUrl.searchParams.set('app-id', IFRAME_DATA.appId)
+  }
+
+  if (!currentUrl.searchParams.has('device-type')) {
+    currentUrl.searchParams.set('device-type', IFRAME_DATA.deviceType)
+  }
+
   const newHash = `#origin=${encodeURIComponent('https://yandex.ru')}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}`
   if (window.location.hash !== newHash) {
     window.location.hash = newHash
   }
 
-  // Обновляем URL без перезагрузки
   window.history.replaceState({}, '', currentUrl.toString())
+  console.log('🎮 URL настроен:', window.location.href)
 }
 
-// Эмуляция родительского окна для ответов на postMessage
+// Эмуляция родительского окна
 const setupParentWindowEmulator = () => {
-  console.log('🎮 Настройка эмулятора родительского окна для Яндекс SDK')
+  console.log('🎮 Настройка эмулятора родительского окна')
 
-  // Сохраняем оригинальный postMessage
-  const originalPostMessage = window.parent.postMessage
+  // Устанавливаем глобальные переменные, которые ожидает SDK
+  ;(window as any).YandexGamesSDKEnvironment = IFRAME_DATA.environmentData
+  ;(window as any).__YA_GAMES_APP_ID__ = IFRAME_DATA.appId
 
-  // Создаем обработчик для подделки ответов
-  const messageHandler = (event: MessageEvent) => {
-    let data: any
+  // Эмулируем Promise для loadEnvironment
+  ;(window as any).loadEnvironmentPromise = Promise.resolve({
+    enviroment: IFRAME_DATA.environmentData,
+    options: IFRAME_DATA.optionsData
+  })
 
-    // Парсим сообщение
-    try {
-      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-    } catch {
-      return // Не JSON сообщение
-    }
-
-    // Проверяем, что это сообщение от SDK
-    if (data && data.source === 'YandexGamesSDK') {
-      console.log('🎮 Получено сообщение от SDK:', data.actionName, data)
-
-      // Обработка GET_IFRAME_ORIGIN_SRC - самый важный запрос
-      if (data.actionName === 'GET_IFRAME_ORIGIN_SRC') {
-        const response = {
+  // Карта ответов на запросы SDK
+  const getResponseForAction = (actionName: string, messageId: string, data?: any) => {
+    switch (actionName) {
+      case 'GET_IFRAME_ORIGIN_SRC':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
-          payload: `${IFRAME_DATA.originSrc}?yclid=${IFRAME_DATA.yclid}&sdk=${IFRAME_DATA.sdkPath}#origin=${encodeURIComponent('https://yandex.ru')}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}`
+          messageId: messageId,
+          payload: `${IFRAME_DATA.originSrc}?yclid=${IFRAME_DATA.yclid}&sdk=${IFRAME_DATA.sdkPath}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}#origin=${encodeURIComponent('https://yandex.ru')}&app-id=${IFRAME_DATA.appId}&device-type=${IFRAME_DATA.deviceType}`
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на GET_IFRAME_ORIGIN_SRC')
-        }, 10)
-        return
-      }
-
-      // Обработка запроса окружения (loadEnvironment)
-      if (data.actionName === 'GET_ENVIRONMENT') {
-        const response = {
+      case 'GET_ENVIRONMENT':
+      case 'VT': // Судя по коду, это метод получения окружения
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
+          messageId: messageId,
           data: {
             enviroment: IFRAME_DATA.environmentData,
             options: IFRAME_DATA.optionsData
           }
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на GET_ENVIRONMENT')
-        }, 10)
-        return
-      }
-
-      // Получение опций
-      if (data.actionName === 'GET_OPTIONS') {
-        const response = {
+      case 'GET_OPTIONS':
+      case 'Gd':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
+          messageId: messageId,
           data: IFRAME_DATA.optionsData
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на GET_OPTIONS')
-        }, 10)
-        return
-      }
-
-      // Получение статуса стики-баннера
-      if (data.actionName === 'GET_BANNER_ADV_STATUS') {
-        const response = {
+      case 'GET_BANNER_ADV_STATUS':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
-          data: {
-            stickyAdvIsShowing: false
-          }
+          messageId: messageId,
+          data: { stickyAdvIsShowing: false }
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на GET_BANNER_ADV_STATUS')
-        }, 10)
-        return
-      }
-
-      // Показ стики-баннера
-      if (data.actionName === 'SHOW_BANNER_ADV') {
-        const response = {
+      case 'SHOW_BANNER_ADV':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
-          data: {
-            stickyAdvIsShowing: true
-          }
+          messageId: messageId,
+          data: { stickyAdvIsShowing: true }
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на SHOW_BANNER_ADV')
-        }, 10)
-        return
-      }
-
-      // Скрытие стики-баннера
-      if (data.actionName === 'HIDE_BANNER_ADV') {
-        const response = {
+      case 'HIDE_BANNER_ADV':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
-          data: {
-            stickyAdvIsShowing: false
-          }
+          messageId: messageId,
+          data: { stickyAdvIsShowing: false }
         }
 
-        setTimeout(() => {
-          event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на HIDE_BANNER_ADV')
-        }, 10)
-        return
-      }
-
-      // Проверка доступности методов
-      if (data.actionName === 'CHECK_AVAILABILITY') {
-        const response = {
+      case 'CHECK_AVAILABILITY':
+      case 'sC':
+        return {
           source: 'YandexGamesSDK',
-          messageId: data.messageId,
-          data: {
-            isAvailable: true
-          }
+          messageId: messageId,
+          data: { isAvailable: true }
         }
 
+      default:
+        return null
+    }
+  }
+
+  // Обработчик сообщений
+  const messageHandler = (event: MessageEvent) => {
+    let data: any
+
+    try {
+      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+    } catch {
+      return
+    }
+
+    if (data && data.source === 'YandexGamesSDK') {
+      console.log('🎮 Получено сообщение:', data.actionName)
+
+      const response = getResponseForAction(data.actionName, data.messageId, data)
+      if (response) {
         setTimeout(() => {
           event.source?.postMessage(JSON.stringify(response), '*')
-          console.log('✅ Отправлен ответ на CHECK_AVAILABILITY')
+          console.log('✅ Ответ отправлен на:', data.actionName)
         }, 10)
-        return
       }
     }
   }
 
   window.addEventListener('message', messageHandler)
-
-  // Эмулируем глобальную переменную loadEnvironmentPromise
-  ;(window as any).loadEnvironmentPromise = Promise.resolve({
-    enviroment: IFRAME_DATA.environmentData,
-    options: IFRAME_DATA.optionsData
-  })
-
-  ;(window as any).YandexGamesSDKEnvironment = IFRAME_DATA.environmentData
-
   return () => window.removeEventListener('message', messageHandler)
 }
 
-// Загрузка SDK Яндекс Игр
+// Загрузка SDK
 const loadYandexSDK = () => {
   return new Promise((resolve, reject) => {
     if (typeof (window as any).YaGames !== 'undefined') {
@@ -306,11 +305,11 @@ const loadYandexSDK = () => {
 
 // Инициализация SDK
 const initYandexSDK = async () => {
-  // Настраиваем URL параметры как в реальном iframe
   setupUrlParams()
+  messageHandlerCleanup = setupParentWindowEmulator()
 
-  // Настраиваем эмулятор родительского окна
-  const cleanupEmulator = setupParentWindowEmulator()
+  // Устанавливаем глобальное окружение ДО загрузки SDK
+  ;(window as any).YandexGamesSDKEnvironment = IFRAME_DATA.environmentData
 
   try {
     await loadYandexSDK()
@@ -325,120 +324,44 @@ const initYandexSDK = async () => {
 
       if (sdk && sdk.ready) {
         await sdk.ready()
-        console.log('✅ SDK готов к работе')
-      }
-
-      // Пытаемся показать стикер-баннер (если настроен)
-      try {
-        await showStickyBanner()
-      } catch (e) {
-        console.log('ℹ️ Стики-баннер не настроен')
+        console.log('✅ SDK готов')
       }
     }
   } catch (error: any) {
-    console.error('❌ Ошибка инициализации Яндекс SDK:', error)
+    console.error('❌ Ошибка инициализации:', error)
     isSDKReady.value = false
-
-    // Даже при ошибке, эмулятор останется для последующих вызовов
-  }
-
-  return cleanupEmulator
-}
-
-// Показать стикер-баннер (используя правильные методы)
-const showStickyBanner = async () => {
-  if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('⚠️ SDK не инициализирован для показа баннера')
-    return
-  }
-
-  try {
-    // Используем правильный метод showBannerAdv (не showStickyBanner)
-    if (ysdk.value.adv.showBannerAdv) {
-      const result = await ysdk.value.adv.showBannerAdv()
-      console.log('📺 Стики-баннер показан:', result)
-    } else if (ysdk.value.adv.showStickyBanner) {
-      // Fallback для старых версий
-      ysdk.value.adv.showStickyBanner()
-      console.log('📺 Стики-баннер показан (старый метод)')
-    }
-  } catch (error) {
-    console.error('❌ Ошибка показа стики-баннера:', error)
-  }
-}
-
-// Скрыть стикер-баннер
-const hideStickyBanner = async () => {
-  if (!ysdk.value || !ysdk.value.adv) return
-
-  try {
-    if (ysdk.value.adv.hideBannerAdv) {
-      const result = await ysdk.value.adv.hideBannerAdv()
-      console.log('🔽 Стики-баннер скрыт:', result)
-    } else if (ysdk.value.adv.hideStickyBanner) {
-      ysdk.value.adv.hideStickyBanner()
-      console.log('🔽 Стики-баннер скрыт (старый метод)')
-    }
-  } catch (error) {
-    console.error('❌ Ошибка скрытия стики-баннера:', error)
   }
 }
 
 // Показать полноэкранную рекламу
 const showFullscreenAd = () => {
-  if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('⚠️ SDK не инициализирован для показа полноэкранной рекламы')
+  if (!ysdk.value?.adv) {
+    console.warn('⚠️ SDK не инициализирован')
     return
   }
 
-  console.log('📺 Запрос на показ полноэкранной рекламы')
-
   ysdk.value.adv.showFullscreenAdv({
     callbacks: {
-      onOpen: () => {
-        console.log('📺 Полноэкранная реклама открыта')
-      },
-      onClose: (wasShown: boolean) => {
-        if (wasShown) {
-          console.log('✅ Полноэкранная реклама показана и закрыта')
-        } else {
-          console.log('ℹ️ Полноэкранная реклама не показана (возможно, слишком частый вызов)')
-        }
-      },
-      onError: (error: any) => {
-        console.error('❌ Ошибка при показе полноэкранной рекламы:', error)
-      }
+      onOpen: () => console.log('📺 Реклама открыта'),
+      onClose: (wasShown: boolean) => console.log('📺 Реклама закрыта, показана:', wasShown),
+      onError: (error: any) => console.error('❌ Ошибка:', error)
     }
   })
 }
 
-// Показать рекламу с вознаграждением
+// Показать rewarded рекламу
 const showRewardedAd = () => {
-  if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('⚠️ SDK не инициализирован для показа rewarded видео')
+  if (!ysdk.value?.adv) {
+    console.warn('⚠️ SDK не инициализирован')
     return
   }
 
-  console.log('🎁 Запрос на показ рекламы с вознаграждением')
-
   ysdk.value.adv.showRewardedVideo({
     callbacks: {
-      onOpen: () => {
-        console.log('🎁 Rewarded реклама открыта')
-      },
-      onRewarded: () => {
-        console.log('🎉 Пользователь получил награду за просмотр рекламы!')
-      },
-      onClose: (wasShown: boolean) => {
-        if (wasShown) {
-          console.log('✅ Rewarded реклама показана и закрыта')
-        } else {
-          console.log('ℹ️ Rewarded реклама не показана')
-        }
-      },
-      onError: (error: any) => {
-        console.error('❌ Ошибка при показе rewarded рекламы:', error)
-      }
+      onOpen: () => console.log('🎁 Rewarded открыта'),
+      onRewarded: () => console.log('🎉 Награда выдана!'),
+      onClose: (wasShown: boolean) => console.log('🎁 Rewarded закрыта'),
+      onError: (error: any) => console.error('❌ Ошибка:', error)
     }
   })
 }
@@ -446,12 +369,7 @@ const showRewardedAd = () => {
 // Инициализация
 const initialize = async () => {
   checkAdminRights()
-
-  // Загружаем и инициализируем SDK Яндекс Игр
-  const cleanupEmulator = await initYandexSDK()
-
-      // Сохраняем cleanup для использования при размонтировании
-  ;(window as any).__yandexCleanup = cleanupEmulator
+  await initYandexSDK()
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
@@ -460,18 +378,14 @@ const initialize = async () => {
   }
 }
 
-// Очистка при размонтировании
+// Очистка
 const cleanup = () => {
   if (intervalId !== null) {
     clearInterval(intervalId)
     intervalId = null
   }
-
-  hideStickyBanner()
-
-  // Очищаем эмулятор
-  if ((window as any).__yandexCleanup) {
-    (window as any).__yandexCleanup()
+  if (messageHandlerCleanup) {
+    messageHandlerCleanup()
   }
 }
 
@@ -483,23 +397,18 @@ onUnmounted(() => {
   cleanup()
 })
 
-// Экспортируем методы для использования в других компонентах
 defineExpose({
   showFullscreenAd,
   showRewardedAd,
-  showStickyBanner,
-  hideStickyBanner,
   isSDKReady
 })
 </script>
 
 <template>
   <div class="lg:sticky lg:top-6 space-y-6">
-    <!-- Карточка информации о приложении -->
     <B24Card>
       <div class="p-0 md:p-6">
         <div class="space-y-6">
-          <!-- Логотип и название -->
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <CalculatorIcon class="w-6 h-6 text-blue-600" />
@@ -512,9 +421,7 @@ defineExpose({
 
           <div class="space-y-3">
             <h4 class="text-sm font-medium text-gray-900">Меню</h4>
-            <!-- Панель навигации -->
             <nav class="space-y-2">
-              <!-- Главная -->
               <div
                   @click="goToMain"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
@@ -524,7 +431,6 @@ defineExpose({
                 Главная
               </div>
 
-              <!-- Настройки - видно только администраторам -->
               <div
                   v-if="isAdmin"
                   @click="goToSettings"
@@ -535,7 +441,6 @@ defineExpose({
                 Настройки
               </div>
 
-              <!-- Заглушка для обычных пользователей -->
               <div
                   v-else
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
@@ -545,7 +450,6 @@ defineExpose({
                 Настройки
               </div>
 
-              <!-- Инструкция -->
               <div
                   @click="goToInstructions"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
@@ -555,7 +459,6 @@ defineExpose({
                 Инструкция
               </div>
 
-              <!-- Техническая поддержка -->
               <a
                   href="mailto:technogalera@yandex.ru?subject=Поддержка приложения"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
@@ -564,7 +467,6 @@ defineExpose({
                 Техническая поддержка
               </a>
 
-              <!-- Оставить отзыв -->
               <div
                   @click="handleReview"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
@@ -578,7 +480,6 @@ defineExpose({
       </div>
     </B24Card>
 
-    <!-- Слайдер с другими решениями -->
     <SolutionsSlider />
   </div>
 </template>
