@@ -17,9 +17,10 @@ const route = useRoute()
 const isAdmin = ref(false)
 let intervalId: number | null = null
 
-// Состояние для SDK
+// Состояние для SDK Яндекс Игр
 const ysdk = ref<any>(null)
 const isSDKReady = ref(false)
+const isBannerShowing = ref(false)
 
 // Функция проверки активного маршрута
 const isRouteActive = (path: string): boolean => {
@@ -80,15 +81,14 @@ const checkAdminRights = () => {
 // Загрузка SDK Яндекс Игр
 const loadYandexSDK = () => {
   return new Promise((resolve, reject) => {
-    // Проверяем, загружен ли уже SDK
     if (typeof (window as any).YaGames !== 'undefined') {
-      console.log('Yandex SDK уже загружен')
+      console.log('✅ Yandex SDK уже загружен')
       resolve(true)
       return
     }
 
     const script = document.createElement('script')
-    script.src = 'https://yandex.ru/games/sdk/v2'  // Правильный URL для SDK Яндекс Игр [citation:2][citation:10]
+    script.src = 'https://yandex.ru/games/sdk/v2'
     script.async = true
     script.onload = () => {
       console.log('✅ Yandex Games SDK загружен')
@@ -102,25 +102,24 @@ const loadYandexSDK = () => {
   })
 }
 
-// Инициализация SDK
+// Инициализация SDK Яндекс Игр
 const initYandexSDK = async () => {
   try {
     await loadYandexSDK()
 
-    // Инициализация через YaGames [citation:2]
     if (typeof (window as any).YaGames !== 'undefined') {
       const sdk = await (window as any).YaGames.init()
       ysdk.value = sdk
       isSDKReady.value = true
       console.log('✅ Яндекс SDK инициализирован успешно')
 
-      // Сообщаем SDK, что игра готова [citation:10]
+      // Сообщаем SDK, что приложение готово
       if (sdk && sdk.ready) {
-        sdk.ready()
+        await sdk.ready()
       }
 
-      // Показываем стикер-баннер (он включается в консоли разработчика, но можно и через API)
-      showStickyBanner()
+      // Запускаем стики-баннер (если включен в консоли)
+      await initStickyBanner()
     }
   } catch (error) {
     console.error('❌ Ошибка инициализации Яндекс SDK:', error)
@@ -128,97 +127,128 @@ const initYandexSDK = async () => {
   }
 }
 
-// Показать стикер-баннер (если включен в консоли)
-const showStickyBanner = () => {
-  console.log('Показ стикер баннера!')
-  if (ysdk.value && ysdk.value.adv) {
-    try {
-      // В Яндекс Играх стикер-баннер обычно настраивается в консоли разработчика,
-      // но можно управлять через API: показать/скрыть [citation:4][citation:7]
-      if (ysdk.value.adv.showStickyBanner) {
-        ysdk.value.adv.showStickyBanner()
-        console.log('Стикер-баннер показан')
+// Инициализация стики-баннера
+const initStickyBanner = async () => {
+  if (!ysdk.value || !ysdk.value.adv) return
+
+  try {
+    // Получаем текущий статус баннера
+    const status = await ysdk.value.adv.getBannerAdvStatus()
+    isBannerShowing.value = status.stickyAdvIsShowing
+
+    if (status.stickyAdvIsShowing) {
+      console.log('📺 Стики-баннер уже показывается')
+    } else if (status.reason) {
+      console.log(`⚠️ Стики-баннер не показывается: ${status.reason}`)
+      // Если баннер не показывается и нет явной причины, пробуем показать
+      if (status.reason !== 'ADV_IS_NOT_CONNECTED') {
+        await showStickyBanner()
       }
-    } catch (error) {
-      console.error('Ошибка показа стикер-баннера:', error)
+    } else {
+      // Пробуем показать баннер
+      await showStickyBanner()
     }
+  } catch (error) {
+    console.error('❌ Ошибка при проверке статуса баннера:', error)
   }
 }
 
-// Скрыть стикер-баннер
-const hideStickyBanner = () => {
-  if (ysdk.value && ysdk.value.adv && ysdk.value.adv.hideStickyBanner) {
-    try {
-      ysdk.value.adv.hideStickyBanner()
-      console.log('Стикер-баннер скрыт')
-    } catch (error) {
-      console.error('Ошибка скрытия стикер-баннера:', error)
+// Показать стики-баннер
+const showStickyBanner = async () => {
+  if (!ysdk.value || !ysdk.value.adv) {
+    console.warn('⚠️ SDK не инициализирован для показа баннера')
+    return
+  }
+
+  try {
+    const result = await ysdk.value.adv.showBannerAdv()
+    isBannerShowing.value = result.stickyAdvIsShowing
+    if (result.stickyAdvIsShowing) {
+      console.log('📺 Стики-баннер успешно показан')
+    } else if (result.reason) {
+      console.log(`⚠️ Не удалось показать стики-баннер: ${result.reason}`)
     }
+  } catch (error) {
+    console.error('❌ Ошибка показа стики-баннера:', error)
   }
 }
 
-// Показать полноэкранную рекламу [citation:2][citation:6]
+// Скрыть стики-баннер
+const hideStickyBanner = async () => {
+  if (!ysdk.value || !ysdk.value.adv) return
+
+  try {
+    const result = await ysdk.value.adv.hideBannerAdv()
+    isBannerShowing.value = result.stickyAdvIsShowing
+    console.log('🔽 Стики-баннер скрыт')
+  } catch (error) {
+    console.error('❌ Ошибка скрытия стики-баннера:', error)
+  }
+}
+
+// Показать полноэкранную рекламу
 const showFullscreenAd = () => {
   if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа полноэкранной рекламы')
     return
   }
 
-  try {
-    ysdk.value.adv.showFullscreenAdv({
-      callbacks: {
-        onOpen: () => {
-          console.log('📺 Fullscreen реклама открылась')
-        },
-        onClose: (wasShown: boolean) => {
-          console.log('📺 Fullscreen реклама закрылась, была показана:', wasShown)
-          // Здесь можно добавить логику после закрытия рекламы
-          if (wasShown) {
-            // Реклама была показана и закрыта
-          }
-        },
-        onError: (error: any) => {
-          console.error('❌ Ошибка Fullscreen рекламы:', error)
+  console.log('📺 Запрос на показ полноэкранной рекламы')
+
+  ysdk.value.adv.showFullscreenAdv({
+    callbacks: {
+      onOpen: () => {
+        console.log('📺 Полноэкранная реклама открыта')
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Полноэкранная реклама показана и закрыта')
+          // Здесь можно продолжить игру после рекламы
+        } else {
+          console.log('ℹ️ Полноэкранная реклама не показана (возможно, слишком частый вызов)')
         }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе полноэкранной рекламы:', error)
       }
-    })
-  } catch (error) {
-    console.error('Ошибка вызова Fullscreen рекламы:', error)
-  }
+    }
+  })
 }
 
-// Показать рекламу с наградой [citation:2][citation:6]
-const showRewardedAd = () => {
+// Показать рекламу с вознаграждением
+const showRewardedVideo = () => {
   if (!ysdk.value || !ysdk.value.adv) {
-    console.warn('SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа rewarded видео')
     return
   }
 
-  try {
-    ysdk.value.adv.showRewardedVideo({
-      callbacks: {
-        onOpen: () => {
-          console.log('🎁 Rewarded реклама открылась')
-        },
-        onRewarded: () => {
-          console.log('🎁 Награда за просмотр рекламы!')
-          // Здесь выдаем награду игроку
-          // Например: добавить монеты, бонусы и т.д.
-        },
-        onClose: () => {
-          console.log('🎁 Rewarded реклама закрылась')
-        },
-        onError: (error: any) => {
-          console.error('❌ Ошибка Rewarded рекламы:', error)
+  console.log('🎁 Запрос на показ рекламы с вознаграждением')
+
+  ysdk.value.adv.showRewardedVideo({
+    callbacks: {
+      onOpen: () => {
+        console.log('🎁 Rewarded реклама открыта')
+      },
+      onRewarded: () => {
+        console.log('🎉 Пользователь получил награду за просмотр рекламы!')
+        // Здесь выдаем награду пользователю
+        // Пример: добавить внутриигровую валюту, бонусы и т.д.
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Rewarded реклама показана и закрыта')
+        } else {
+          console.log('ℹ️ Rewarded реклама не показана')
         }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе rewarded рекламы:', error)
       }
-    })
-  } catch (error) {
-    console.error('Ошибка вызова Rewarded рекламы:', error)
-  }
+    }
+  })
 }
 
-// Инициализация
+// Инициализация приложения
 const initialize = async () => {
   checkAdminRights()
 
@@ -238,6 +268,8 @@ const cleanup = () => {
     clearInterval(intervalId)
     intervalId = null
   }
+  // Скрываем баннер при уходе со страницы
+  hideStickyBanner()
 }
 
 onMounted(() => {
@@ -246,6 +278,16 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanup()
+})
+
+// Экспортируем методы для использования в других компонентах
+defineExpose({
+  showFullscreenAd,
+  showRewardedVideo,
+  showStickyBanner,
+  hideStickyBanner,
+  isSDKReady,
+  isBannerShowing
 })
 </script>
 
