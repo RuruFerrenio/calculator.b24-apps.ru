@@ -21,6 +21,7 @@ let intervalId: number | null = null
 const ysdk = ref<any>(null)
 const isSDKReady = ref(false)
 let messageHandlerCleanup: (() => void) | null = null
+let hasShownInitialAd = ref(false) // Флаг, чтобы показать рекламу только один раз
 
 // Данные из реального iframe игры с ID 494640
 const IFRAME_DATA = {
@@ -200,7 +201,7 @@ const setupParentWindowEmulator = () => {
         }
 
       case 'GET_ENVIRONMENT':
-      case 'VT': // Судя по коду, это метод получения окружения
+      case 'VT':
         return {
           source: 'YandexGamesSDK',
           messageId: messageId,
@@ -336,15 +337,27 @@ const initYandexSDK = async () => {
 // Показать полноэкранную рекламу
 const showFullscreenAd = () => {
   if (!ysdk.value?.adv) {
-    console.warn('⚠️ SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа рекламы')
     return
   }
 
+  console.log('📺 Вызов полноэкранной рекламы...')
+
   ysdk.value.adv.showFullscreenAdv({
     callbacks: {
-      onOpen: () => console.log('📺 Реклама открыта'),
-      onClose: (wasShown: boolean) => console.log('📺 Реклама закрыта, показана:', wasShown),
-      onError: (error: any) => console.error('❌ Ошибка:', error)
+      onOpen: () => {
+        console.log('📺 Полноэкранная реклама открыта')
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Полноэкранная реклама показана и закрыта')
+        } else {
+          console.log('ℹ️ Полноэкранная реклама не показана (возможно, слишком частый вызов или реклама не загрузилась)')
+        }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе полноэкранной рекламы:', error)
+      }
     }
   })
 }
@@ -352,24 +365,65 @@ const showFullscreenAd = () => {
 // Показать rewarded рекламу
 const showRewardedAd = () => {
   if (!ysdk.value?.adv) {
-    console.warn('⚠️ SDK не инициализирован')
+    console.warn('⚠️ SDK не инициализирован для показа rewarded рекламы')
     return
   }
 
+  console.log('🎁 Вызов rewarded рекламы...')
+
   ysdk.value.adv.showRewardedVideo({
     callbacks: {
-      onOpen: () => console.log('🎁 Rewarded открыта'),
-      onRewarded: () => console.log('🎉 Награда выдана!'),
-      onClose: (wasShown: boolean) => console.log('🎁 Rewarded закрыта'),
-      onError: (error: any) => console.error('❌ Ошибка:', error)
+      onOpen: () => {
+        console.log('🎁 Rewarded реклама открыта')
+      },
+      onRewarded: () => {
+        console.log('🎉 Пользователь получил награду за просмотр рекламы!')
+      },
+      onClose: (wasShown: boolean) => {
+        if (wasShown) {
+          console.log('✅ Rewarded реклама показана и закрыта')
+        } else {
+          console.log('ℹ️ Rewarded реклама не показана')
+        }
+      },
+      onError: (error: any) => {
+        console.error('❌ Ошибка при показе rewarded рекламы:', error)
+      }
     }
   })
+}
+
+// Показать рекламу при загрузке страницы
+const showAdOnLoad = async () => {
+  // Ждем, пока SDK будет готов
+  let attempts = 0
+  const maxAttempts = 30 // Максимум 3 секунды (30 * 100ms)
+
+  const waitForSDK = setInterval(() => {
+    attempts++
+
+    if (isSDKReady.value && ysdk.value?.adv) {
+      clearInterval(waitForSDK)
+      console.log('🎮 SDK готов, показываем рекламу при загрузке...')
+
+      // Небольшая задержка перед показом рекламы
+      setTimeout(() => {
+        showFullscreenAd()
+      }, 500)
+    } else if (attempts >= maxAttempts) {
+      clearInterval(waitForSDK)
+      console.warn('⚠️ SDK не готов для показа рекламы при загрузке')
+    }
+  }, 100)
 }
 
 // Инициализация
 const initialize = async () => {
   checkAdminRights()
   await initYandexSDK()
+
+  // Показываем рекламу при загрузке (если SDK готов)
+  await showAdOnLoad()
 
   if (intervalId === null) {
     intervalId = window.setInterval(() => {
