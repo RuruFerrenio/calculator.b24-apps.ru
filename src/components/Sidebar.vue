@@ -78,6 +78,260 @@ const checkAdminRights = () => {
   }
 }
 
+// Настройка мок-окружения Яндекс Игр для локальной разработки
+const setupYandexGamesMockEnvironment = () => {
+  console.log('🎮 [Mock] Настройка мок-окружения Яндекс Игр')
+
+  // Данные из реального iframe игры с ID 494640
+  const mockGameData = {
+    appId: '494640',
+    origin: 'https://app-494640.games.s3.yandex.net',
+    sdkUrl: '/sdk/_/v2.ddbf1fbb7b41988ff84e.js',
+    deviceType: 'desktop',
+    yclid: '792744691842940927'
+  }
+
+  // Создаем фейковое окружение, как если бы мы были в iframe Яндекса
+  const mockEnvironment = {
+        enviroment: {
+          sdkBackendURL: 'https://games-backend.yandex.ru',
+          APP_VERSION: 'production',
+          i18n: {
+            lang: 'ru',
+            langs: ['ru', 'en', 'tr', 'kk']
+          },
+          isTelegram: false,
+          isVK: false,
+          isYandexApp: false,
+          serverTime: Date.now(),
+          parentTimeOrigin: Date.now(),
+          useLSWrapper: true,
+          gameUrl: `https://yandex.ru/games/app/${mockGameData.appId}`,
+          originSrc: `https://app-${mockGameData.appId}.games.s3.yandex.net/${mockGameData.appId}/index.html`
+        },
+        options: {
+          hasAuth: true,
+          features: {
+            gamepads: false,
+            vibration: false
+          },
+          deviceType: mockGameData.deviceType,
+          appId: mockGameData.appId
+        }
+      }
+
+      // Подставляем мок-окружение глобально
+  ;(window as any).loadEnvironmentPromise = Promise.resolve(mockEnvironment)
+  ;(window as any).YandexGamesSDKEnvironment = mockEnvironment.enviroment
+  ;(window as any).__YA_GAMES_APP_ID__ = mockGameData.appId
+
+  // Меняем URL, чтобы он выглядел как игра на Яндекс Играх
+  const currentUrl = new URL(window.location.href)
+  if (!currentUrl.searchParams.has('app-id')) {
+    currentUrl.searchParams.set('app-id', mockGameData.appId)
+    currentUrl.searchParams.set('device-type', mockGameData.deviceType)
+    if (mockGameData.yclid) {
+      currentUrl.searchParams.set('yclid', mockGameData.yclid)
+    }
+    // Обновляем URL без перезагрузки страницы
+    window.history.replaceState({}, '', currentUrl.toString())
+  }
+
+  // Добавляем #origin параметр в hash, если его нет
+  if (!window.location.hash.includes('origin=')) {
+    const newHash = `#origin=https%3A%2F%2Fyandex.ru&app-id=${mockGameData.appId}&device-type=${mockGameData.deviceType}`
+    window.location.hash = newHash
+  }
+
+  console.log('🎮 [Mock] URL обновлен:', window.location.href)
+  console.log('🎮 [Mock] Мок-окружение настроено для игры ID:', mockGameData.appId)
+}
+
+// Перехват и обработка postMessage запросов от SDK
+const setupPostMessageInterceptor = () => {
+  const messageHandler = (event: MessageEvent) => {
+    try {
+      // Пытаемся распарсить сообщение
+      let data: any
+      if (typeof event.data === 'string') {
+        try {
+          data = JSON.parse(event.data)
+        } catch {
+          return // Не JSON сообщение
+        }
+      } else {
+        data = event.data
+      }
+
+      // Проверяем, что это сообщение от SDK Яндекс Игр
+      if (data && data.source === 'YandexGamesSDK') {
+        console.log('🎮 [Mock] Перехвачено сообщение:', data.actionName, data)
+
+        // Ответы на различные запросы SDK
+        const responses: Record<string, any> = {
+          // Запрос на получение URL iframe
+          'GET_IFRAME_ORIGIN_SRC': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            payload: `https://app-494640.games.s3.yandex.net/494640/index.html#origin=https%3A%2F%2Fyandex.ru&app-id=494640&device-type=desktop`
+          },
+
+          // Запрос на получение информации об устройстве
+          'GET_DEVICE_INFO': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              deviceType: 'desktop',
+              isMobile: false,
+              isTablet: false,
+              isDesktop: true
+            }
+          },
+
+          // Запрос на получение доступных функций
+          'GET_FEATURES': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              features: ['adv', 'storage', 'player', 'leaderboards']
+            }
+          },
+
+          // Запрос на получение i18n
+          'GET_I18N': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              lang: 'ru',
+              langs: ['ru', 'en']
+            }
+          },
+
+          // Проверка доступности метода
+          'CHECK_AVAILABILITY': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              isAvailable: true
+            }
+          },
+
+          // Запрос опций
+          'GET_OPTIONS': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              hasAuth: true,
+              features: {},
+              deviceType: 'desktop'
+            }
+          },
+
+          // Запрос на получение статуса баннера
+          'GET_BANNER_ADV_STATUS': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              stickyAdvIsShowing: false
+            }
+          },
+
+          // Показать баннер
+          'SHOW_BANNER_ADV': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              stickyAdvIsShowing: true
+            }
+          },
+
+          // Скрыть баннер
+          'HIDE_BANNER_ADV': {
+            source: 'YandexGamesSDK',
+            messageId: data.messageId,
+            data: {
+              stickyAdvIsShowing: false
+            }
+          }
+        }
+
+        // Отправляем ответ, если есть соответствующий обработчик
+        if (responses[data.actionName]) {
+          setTimeout(() => {
+            event.source?.postMessage(JSON.stringify(responses[data.actionName]), '*')
+            console.log('🎮 [Mock] Отправлен ответ на:', data.actionName)
+          }, 10)
+        }
+
+        // Для полноэкранной рекламы эмулируем успешный показ
+        if (data.actionName === 'SHOW_FULLSCREEN_ADV') {
+          console.log('🎮 [Mock] Эмулируем показ полноэкранной рекламы')
+          setTimeout(() => {
+            // Эмулируем колбэк onOpen
+            if (data.callbacks?.onOpen) {
+              data.callbacks.onOpen()
+            }
+            // Эмулируем колбэк onClose через 2 секунды
+            setTimeout(() => {
+              if (data.callbacks?.onClose) {
+                data.callbacks.onClose(true)
+              }
+            }, 2000)
+          }, 100)
+        }
+
+        // Для rewarded видео эмулируем успешный показ с наградой
+        if (data.actionName === 'SHOW_REWARDED_VIDEO') {
+          console.log('🎮 [Mock] Эмулируем показ rewarded видео')
+          setTimeout(() => {
+            // Эмулируем колбэк onOpen
+            if (data.callbacks?.onOpen) {
+              data.callbacks.onOpen()
+            }
+            // Эмулируем колбэк onRewarded через 1 секунду
+            setTimeout(() => {
+              if (data.callbacks?.onRewarded) {
+                data.callbacks.onRewarded()
+              }
+              // Эмулируем колбэк onClose
+              if (data.callbacks?.onClose) {
+                data.callbacks.onClose(true)
+              }
+            }, 1500)
+          }, 100)
+        }
+      }
+    } catch (e) {
+      // Игнорируем ошибки парсинга
+    }
+  }
+
+  window.addEventListener('message', messageHandler)
+  return () => window.removeEventListener('message', messageHandler)
+}
+
+// Проверка окружения
+const checkYandexGamesEnvironment = (): boolean => {
+  // Всегда возвращаем true для разработки
+  const isDevMode = import.meta.env.DEV || window.location.hostname === 'localhost'
+
+  if (isDevMode) {
+    console.log('🎮 [Mock] Режим разработки, используем мок-окружение')
+    return true
+  }
+
+  // Реальная проверка для продакшена на Яндекс Играх
+  const isYandexGamesDomain =
+      window.location.hostname.includes('yandex') &&
+      (window.location.pathname.includes('/games/') ||
+          window.location.pathname.includes('/play/'))
+
+  const isS3Domain = window.location.hostname.includes('games.s3.yandex.net')
+  const hasAppId = window.location.search.includes('app-id=') || window.location.hash.includes('app-id=')
+
+  return isYandexGamesDomain || isS3Domain || hasAppId
+}
+
 // Загрузка SDK Яндекс Игр
 const loadYandexSDK = () => {
   return new Promise((resolve, reject) => {
@@ -87,6 +341,7 @@ const loadYandexSDK = () => {
       return
     }
 
+    // Используем SDK из iframe игры
     const script = document.createElement('script')
     script.src = 'https://yandex.ru/games/sdk/v2'
     script.async = true
@@ -104,27 +359,90 @@ const loadYandexSDK = () => {
 
 // Инициализация SDK Яндекс Игр
 const initYandexSDK = async () => {
+  if (!checkYandexGamesEnvironment()) {
+    console.log('ℹ️ Приложение запущено не в Яндекс Играх, пропускаем инициализацию Яндекс SDK')
+    return
+  }
+
+  // Настраиваем мок-окружение для разработки
+  const isDevMode = import.meta.env.DEV || window.location.hostname === 'localhost'
+  if (isDevMode) {
+    setupYandexGamesMockEnvironment()
+    const cleanupInterceptor = setupPostMessageInterceptor()
+        // Сохраняем cleanup для использования при размонтировании
+    ;(window as any).__yandexGamesCleanup = cleanupInterceptor
+  }
+
   try {
     await loadYandexSDK()
 
     if (typeof (window as any).YaGames !== 'undefined') {
+      console.log('🎮 Инициализация Яндекс SDK...')
+
       const sdk = await (window as any).YaGames.init()
       ysdk.value = sdk
       isSDKReady.value = true
       console.log('✅ Яндекс SDK инициализирован успешно')
 
-      // Сообщаем SDK, что приложение готово
       if (sdk && sdk.ready) {
         await sdk.ready()
+        console.log('✅ SDK готов к работе')
       }
 
-      // Запускаем стики-баннер (если включен в консоли)
-      await initStickyBanner()
+      // Пробуем инициализировать стики-баннер
+      try {
+        await initStickyBanner()
+      } catch (e) {
+        console.log('ℹ️ Стики-баннер не настроен')
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Ошибка инициализации Яндекс SDK:', error)
-    isSDKReady.value = false
+
+    if (import.meta.env.DEV) {
+      console.log('ℹ️ [DevMode] Ошибка не критична, SDK будет работать в демо-режиме')
+      // В dev-режиме эмулируем SDK
+      emulateSDK()
+    } else {
+      isSDKReady.value = false
+    }
   }
+}
+
+// Эмуляция SDK для разработки (если реальный не работает)
+const emulateSDK = () => {
+  console.log('🎮 [Emulator] Создаем эмулятор SDK')
+
+  const emulator = {
+    adv: {
+      getBannerAdvStatus: async () => ({ stickyAdvIsShowing: false }),
+      showBannerAdv: async () => ({ stickyAdvIsShowing: true }),
+      hideBannerAdv: async () => ({ stickyAdvIsShowing: false }),
+      showFullscreenAdv: ({ callbacks }: any) => {
+        console.log('🎮 [Emulator] Показ полноэкранной рекламы')
+        callbacks?.onOpen?.()
+        setTimeout(() => callbacks?.onClose?.(true), 2000)
+      },
+      showRewardedVideo: ({ callbacks }: any) => {
+        console.log('🎮 [Emulator] Показ rewarded видео')
+        callbacks?.onOpen?.()
+        setTimeout(() => {
+          callbacks?.onRewarded?.()
+          callbacks?.onClose?.(true)
+        }, 1500)
+      }
+    },
+    ready: async () => console.log('🎮 [Emulator] SDK готов'),
+    getPlayer: async () => ({
+      getID: () => 'emulated_player',
+      getName: () => 'Тестовый игрок',
+      getMode: () => 'emulated'
+    })
+  }
+
+  ysdk.value = emulator
+  isSDKReady.value = true
+  console.log('✅ Эмулятор SDK готов к работе')
 }
 
 // Инициализация стики-баннера
@@ -132,7 +450,6 @@ const initStickyBanner = async () => {
   if (!ysdk.value || !ysdk.value.adv) return
 
   try {
-    // Получаем текущий статус баннера
     const status = await ysdk.value.adv.getBannerAdvStatus()
     isBannerShowing.value = status.stickyAdvIsShowing
 
@@ -140,12 +457,10 @@ const initStickyBanner = async () => {
       console.log('📺 Стики-баннер уже показывается')
     } else if (status.reason) {
       console.log(`⚠️ Стики-баннер не показывается: ${status.reason}`)
-      // Если баннер не показывается и нет явной причины, пробуем показать
       if (status.reason !== 'ADV_IS_NOT_CONNECTED') {
         await showStickyBanner()
       }
     } else {
-      // Пробуем показать баннер
       await showStickyBanner()
     }
   } catch (error) {
@@ -203,9 +518,8 @@ const showFullscreenAd = () => {
       onClose: (wasShown: boolean) => {
         if (wasShown) {
           console.log('✅ Полноэкранная реклама показана и закрыта')
-          // Здесь можно продолжить игру после рекламы
         } else {
-          console.log('ℹ️ Полноэкранная реклама не показана (возможно, слишком частый вызов)')
+          console.log('ℹ️ Полноэкранная реклама не показана')
         }
       },
       onError: (error: any) => {
@@ -231,8 +545,6 @@ const showRewardedVideo = () => {
       },
       onRewarded: () => {
         console.log('🎉 Пользователь получил награду за просмотр рекламы!')
-        // Здесь выдаем награду пользователю
-        // Пример: добавить внутриигровую валюту, бонусы и т.д.
       },
       onClose: (wasShown: boolean) => {
         if (wasShown) {
@@ -251,8 +563,6 @@ const showRewardedVideo = () => {
 // Инициализация приложения
 const initialize = async () => {
   checkAdminRights()
-
-  // Загружаем и инициализируем SDK Яндекс Игр
   await initYandexSDK()
 
   if (intervalId === null) {
@@ -268,8 +578,12 @@ const cleanup = () => {
     clearInterval(intervalId)
     intervalId = null
   }
-  // Скрываем баннер при уходе со страницы
   hideStickyBanner()
+
+  // Очищаем обработчики сообщений
+  if ((window as any).__yandexGamesCleanup) {
+    (window as any).__yandexGamesCleanup()
+  }
 }
 
 onMounted(() => {
@@ -293,11 +607,9 @@ defineExpose({
 
 <template>
   <div class="lg:sticky lg:top-6 space-y-6">
-    <!-- Карточка информации о приложении -->
     <B24Card>
       <div class="p-0 md:p-6">
         <div class="space-y-6">
-          <!-- Логотип и название -->
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <CalculatorIcon class="w-6 h-6 text-blue-600" />
@@ -310,9 +622,7 @@ defineExpose({
 
           <div class="space-y-3">
             <h4 class="text-sm font-medium text-gray-900">Меню</h4>
-            <!-- Панель навигации -->
             <nav class="space-y-2">
-              <!-- Главная -->
               <div
                   @click="goToMain"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
@@ -322,7 +632,6 @@ defineExpose({
                 Главная
               </div>
 
-              <!-- Настройки - видно только администраторам -->
               <div
                   v-if="isAdmin"
                   @click="goToSettings"
@@ -333,7 +642,6 @@ defineExpose({
                 Настройки
               </div>
 
-              <!-- Заглушка для обычных пользователей -->
               <div
                   v-else
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
@@ -343,7 +651,6 @@ defineExpose({
                 Настройки
               </div>
 
-              <!-- Инструкция -->
               <div
                   @click="goToInstructions"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer"
@@ -353,16 +660,14 @@ defineExpose({
                 Инструкция
               </div>
 
-              <!-- Техническая поддержка -->
               <a
-                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения Удобное начало и завершение рабочего дня"
+                  href="mailto:technogalera@yandex.ru?subject=Поддержка приложения"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
               >
                 <MailOutIcon class="w-5 h-5 mr-3 text-gray-500" />
                 Техническая поддержка
               </a>
 
-              <!-- Оставить отзыв -->
               <div
                   @click="handleReview"
                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
@@ -372,11 +677,20 @@ defineExpose({
               </div>
             </nav>
           </div>
+
+          <!-- Индикатор статуса SDK (только для разработки) -->
+          <div v-if="import.meta.env.DEV" class="mt-4 pt-4 border-t border-gray-200">
+            <div class="text-xs text-gray-500">
+              SDK Status:
+              <span :class="isSDKReady ? 'text-green-600' : 'text-yellow-600'">
+                {{ isSDKReady ? '✅ Ready' : '⏳ Loading...' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </B24Card>
 
-    <!-- Слайдер с другими решениями -->
     <SolutionsSlider />
   </div>
 </template>
