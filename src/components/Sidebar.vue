@@ -130,6 +130,7 @@ const initYandexSDK = async () => {
 
 // Показать стикер-баннер (если включен в консоли)
 const showStickyBanner = () => {
+  console.log('Показ стикер баннера!')
   if (ysdk.value && ysdk.value.adv) {
     try {
       // В Яндекс Играх стикер-баннер обычно настраивается в консоли разработчика,
